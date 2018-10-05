@@ -29,14 +29,14 @@ if ! command -v readlink > /dev/null; then
   echo "ERROR: this program requires 'readlink'"
 fi
 
+SCRIPT_FOLDER="$(dirname $(readlink -f "${0}"))"
+SCRIPT_NAME="$(basename $(readlink -f "${0}"))"
+########################### End of the generic section ##########################
+
 # Need ssh-keygen
 if ! command -v ssh-keygen > /dev/null; then
   echo "ERROR: this program requires 'ssh-keygen'"
 fi
-
-SCRIPT_FOLDER="$(dirname $(readlink -f "${0}"))"
-SCRIPT_NAME="$(basename $(readlink -f "${0}"))"
-########################### End of the generic section ##########################
 
 usage() {
   local b="\033[1m" #$(tput bold)

@@ -73,8 +73,8 @@ LONGOPTS=help,verbose,debug
 
 ! PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@")
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-  echo "ERROR: an error occured while parsing the program arguments"
-  echo "${PARSED}"
+  >&2 echo "ERROR: an error occured while parsing the program arguments"
+  >&2 echo "${PARSED}"
   usage
   exit 2
 fi
@@ -131,7 +131,7 @@ while true; do
             break
             ;;
         *)
-            echo "ERROR: an error occured while reading the program arguments (programming error)."
+            >&2 echo "ERROR: an error occured while reading the program arguments (programming error)."
             usage
             exit 3
             ;;
@@ -155,16 +155,26 @@ if [[ "${printHelp}" = "y" ]]; then
 fi 
 
 if [[ ! -f "${passphrase_file}" ]] && [[ "${passphrase_file}" != "-" ]]; then
-    echo "ERROR: the specified passphrase file '${passphrase_file}' does not exists"
+    >&2 echo "ERROR: the specified passphrase file '${passphrase_file}' does not exists"
+    exit 1
+fi
+
+if [[ -f "${output_keyfile}" ]] || [[ -f "${output_keyfile}.pub" ]]; then
+    >&2 echo "ERROR: the specified output key file '${output_keyfile}' or '${output_keyfile}.pub' already exist"
+    exit 1
 fi
 
 if [[ "${verbose}" = "y" ]]; then 
-    echo "Reading passphrase from '${passphrase_file}'..."
+    >&2 echo "Reading passphrase from '${passphrase_file}'..."
 fi
-passphrase=$(head -n 1 ${passphrase_file})
+
+passphrase=$(timeout 5 head -n 1 ${passphrase_file} || {
+    >&2 echo "ERROR: while reading passphrase from '${passphrase_file}'..."
+    exit 1
+})
 
 if [[ "${debug}" = "y" ]]; then 
-    printf "passphrase=%s\n" ${passphrase}
+    >&2 printf "Read passphrase=%s\n" ${passphrase}
 fi
 
 # generate the ssh key

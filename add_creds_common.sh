@@ -49,7 +49,7 @@ show_info() {
 create_pw() {
   read -p "Do you want to generate the password? (Y)es, (N)ooo, E(x)it: " yn
   case $yn in
-    [Yy]* ) pw=$(pwgen -1 -s -y 24);printf "${site_name} password: ${pw}\n";;
+    [Yy]* ) pw=$(pwgen -1 -s -y 24);printf "%s password: %s\n" ${site_name} ${pw};;
     [Nn]* ) echo -n "${site_name} password: ";read -r pw;;
     [Xx]* ) exit;;
         * ) echo "Please answer (Y)es, (N)ooo, E(x)it";;

@@ -20,13 +20,14 @@ IFS=$'\n\t'
 # Need enhanced getopt (-use ! and PIPESTATUS to get exit code with 'errexit' set)
 ! getopt --test > /dev/null 
 if [[ ${PIPESTATUS[0]} -ne 4 ]]; then
-  echo "ERROR: this program requires a enhanced version of getopt."
+  >&2 echo "ERROR: this program requires a enhanced version of 'getopt'"
   exit 1
 fi
 
 # Need readlink
 if ! command -v readlink > /dev/null; then
-  echo "ERROR: this program requires 'readlink'"
+  >&2 echo "ERROR: this program requires 'readlink'"
+  exit 1
 fi
 
 SCRIPT_FOLDER="$(dirname $(readlink -f "${0}"))"
@@ -35,13 +36,14 @@ SCRIPT_NAME="$(basename $(readlink -f "${0}"))"
 
 # Need ssh-keygen
 if ! command -v ssh-keygen > /dev/null; then
-  echo "ERROR: this program requires 'ssh-keygen'"
+  >&2 echo "ERROR: this program requires 'ssh-keygen'"
+  exit 1
 fi
 
 usage() {
-  local b="\033[1m" #$(tput bold)
-  local u="\033[4m" #$(tput smul)
-  local r="\033[0m" #$(tput sgr0)
+  local b="\033[1m"
+  local u="\033[4m"
+  local r="\033[0m"
   printf "${b}NAME${r}\n"
   printf "    ${b}%s${r} -- A non-interactive wrapper of ssh-keygen\n\n" "${SCRIPT_NAME}"
   printf "${b}SYNOPSIS${r}\n"
@@ -159,7 +161,7 @@ fi
 if [[ "${verbose}" = "y" ]]; then 
     echo "Reading passphrase from '${passphrase_file}'..."
 fi
-passphrase=$(cat ${passphrase_file})
+passphrase=$(head -n 1 ${passphrase_file})
 
 if [[ "${debug}" = "y" ]]; then 
     printf "passphrase=%s\n" ${passphrase}

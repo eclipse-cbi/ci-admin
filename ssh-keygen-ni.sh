@@ -168,10 +168,7 @@ if [[ "${verbose}" = "y" ]]; then
     >&2 echo "Reading passphrase from '${passphrase_file}'..."
 fi
 
-passphrase=$(timeout 5 head -n 1 ${passphrase_file} || {
-    >&2 echo "ERROR: while reading passphrase from '${passphrase_file}'..."
-    exit 1
-})
+passphrase=$(${SCRIPT_FOLDER}/utils/read-secret.sh "${passphrase_file}")
 
 if [[ "${debug}" = "y" ]]; then 
     >&2 printf "Read passphrase=%s\n" ${passphrase}

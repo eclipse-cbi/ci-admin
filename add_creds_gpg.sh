@@ -81,6 +81,9 @@ pw_gen() {
 
 gpg_sb() {
   mkdir -p ${tmp_gpg}
+  cat <<EOG > ${tmp_gpg}/gpg-agent.conf
+allow-loopback-pinentry
+EOG
   chmod 700 ${tmp_gpg}
   gpg --homedir ${tmp_gpg} $@
 }
@@ -117,7 +120,22 @@ EOF
   printf "\nChecking keys...\n\n"
   gpg_sb --list-keys
 }
-  
+
+generate_sub_keypair() {
+  printf "\nGenerating another signing (sub-)keypair...\n"
+  subkey_cmd=$(cat <<EOM
+addkey
+4
+4096
+5y
+${pass_phrase}
+${pass_phrase}
+save
+EOM
+)
+  gpg_sb --batch --command-fd 0 --pinentry-mode=loopback --expert --edit-key $key_id <<< "${subkey_cmd}"
+}
+
 check_prefs() {
   printf "\nChecking hash-preferences...\n\n"
   gpg_sb --edit-key $key_id showpref save exit
@@ -156,6 +174,8 @@ printf "Found key: %s\n" ${key_id}
 
 check_prefs
 
+yes_skip_exit "generate another signing (sub-)keypair" generate_sub_keypair
+
 yes_skip_exit "send the new key to the keyserver" send_key
 
 yes_skip_exit "export the secret part of the subkeys" export_secret_subkey
@@ -163,8 +183,8 @@ yes_skip_exit "export the secret part of the subkeys" export_secret_subkey
 yes_skip_exit "add the keys and passphrase to the password store" add_to_pw_store
 
 
-#remove keys from temporary keystore
 if [ -d ${tmp_gpg} ]; then
+  printf "\Deleting temporary keystore...\n\n"
   rm -rf ${tmp_gpg}
 fi
 

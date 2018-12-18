@@ -65,9 +65,10 @@ ml_name="${short_name}-dev"     # Mailing list name (e.g. cbi-dev)
 keyserver=pgp.mit.edu           # PGP keyserver
 
 file_name=$ml_name@$forge.txt   # Passphrases file
-gen_key_config_file=gen_key_config
 
-tmp_gpg="/tmp/temp_gpg"
+tmp_gpg=/tmp/temp_gpg
+tmp_gpg_docker=/run/gnupg
+gen_key_config_file=gen_key_config
 
 
 pw_gen() {
@@ -80,19 +81,16 @@ pw_gen() {
 }
 
 gpg_sb() {
-  mkdir -p ${tmp_gpg}
-  cat <<EOG > ${tmp_gpg}/gpg-agent.conf
-allow-loopback-pinentry
-EOG
-  chmod 700 ${tmp_gpg}
-  gpg --homedir ${tmp_gpg} $@
+  docker run -i --rm -u $(id -u) -v ${tmp_gpg}:${tmp_gpg_docker} eclipsecbi/gnupg:2.2.8-r0 $@
 }
 
 pass_phrase=$(pw_gen 64)
 
 generate_key() {
+  mkdir -p ${tmp_gpg}
+  chmod 700 ${tmp_gpg}
   ## generate key config file
-  cat <<EOF > $gen_key_config_file
+  cat <<EOF > ${tmp_gpg}/$gen_key_config_file
 %echo Generating keypair for ${display_name} ...
 Key-Type: RSA
 Key-Length: 4096
@@ -112,33 +110,33 @@ Passphrase: ${pass_phrase}
 EOF
 
   printf "\nGenerating key non-interactively...\n\n"
-  gpg_sb --batch --gen-key $gen_key_config_file
+  gpg_sb --batch --gen-key ${tmp_gpg_docker}/$gen_key_config_file
 
   printf "\nShredding config file...\n\n"
-  shred -n 7 -u -z $gen_key_config_file
+  shred -n 7 -u -z ${tmp_gpg}/$gen_key_config_file
 
   printf "\nChecking keys...\n\n"
   gpg_sb --list-keys
 }
 
 generate_sub_keypair() {
-  printf "\nGenerating another signing (sub-)keypair...\n"
+  printf "\nGenerating a signing (sub-)keypair...\n"
   subkey_cmd=$(cat <<EOM
 addkey
 4
 4096
 5y
 ${pass_phrase}
-${pass_phrase}
 save
 EOM
 )
+
   gpg_sb --batch --command-fd 0 --pinentry-mode=loopback --expert --edit-key $key_id <<< "${subkey_cmd}"
 }
 
 check_prefs() {
   printf "\nChecking hash-preferences...\n\n"
-  gpg_sb --edit-key $key_id showpref save exit
+  gpg_sb --batch --edit-key $key_id showpref save exit
 }
 
 send_key() {
@@ -148,7 +146,7 @@ send_key() {
 
 export_secret_subkey(){
   printf "\nExporting the secret part of the subkeys...\n\n"
-  gpg_sb --armor --output secret-subkeys.asc --export-secret-subkeys $key_id
+  gpg_sb --batch --passphrase-fd 0 --pinentry-mode=loopback --armor --export-secret-subkeys $key_id <<< "${pass_phrase}" > secret-subkeys.asc
 }
 
 yes_skip_exit() {
@@ -174,7 +172,7 @@ printf "Found key: %s\n" ${key_id}
 
 check_prefs
 
-yes_skip_exit "generate another signing (sub-)keypair" generate_sub_keypair
+yes_skip_exit "generate a signing (sub-)keypair" generate_sub_keypair
 
 yes_skip_exit "send the new key to the keyserver" send_key
 
@@ -184,7 +182,7 @@ yes_skip_exit "add the keys and passphrase to the password store" add_to_pw_stor
 
 
 if [ -d ${tmp_gpg} ]; then
-  printf "\Deleting temporary keystore...\n\n"
+  printf "\nDeleting temporary keystore...\n\n"
   rm -rf ${tmp_gpg}
 fi
 

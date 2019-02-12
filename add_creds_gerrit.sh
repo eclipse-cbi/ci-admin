@@ -38,6 +38,7 @@ create_gerrit_account() {
   printf "Creating Gerrit bot account..."
   pass ${pw_store_path}/id_rsa.pub | ssh -p 29418 git.eclipse.org gerrit create-account --full-name "'${short_name} Bot'" --email "${email}" --ssh-key - genie.${short_name}
   echo "INSERT INTO account_external_ids (account_id,email_address,external_id) SELECT account_id,\"${email}\",\"gerrit:${email}\" FROM accounts WHERE preferred_email=\"${email}\";" | ssh -p 29418 git.eclipse.org gerrit gsql
+  printf "Flushing Gerrit caches..."
   ssh -p 29418 git.eclipse.org gerrit flush-caches
   printf "Done.\n"
 }

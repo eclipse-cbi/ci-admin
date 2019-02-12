@@ -17,7 +17,7 @@ IFS=$'\n\t'
 ########################### End of the generic section ##########################
 
 from="${1:-"-"}"
-timeout_sec="${2:-5}"
+timeout_sec="${2:-30}"
 
 set +o errexit
 timeout ${timeout_sec} head -n 1 "${from}"

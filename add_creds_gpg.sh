@@ -62,7 +62,7 @@ pw_store_path=cbi-pass/bots/${project_name}/${site}
 
 ml_name="${short_name}-dev"     # Mailing list name (e.g. cbi-dev)
 
-keyserver=pgp.mit.edu           # PGP keyserver
+keyserver=pool.sks-keyservers.net           # PGP keyserver
 
 file_name=$ml_name@$forge.txt   # Passphrases file
 
@@ -159,7 +159,7 @@ yes_skip_exit() {
   esac
 }
 
-add_to_pw_store() { 
+add_to_pw_store() {
   echo ${pass_phrase} | pass insert --echo ${pw_store_path}/passphrase
   cat secret-subkeys.asc | pass insert -m ${pw_store_path}/secret-subkeys.asc
 }

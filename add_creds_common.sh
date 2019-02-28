@@ -35,8 +35,9 @@ check_pw_does_not_exists() {
   pass ${pw_store_path} &> /dev/null
   if [[ $? == "0" ]]; then
     printf "ERROR: ${site_name} credentials for ${project_name} already exist.\n"
-    exit 1
+    return 1
   fi
+  return 0
 }
 
 show_info() {

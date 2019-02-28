@@ -27,23 +27,28 @@ pw_store_path=cbi-pass/bots/${project_name}/${site}
 temp_path=/tmp/${short_name}_id_rsa
 
 email="${short_name}-bot@eclipse.org"
-user="eclipse-${short_name}-bot"
-
-check_pw_does_not_exists
+user="genie.${short_name}"
 
 show_info
 
 create_gerrit_account() {
-  #TODO: check if account already exists
-  printf "Creating Gerrit bot account..."
-  pass ${pw_store_path}/id_rsa.pub | ssh -p 29418 git.eclipse.org gerrit create-account --full-name "'${short_name} Bot'" --email "${email}" --ssh-key - genie.${short_name}
-  echo "INSERT INTO account_external_ids (account_id,email_address,external_id) SELECT account_id,\"${email}\",\"gerrit:${email}\" FROM accounts WHERE preferred_email=\"${email}\";" | ssh -p 29418 git.eclipse.org gerrit gsql
-  printf "Flushing Gerrit caches..."
-  ssh -p 29418 git.eclipse.org gerrit flush-caches
-  printf "Done.\n"
+  return_value=$(curl -s https://git.eclipse.org/r/accounts/${email})
+  if [[ ${return_value} == "Not found: ${email}" ]]; then
+    printf "Creating Gerrit bot account...\n"
+    pass ${pw_store_path}/id_rsa.pub | ssh -p 29418 git.eclipse.org gerrit create-account --full-name "'${short_name} Bot'" --email "${email}" --ssh-key - genie.${short_name}
+    echo "INSERT INTO account_external_ids (account_id,email_address,external_id) SELECT account_id,\"${email}\",\"gerrit:${email}\" FROM accounts WHERE preferred_email=\"${email}\";" | ssh -p 29418 git.eclipse.org gerrit gsql
+    printf "\nFlushing Gerrit caches..."
+    ssh -p 29418 git.eclipse.org gerrit flush-caches
+    printf "Done.\n"
+  else
+    printf "Gerrit bot account ${email} already exists. Skipping creation...\n"
+    exit 1
+  fi
 }
 
-generate_ssh_keys
+if check_pw_does_not_exists; then
+  generate_ssh_keys
+fi
 create_gerrit_account
 
 #TODO: push changes

@@ -17,8 +17,8 @@ source add_creds_common.sh
 script_name="$(basename ${0})"
 project_name="$1"
 
-site=project-storage.eclipse.org
-site_name=project-storage.eclipse.org
+site=projects-storage.eclipse.org
+site_name=projects-storage.eclipse.org
 
 verify_inputs
 

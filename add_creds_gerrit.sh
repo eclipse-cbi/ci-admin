@@ -37,10 +37,10 @@ get_bot_name() {
 }
 
 create_gerrit_account() {
-  bot_name=$(get_bot_name)
-  echo
   return_value=$(curl -s https://git.eclipse.org/r/accounts/${email})
   if [[ ${return_value} == "Not found: ${email}" ]]; then
+    bot_name=$(get_bot_name)
+    echo
     printf "Creating Gerrit bot account...\n"
     pass ${pw_store_path}/id_rsa.pub | ssh -p 29418 git.eclipse.org gerrit create-account --full-name "'${bot_name} Bot'" --email "${email}" --ssh-key - genie.${short_name}
     echo "INSERT INTO account_external_ids (account_id,email_address,external_id) SELECT account_id,\"${email}\",\"gerrit:${email}\" FROM accounts WHERE preferred_email=\"${email}\";" | ssh -p 29418 git.eclipse.org gerrit gsql

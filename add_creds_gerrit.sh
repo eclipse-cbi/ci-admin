@@ -58,4 +58,6 @@ if check_pw_does_not_exists; then
 fi
 create_gerrit_account
 
+echo "#### Please fix the mail field in the LDAP account manually on build (should be ${email})! ####"
+
 #TODO: push changes

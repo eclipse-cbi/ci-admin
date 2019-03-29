@@ -34,9 +34,9 @@ SCRIPT_FOLDER="$(dirname $(readlink -f "${0}"))"
 SCRIPT_NAME="$(basename $(readlink -f "${0}"))"
 ########################### End of the generic section ##########################
 
-# Need ssh-keygen
-if ! command -v ssh-keygen > /dev/null; then
-  >&2 echo "ERROR: this program requires 'ssh-keygen'"
+# Need docker
+if ! command -v docker > /dev/null; then
+  >&2 echo "ERROR: this program requires 'docker'"
   exit 1
 fi
 
@@ -176,7 +176,7 @@ fi
 
 # generate the ssh key
 /usr/bin/expect << EOF > /dev/null
-    spawn ssh-keygen -t ${key_type} -b ${bits} -C "${comment}" -f "${output_keyfile}"
+    spawn docker run --rm -it -v $(readlink -f $(dirname "${output_keyfile}")):/tmp/ssh-keygen/ eclipsecbi/openssh:7.7_p1-r4 -- ssh-keygen -f /tmp/ssh-keygen/$(basename "${output_keyfile}") -t ${key_type} -b ${bits} -C "${comment}"
     expect "Enter passphrase (empty for no passphrase): "
     send "$(printf "%q" "${passphrase}")\r"
     expect "Enter same passphrase again: "

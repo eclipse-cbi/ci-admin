@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #*******************************************************************************
 # Copyright (c) 2018 Eclipse Foundation and others.
 # This program and the accompanying materials are made available
@@ -11,11 +11,17 @@
 # * generate SSH keys
 # * add SSH keys to password store
 
+# Bash strict-mode
+#set -o errexit
+set -o nounset
+set -o pipefail
+
+IFS=$'\n\t'
 
 source add_creds_common.sh
 
 script_name="$(basename ${0})"
-project_name="$1"
+project_name=${1:-}
 
 site=projects-storage.eclipse.org
 site_name=projects-storage.eclipse.org

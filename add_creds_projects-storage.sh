@@ -12,7 +12,7 @@
 # * add SSH keys to password store
 
 # Bash strict-mode
-#set -o errexit
+set -o errexit
 set -o nounset
 set -o pipefail
 

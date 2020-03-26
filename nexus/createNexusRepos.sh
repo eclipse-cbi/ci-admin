@@ -18,7 +18,6 @@ IFS=$'\n\t'
 script_name="$(basename ${0})"
 project_shortname="${1:-}"
 
-credentials_file="$HOME/.nexus_credentials"
 rest_api_base_url="http://repo.eclipse.org/service/local"
 
 usage() {
@@ -33,12 +32,6 @@ if [[ -z "${project_shortname}" ]]; then
   exit 1
 fi
 
-if [[ ! -f ${credentials_file} ]]; then
-    printf "ERROR: ${credentials_file}$ does not exist.\n"
-    exit 1
-fi
-source ${credentials_file}
-
 nexus_curl() {
     local json=$1
     local rest_url=$2
@@ -46,9 +39,9 @@ nexus_curl() {
     
     #debug -v -trace-ascii
     if [[ ${method} == "GET" ]]; then
-        response=$(curl -L -s -H "Accept: application/json" -H "Content-Type: application/json" -X ${method} -u ${user}:${pw} ${rest_url})
+        response=$(curl -L -s --netrc -H "Accept: application/json" -H "Content-Type: application/json" -X ${method} ${rest_url})
     else
-        response=$(curl -L -s -H "Accept: application/json" -H "Content-Type: application/json" -X ${method} -d "${json}" -u ${user}:${pw} ${rest_url})
+        response=$(curl -L -s --netrc -H "Accept: application/json" -H "Content-Type: application/json" -X ${method} -d "${json}" ${rest_url})
     fi
     
     if [[ ${response} == *"errors"* ]]; then

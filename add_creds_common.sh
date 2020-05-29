@@ -53,7 +53,7 @@ create_pw() {
     [Yy]* ) pw=$(pwgen -1 -s -y 24);printf "%s password: %s\n" ${site_name} ${pw};;
     [Nn]* ) echo -n "${site_name} password: ";read -r pw;;
     [Xx]* ) exit;;
-        * ) echo "Please answer (Y)es, (N)ooo, E(x)it";;
+        * ) echo "Please answer (Y)es, (N)o, E(x)it";create_pw;;
   esac
 }
 

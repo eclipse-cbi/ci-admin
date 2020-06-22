@@ -30,13 +30,17 @@ if ! command -v readlink > /dev/null; then
   exit 1
 fi
 
-SCRIPT_FOLDER="$(dirname $(readlink -f "${0}"))"
-SCRIPT_NAME="$(basename $(readlink -f "${0}"))"
+SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
+SCRIPT_NAME="$(basename "$(readlink -f "${0}")")"
 ########################### End of the generic section ##########################
 
 # Need docker
 if ! command -v docker > /dev/null; then
   >&2 echo "ERROR: this program requires 'docker'"
+  exit 1
+fi
+if ! docker system info > /dev/null; then
+  >&2 echo "ERROR: this program requires 'docker' to run"
   exit 1
 fi
 
@@ -140,11 +144,11 @@ done
 
 if [[ "${debug}" = "y" ]]; then 
     printf "Program parameters:\n"
-    printf "\t%s=%s\n" "bits" ${bits}
-    printf "\t%s=%s\n" "comment" ${comment}
-    printf "\t%s=%s\n" "key_type" ${key_type}
-    printf "\t%s=%s\n" "output_keyfile" ${output_keyfile}
-    printf "\t%s=%s\n" "passphrase_file" ${passphrase_file}
+    printf "\t%s=%s\n" "bits" "${bits}"
+    printf "\t%s=%s\n" "comment" "${comment}"
+    printf "\t%s=%s\n" "key_type" "${key_type}"
+    printf "\t%s=%s\n" "output_keyfile" "${output_keyfile}"
+    printf "\t%s=%s\n" "passphrase_file" "${passphrase_file}"
     printf "\t%s=%s\n" "printHelp" ${printHelp}
     printf "\t%s=%s\n" "verbose" ${verbose}
 fi
@@ -168,15 +172,15 @@ if [[ "${verbose}" = "y" ]]; then
     >&2 echo "Reading passphrase from '${passphrase_file}'..."
 fi
 
-passphrase=$(${SCRIPT_FOLDER}/utils/read-secret.sh "${passphrase_file}")
+passphrase=$("${SCRIPT_FOLDER}/utils/read-secret.sh" "${passphrase_file}")
 
 if [[ "${debug}" = "y" ]]; then 
-    >&2 printf "Read passphrase=%s\n" ${passphrase}
+    >&2 printf "Read passphrase=%s\n" "${passphrase}"
 fi
 
 # generate the ssh key
 /usr/bin/expect << EOF > /dev/null
-    spawn docker run --rm -it -u $(id -u) -v $(readlink -f $(dirname "${output_keyfile}")):/tmp/ssh-keygen/ eclipsecbi/openssh:7.7_p1-r4 -- ssh-keygen -f /tmp/ssh-keygen/$(basename "${output_keyfile}") -t ${key_type} -b ${bits} -C "${comment}"
+    spawn docker run --rm -it -u $(id -u) -v $(readlink -f "$(dirname "${output_keyfile}")"):/tmp/ssh-keygen/ eclipsecbi/openssh:7.7_p1-r4 -- ssh-keygen -f /tmp/ssh-keygen/$(basename "${output_keyfile}") -t ${key_type} -b ${bits} -C "${comment}"
     expect "Enter passphrase (empty for no passphrase): "
     send "$(printf "%q" "${passphrase}")\r"
     expect "Enter same passphrase again: "

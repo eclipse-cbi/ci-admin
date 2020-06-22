@@ -74,14 +74,14 @@ gen_key_config_file=gen_key_config
 pw_gen() {
   # If pwgen is not installed, use /dev/urandom instead
   if hash pwgen 2>/dev/null; then
-    pwgen -1 -s -y $1
+    pwgen -1 -s -y "${1}"
   else
-    </dev/urandom tr -dc 'A-Za-z0-9!"#$%&'\''()*+,-./:;<=>?@[\]^_`{|}~' | head -c $1
+    </dev/urandom tr -dc 'A-Za-z0-9!"#$%&'\''()*+,-./:;<=>?@[\]^_`{|}~' | head -c "${1}"
   fi
 }
 
 gpg_sb() {
-  docker run -i --rm -u $(id -u) -v ${tmp_gpg}:${tmp_gpg_docker} eclipsecbi/gnupg:2.2.8-r0 $@
+  docker run -i --rm -u "$(id -u)" -v ${tmp_gpg}:${tmp_gpg_docker} eclipsecbi/gnupg:2.2.8-r0 "${@}"
 }
 
 pass_phrase=$(pw_gen 64)
@@ -131,26 +131,26 @@ save
 EOM
 )
 
-  gpg_sb --batch --command-fd 0 --pinentry-mode=loopback --expert --edit-key $key_id <<< "${subkey_cmd}"
+  gpg_sb --batch --command-fd 0 --pinentry-mode=loopback --expert --edit-key "${key_id}" <<< "${subkey_cmd}"
 }
 
 check_prefs() {
   printf "\nChecking hash-preferences...\n\n"
-  gpg_sb --batch --edit-key $key_id showpref save exit
+  gpg_sb --batch --edit-key "${key_id}" showpref save exit
 }
 
 send_key() {
   printf "\nSending key to keyserver...\n\n"
-  gpg_sb --keyserver $keyserver --send-keys $key_id
+  gpg_sb --keyserver $keyserver --send-keys "${key_id}"
 }
 
 export_secret_subkey(){
   printf "\nExporting the secret part of the subkeys...\n\n"
-  gpg_sb --batch --passphrase-fd 0 --pinentry-mode=loopback --armor --export-secret-subkeys $key_id <<< "${pass_phrase}" > secret-subkeys.asc
+  gpg_sb --batch --passphrase-fd 0 --pinentry-mode=loopback --armor --export-secret-subkeys "${key_id}" <<< "${pass_phrase}" > secret-subkeys.asc
 }
 
 yes_skip_exit() {
-  read -p "Do you want to $1? (Y)es, (S)kip, E(x)it: " yn
+  read -rp "Do you want to $1? (Y)es, (S)kip, E(x)it: " yn
   case $yn in
     [Yy]* ) $2;;
     [Ss]* ) echo "Skipping...";;
@@ -160,15 +160,15 @@ yes_skip_exit() {
 }
 
 add_to_pw_store() {
-  echo ${pass_phrase} | pass insert --echo ${pw_store_path}/passphrase
-  cat secret-subkeys.asc | pass insert -m ${pw_store_path}/secret-subkeys.asc
+  echo "${pass_phrase}" | pass insert --echo "${pw_store_path}/passphrase"
+  pass insert -m "${pw_store_path}/secret-subkeys.asc" < secret-subkeys.asc
 }
 
 ## Main
 yes_skip_exit "generate the main key" generate_key
 
 key_id=$(gpg_sb --list-keys --with-colons "<${ml_name}@${forge}>" | awk -F: '/^pub:/ { print $5 }')
-printf "Found key: %s\n" ${key_id}
+printf "Found key: %s\n" "${key_id}"
 
 check_prefs
 

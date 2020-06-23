@@ -9,18 +9,20 @@
 
 # This script creates a GPG key pair that can be used for deploying artifacts to Maven Central via Sonatype's OSSRH
 
+# Bash strict-mode
+set -o errexit
+set -o nounset
+set -o pipefail
 
+IFS=$'\n\t'
 
-
-
-
-script_name="$(basename ${0})"
+SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
+script_name="$(basename "${0}")"
 project_name="$1"
 display_name="$2"
 forge=${3:-eclipse.org}
 
 site=gpg
-site_name=GPG
 
 usage() {
   printf "Usage: %s project_name displayname [forge]\n" "${script_name}"
@@ -56,41 +58,34 @@ if [ "${forge}" != "eclipse.org" ] && [ "${forge}" != "locationtech.org" ] && [ 
   exit 1
 fi
 
+# Export PASSWORD_STORE_DIR from config file
+# shellcheck disable=SC1090
+. "${SCRIPT_FOLDER}/pass/localconfig.sh"
+# shellcheck disable=SC1090
+. "${SCRIPT_FOLDER}/utils/crypto.sh"
 
 short_name=${project_name##*.}
-pw_store_path=cbi-pass/bots/${project_name}/${site}
+pw_store_path=bots/${project_name}/${site}
 
 ml_name="${short_name}-dev"     # Mailing list name (e.g. cbi-dev)
 
 keyserver=pool.sks-keyservers.net           # PGP keyserver
 
-file_name=$ml_name@$forge.txt   # Passphrases file
-
 tmp_gpg=/tmp/temp_gpg
 tmp_gpg_docker=/run/gnupg
 gen_key_config_file=gen_key_config
-
-
-pw_gen() {
-  # If pwgen is not installed, use /dev/urandom instead
-  if hash pwgen 2>/dev/null; then
-    pwgen -1 -s -y "${1}"
-  else
-    </dev/urandom tr -dc 'A-Za-z0-9!"#$%&'\''()*+,-./:;<=>?@[\]^_`{|}~' | head -c "${1}"
-  fi
-}
 
 gpg_sb() {
   docker run -i --rm -u "$(id -u)" -v ${tmp_gpg}:${tmp_gpg_docker} eclipsecbi/gnupg:2.2.8-r0 "${@}"
 }
 
-pass_phrase=$(pw_gen 64)
+pass_phrase="$(pwgen 64)"
 
 generate_key() {
   mkdir -p ${tmp_gpg}
   chmod 700 ${tmp_gpg}
   ## generate key config file
-  cat <<EOF > ${tmp_gpg}/$gen_key_config_file
+  cat <<EOF > ${tmp_gpg}/${gen_key_config_file}
 %echo Generating keypair for ${display_name} ...
 Key-Type: RSA
 Key-Length: 4096
@@ -110,10 +105,10 @@ Passphrase: ${pass_phrase}
 EOF
 
   printf "\nGenerating key non-interactively...\n\n"
-  gpg_sb --batch --gen-key ${tmp_gpg_docker}/$gen_key_config_file
+  gpg_sb --batch --gen-key ${tmp_gpg_docker}/${gen_key_config_file}
 
   printf "\nShredding config file...\n\n"
-  shred -n 7 -u -z ${tmp_gpg}/$gen_key_config_file
+  shred -n 7 -u -z ${tmp_gpg}/${gen_key_config_file}
 
   printf "\nChecking keys...\n\n"
   gpg_sb --list-keys
@@ -144,15 +139,18 @@ send_key() {
   gpg_sb --keyserver $keyserver --send-keys "${key_id}"
 }
 
-export_secret_subkey(){
-  printf "\nExporting the secret part of the subkeys...\n\n"
+export_keys(){
+  printf "\nExporting keys...\n\n"
+  gpg_sb --batch --passphrase-fd 0 --pinentry-mode=loopback --armor --export "${key_id}" <<< "${pass_phrase}" > public-keys.asc
+  gpg_sb --batch --passphrase-fd 0 --pinentry-mode=loopback --armor --export-secret-keys "${key_id}" <<< "${pass_phrase}" > secret-keys.asc
   gpg_sb --batch --passphrase-fd 0 --pinentry-mode=loopback --armor --export-secret-subkeys "${key_id}" <<< "${pass_phrase}" > secret-subkeys.asc
 }
 
 yes_skip_exit() {
   read -rp "Do you want to $1? (Y)es, (S)kip, E(x)it: " yn
+  shift
   case $yn in
-    [Yy]* ) $2;;
+    [Yy]* ) "${@}";;
     [Ss]* ) echo "Skipping...";;
     [Xx]* ) exit;;
         * ) echo "Please answer (Y)es, (S)kip, E(x)it";;
@@ -161,6 +159,10 @@ yes_skip_exit() {
 
 add_to_pw_store() {
   echo "${pass_phrase}" | pass insert --echo "${pw_store_path}/passphrase"
+  echo "${key_id} " | pass insert --echo "${pw_store_path}/key_id"
+  echo "${ml_name}@${forge}" | pass insert --echo "${pw_store_path}/email"
+  pass insert -m "${pw_store_path}/public-keys.asc" < public-keys.asc
+  pass insert -m "${pw_store_path}/secret-keys.asc" < secret-keys.asc
   pass insert -m "${pw_store_path}/secret-subkeys.asc" < secret-subkeys.asc
 }
 
@@ -176,14 +178,14 @@ yes_skip_exit "generate a signing (sub-)keypair" generate_sub_keypair
 
 yes_skip_exit "send the new key to the keyserver" send_key
 
-yes_skip_exit "export the secret part of the subkeys" export_secret_subkey
+yes_skip_exit "export the keys" export_keys
 
-yes_skip_exit "add the keys and passphrase to the password store" add_to_pw_store
+yes_skip_exit "add the keys, passphrase and metadata to the password store" add_to_pw_store
 
 
 if [ -d ${tmp_gpg} ]; then
   printf "\nDeleting temporary keystore...\n\n"
-  rm -rf ${tmp_gpg}
+  rm -rf "${tmp_gpg}"
 fi
 
 printf "Done.\n"

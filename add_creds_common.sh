@@ -32,8 +32,7 @@ verify_inputs() {
 
 check_pw_does_not_exists() {
   # check that the entries do not exist yet
-  pass ${pw_store_path} &> /dev/null
-  if [[ $? == "0" ]]; then
+  if pass ${pw_store_path} &> /dev/null ; then
     printf "ERROR: ${site_name} credentials for ${project_name} already exist.\n"
     return 1
   fi

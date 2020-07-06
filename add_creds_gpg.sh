@@ -18,8 +18,8 @@ IFS=$'\n\t'
 
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 script_name="$(basename "${0}")"
-project_name="$1"
-display_name="$2"
+project_name="${1:-}"
+display_name="${2:-}"
 forge=${3:-eclipse.org}
 
 site=gpg

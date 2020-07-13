@@ -32,6 +32,12 @@ if [[ -z "${project_shortname}" ]]; then
   exit 1
 fi
 
+# check that project name does not contain a dot
+if [[ "${project_shortname}" == *.* ]]; then
+  printf "ERROR: the project short name should not contain a dot.\n"
+  exit 1
+fi
+
 nexus_curl() {
     local json=$1
     local rest_url=$2
@@ -90,6 +96,7 @@ createBugReply () {
     echo "
 Bugzilla reply template:    
 ------------------------
+
 The following repos were created for ${repo_id}.
 
 group:     https://repo.eclipse.org/content/repositories/${repo_id}/

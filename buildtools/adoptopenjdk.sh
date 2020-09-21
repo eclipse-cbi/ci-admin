@@ -7,7 +7,7 @@
 # SPDX-License-Identifier: EPL-2.0
 #*******************************************************************************
 
-# This script creates a GPG key pair that can be used for deploying artifacts to Maven Central via Sonatype's OSSRH
+# This script sets up AdaptOpenJDK installations
 
 # Bash strict-mode
 set -o errexit

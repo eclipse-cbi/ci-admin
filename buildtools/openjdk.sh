@@ -7,7 +7,7 @@
 # SPDX-License-Identifier: EPL-2.0
 #*******************************************************************************
 
-# This script creates a GPG key pair that can be used for deploying artifacts to Maven Central via Sonatype's OSSRH
+# This script sets up OpenJDK installations
 
 # Bash strict-mode
 set -o errexit
@@ -39,16 +39,15 @@ LATEST_RELEASES=$(cat <<EOF
   {
     "feature_version": 16,
     "pre": "ea",
-    "link": "https://download.java.net/java/early_access/jdk16/4/GPL/openjdk-16-ea+4_linux-x64_bin.tar.gz",
-    "name": "openjdk-16-ea+4_linux-x64_bin.tar.gz",
-    "openjdk_version": "16-ea+4"
+    "link": "https://download.java.net/java/early_access/jdk16/16/GPL/openjdk-16-ea+16_linux-x64_bin.tar.gz",
+    "name": "openjdk-16-ea+16_linux-x64_bin.tar.gz",
+    "openjdk_version": "16-ea+16"
   },
   {
     "feature_version": 15,
-    "pre": "ea",
-    "link": "https://download.java.net/java/early_access/jdk15/30/GPL/openjdk-15-ea+30_linux-x64_bin.tar.gz",
-    "name": "openjdk-15-ea+30_linux-x64_bin.tar.gz",
-    "openjdk_version": "15-ea+30"
+    "link": "https://download.java.net/java/GA/jdk15/779bf45e88a44cbd9ea6621d33e33db1/36/GPL/openjdk-15_linux-x64_bin.tar.gz",
+    "name": "openjdk-15_linux-x64_bin.tar.gz",
+    "openjdk_version": "15"
   },
   {
     "feature_version": 14,

@@ -24,6 +24,7 @@ source add_creds_common.sh
 script_name="$(basename ${0})"
 project_name=${1:-}
 path=${2:-}
+username=${3:-} #optional
 
 # Need to be set, otherwise add_creds_common.sh complains about unset variables
 site="foobar"
@@ -31,14 +32,24 @@ site_name="SSH"
 
 verify_inputs
 
+if [ -z "${path}" ]; then
+  printf "ERROR: a path (e.g. 'gitlab.eclipse.org') must be given.\n"
+  exit 1
+fi
+
 short_name=${project_name##*.}
 pw_store_path=cbi-pass/bots/${project_name}/${path}
 echo "pw_store_path: ${pw_store_path}";
 temp_path=/tmp/${short_name}_id_rsa
 
 email="${short_name}-bot@eclipse.org"
-user="genie.${short_name}"
 
+if [ -z "${username}" ]; then
+  echo "Username not given, using default: genie.${short_name}"
+  user="genie.${short_name}"
+else
+  user="${username}"
+fi
 
 # check that the entries do not exist yet
 # checks for id_rsa, so different than check_pass_no_exists
@@ -50,3 +61,5 @@ fi
 show_info
 
 generate_ssh_keys
+
+echo ${user} | pass insert --echo ${pw_store_path}/username

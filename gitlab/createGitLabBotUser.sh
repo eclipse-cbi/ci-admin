@@ -15,112 +15,124 @@ set -o nounset
 set -o pipefail
 
 IFS=$'\n\t'
-script_name="$(basename ${0})"
-script_folder="$(dirname $(readlink -f "${0}"))"
+SCRIPT_NAME="$(basename ${0})"
+SCRIPT_FOLDER="$(dirname $(readlink -f "${0}"))"
 
-export password_store_dir=~/.password-store/cbi-pass
-gitlab_pass_domain="gitlab.eclipse.org"
+if [[ ! -f "${SCRIPT_FOLDER}/../.localconfig" ]]; then
+  echo "ERROR: File '$(readlink -f "${SCRIPT_FOLDER}/../.localconfig")' does not exists"
+  echo "Create one to configure the location of the password store. Example:"
+  echo '{"password-store": {"cbi-dir": "~/.password-store/cbi"}}'
+fi
+PASSWORD_STORE_DIR="$(jq -r '.["password-store"]["cbi-dir"]' "${SCRIPT_FOLDER}/../.localconfig")"
+PASSWORD_STORE_DIR="$(readlink -f "${PASSWORD_STORE_DIR/#~\//${HOME}/}")"
+export PASSWORD_STORE_DIR
 
+GITLAB_PASS_DOMAIN="gitlab.eclipse.org"
 
-personal_access_token=$(cat ../.localconfig | jq -r '."gitlab-token"')
-token_header="PRIVATE-TOKEN: ${personal_access_token}"
-api_base_url="https://gitlab.eclipse.org/api/v4"
+PERSONAL_ACCESS_TOKEN="$(cat ../.localconfig | jq -r '."gitlab-token"')"
+TOKEN_HEADER="PRIVATE-TOKEN: ${PERSONAL_ACCESS_TOKEN}"
+API_BASE_URL="${API_BASE_URL:-"https://gitlab.eclipse.org/api/v4"}"
 
-project_name=${1:-}
+PROJECT_NAME="${1:-}"
 
 # verify input
-if [ -z "${project_name}" ]; then
+if [ -z "${PROJECT_NAME}" ]; then
   printf "ERROR: a project name (e.g. 'technology.cbi' for CBI project) must be given.\n"
   exit 1
 fi
 
-pw_store_path="cbi-pass/bots/${project_name}/${gitlab_pass_domain}"
-short_name="${project_name##*.}"
+PW_STORE_PATH="bots/${PROJECT_NAME}/${GITLAB_PASS_DOMAIN}"
+SHORT_NAME="${PROJECT_NAME##*.}"
 
 ## GitLab API ##
 
 add_user_api() {
-  local username=$1
-  local email=$2
-  local pw=$3
-  local name=$4 #display name
+  local username="$1"
+  local pw="$2"
+  local email="$3"
+  local name="$4" #display name
 
-  curl -s --header "${token_header}" --request POST "${api_base_url}/users" --data "username=${username}" --data "email=${email}" --data "password=${pw}" --data "name=${name}" | jq .
+  curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/users" --data "username=${username}" --data "password=${pw}" --data "email=${email}" --data "name=${name}"
 }
 
 add_ssh_key_api() {
-  local id=$1
-  local title=$2
-  local key=$3
+  local id"=$1"
+  local title="$2"
+  local key="$3"
 
-  curl -s --header "${token_header}" --request POST "${api_base_url}/users/${id}/keys" --data-urlencode "title=${title}" --data-urlencode "key=${key}" | jq .
+  curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/users/${id}/keys" --data-urlencode "title=${title}" --data-urlencode "key=${key}"
 }
 
 
 create_credentials_in_pass() {
-  if [[ ! -f "${password_store_dir}/bots/${project_name}/${gitlab_pass_domain}/id_rsa.gpg" ]]; then
+  local project_name="$1"
+  if [[ ! -f "${PASSWORD_STORE_DIR}/bots/${project_name}/${GITLAB_PASS_DOMAIN}/id_rsa.gpg" ]]; then
     echo "Creating GitLab SSH credentials in SSH..."
-    pushd "${script_folder}/.."
-    ./add_creds_ssh.sh "${project_name}" "${gitlab_pass_domain}" "${short_name}-bot"
-    popd
+    ${SCRIPT_FOLDER}/../add_creds_ssh.sh "${project_name}" "${GITLAB_PASS_DOMAIN}" "${SHORT_NAME}-bot"
     # create password
-    pwgen -1 -s -y 24 | pass insert --echo "${pw_store_path}/password"
+    pwgen -1 -s -y 24 | pass insert --echo "${PW_STORE_PATH}/password"
   else
-    echo "Found ${gitlab_pass_domain} SSH credentials in password store. Skipping creation..."
+    echo "Found ${GITLAB_PASS_DOMAIN} SSH credentials in password store. Skipping creation..."
   fi
 }
 
 create_bot_user() {
-  local username=$(pass "${pw_store_path}/username")
+  local username="$1"
+  local pw="$2"
   local email="${username}@eclipse.org"
-  local pw=$(pass "${pw_store_path}/password")
-  local name="${short_name} bot user"
+  local name="${SHORT_NAME} bot user"
 
    # if bot user already exists, skip
-  if [ "$(curl -s --header "${token_header}" "${api_base_url}/users?username=${username}" | jq .)" == "[]" ]; then
-    echo "Creating bot user ${username}..."
-    add_user_api "${username}" "${email}" "${pw}" "${name}"
-  else
+  if  curl -sSL --header "${TOKEN_HEADER}" "${API_BASE_URL}/users?username=${username}" | jq -e '.|length > 0' > /dev/null; then
     echo "User ${username} already exists. Skipping creation..."
+  else
+    echo "Creating bot user ${username}..."
+    add_user_api "${username}" "${pw}" "${email}" "${name}"  | jq .
   fi
 }
 
 get_id_from_username() {
-  local username=$(pass "${pw_store_path}/username")
-  curl -s --header "${token_header}" "${api_base_url}/users?username=${username}" | jq '.[].id'
+  local username="$1"
+  curl -s --header "${TOKEN_HEADER}" "${API_BASE_URL}/users?username=${username}" | jq -r '.[].id'
 }
 
 add_ssh_key() {
   # get ID
-  local user_id=$(get_id_from_username)
+  local username="$1"
+  local user_id="$(get_id_from_username ${username})"
 
   # if SSH key already exists, skip
-  if [ "$(curl -s --header "${token_header}" "${api_base_url}/users/${user_id}/keys" | jq .)" == "[]" ]; then
+  if curl -sSL --header "${TOKEN_HEADER}" "${API_BASE_URL}/users/${user_id}/keys" | jq -e '.|length > 0' > /dev/null; then
+    echo "SSH key already exists. Skipping creation..."
+  else
     echo "Creating SSH key for ${username}..."
     # read ssh public key from pass
-    id_rsa_pub=$(pass "${pw_store_path}/id_rsa.pub")
-    add_ssh_key_api "${id}" "${username}" "${id_rsa_pub}"
-  else
-    echo "SSH key already exists. Skipping creation..."
+    local id_rsa_pub
+    id_rsa_pub="$(pass "${PW_STORE_PATH}/id_rsa.pub")"
+    add_ssh_key_api "${user_id}" "${username}" "${id_rsa_pub}" | jq .
   fi
 }
 
 # create impersonation token
 create_api_token() {
   # get ID
-  local user_id=$(get_id_from_username)
+  local username="$1"
+  local user_id="$(get_id_from_username ${username})"
+  local name="CI token"
 
-  name="CI token"
   printf "API token: "
-  curl -s --header "${token_header}" --request POST "${api_base_url}/users/${user_id}/impersonation_tokens" --data-urlencode "name=${name}" --data "scopes[]=read_api" | jq -r .token
+  curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/users/${user_id}/impersonation_tokens" --data-urlencode "name=${name}" --data "scopes[]=read_api" | jq -r .token
 }
 
 # MAIN
 
-create_credentials_in_pass
-create_bot_user
-add_ssh_key
-create_api_token
+username="$(pass "${PW_STORE_PATH}/username")"
+pw="$(pass "${PW_STORE_PATH}/password")"
+
+create_credentials_in_pass "${PROJECT_NAME}"
+create_bot_user "${username}" "${pw}"
+add_ssh_key "${username}"
+create_api_token "${username}"
 
 echo "Done."
 

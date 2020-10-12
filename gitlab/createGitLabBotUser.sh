@@ -15,7 +15,7 @@ set -o nounset
 set -o pipefail
 
 IFS=$'\n\t'
-SCRIPT_NAME="$(basename ${0})"
+SCRIPT_NAME="$(basename "${0}")"
 SCRIPT_FOLDER="$(dirname $(readlink -f "${0}"))"
 
 if [[ ! -f "${SCRIPT_FOLDER}/../.localconfig" ]]; then
@@ -29,7 +29,7 @@ export PASSWORD_STORE_DIR
 
 GITLAB_PASS_DOMAIN="gitlab.eclipse.org"
 
-PERSONAL_ACCESS_TOKEN="$(cat ../.localconfig | jq -r '."gitlab-token"')"
+PERSONAL_ACCESS_TOKEN="$(cat "${SCRIPT_FOLDER}/../.localconfig" | jq -r '."gitlab-token"')"
 TOKEN_HEADER="PRIVATE-TOKEN: ${PERSONAL_ACCESS_TOKEN}"
 API_BASE_URL="${API_BASE_URL:-"https://gitlab.eclipse.org/api/v4"}"
 
@@ -56,7 +56,7 @@ add_user_api() {
 }
 
 add_ssh_key_api() {
-  local id"=$1"
+  local id="$1"
   local title="$2"
   local key="$3"
 
@@ -68,7 +68,7 @@ create_credentials_in_pass() {
   local project_name="$1"
   if [[ ! -f "${PASSWORD_STORE_DIR}/bots/${project_name}/${GITLAB_PASS_DOMAIN}/id_rsa.gpg" ]]; then
     echo "Creating GitLab SSH credentials in SSH..."
-    ${SCRIPT_FOLDER}/../add_creds_ssh.sh "${project_name}" "${GITLAB_PASS_DOMAIN}" "${SHORT_NAME}-bot"
+    "${SCRIPT_FOLDER}/../add_creds_ssh.sh" "${project_name}" "${GITLAB_PASS_DOMAIN}" "${SHORT_NAME}-bot"
     # create password
     pwgen -1 -s -y 24 | pass insert --echo "${PW_STORE_PATH}/password"
   else
@@ -99,7 +99,8 @@ get_id_from_username() {
 add_ssh_key() {
   # get ID
   local username="$1"
-  local user_id="$(get_id_from_username ${username})"
+  local user_id
+  user_id="$(get_id_from_username "${username}")"
 
   # if SSH key already exists, skip
   if curl -sSL --header "${TOKEN_HEADER}" "${API_BASE_URL}/users/${user_id}/keys" | jq -e '.|length > 0' > /dev/null; then
@@ -117,7 +118,8 @@ add_ssh_key() {
 create_api_token() {
   # get ID
   local username="$1"
-  local user_id="$(get_id_from_username ${username})"
+  local user_id
+  user_id="$(get_id_from_username "${username}")"
   local name="CI token"
 
   printf "API token: "

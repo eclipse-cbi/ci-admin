@@ -64,6 +64,8 @@ generate_ssh_keys() {
   cat ${temp_path} | pass insert -m ${pw_store_path}/id_rsa
   cat ${temp_path}.pub | pass insert -m ${pw_store_path}/id_rsa.pub
   rm ${temp_path}*
+  # Add user
+  echo ${user} | pass insert --echo ${pw_store_path}/username
 }
 
 add_to_pw_store() {

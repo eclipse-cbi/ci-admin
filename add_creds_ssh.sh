@@ -19,9 +19,11 @@ set -o pipefail
 
 IFS=$'\n\t'
 
-source add_creds_common.sh
+SCRIPT_NAME="$(basename "${0}")"
+SCRIPT_FOLDER="$(dirname $(readlink -f "${0}"))"
 
-script_name="$(basename ${0})"
+source "${SCRIPT_FOLDER}/add_creds_common.sh"
+
 project_name=${1:-}
 path=${2:-}
 username=${3:-} #optional
@@ -37,10 +39,10 @@ if [ -z "${path}" ]; then
   exit 1
 fi
 
-short_name=${project_name##*.}
-pw_store_path=cbi-pass/bots/${project_name}/${path}
+short_name="${project_name##*.}"
+pw_store_path="/bots/${project_name}/${path}"
 echo "pw_store_path: ${pw_store_path}";
-temp_path=/tmp/${short_name}_id_rsa
+temp_path="/tmp/${short_name}_id_rsa"
 
 email="${short_name}-bot@eclipse.org"
 
@@ -53,7 +55,7 @@ fi
 
 # check that the entries do not exist yet
 # checks for id_rsa, so different than check_pass_no_exists
-if [[ $(pass ${pw_store_path}/id_rsa &> /dev/null) ]]; then
+if [[ $(pass "${pw_store_path}/id_rsa" &> /dev/null) ]]; then
   printf "ERROR: credentials for ${path} already exist in pass.\n"
   exit 1
 fi
@@ -62,4 +64,3 @@ show_info
 
 generate_ssh_keys
 
-echo ${user} | pass insert --echo ${pw_store_path}/username

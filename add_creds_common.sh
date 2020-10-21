@@ -9,6 +9,8 @@
 
 # Common functions that are used by all add_creds_* scripts
 
+SCRIPT_FOLDER="$(dirname $(readlink -f "${0}"))"
+
 usage() {
   printf "Usage: %s project_name\n" "$script_name"
   printf "\t%-16s project name (e.g. technology.cbi for CBI project).\n" "project_name"
@@ -58,7 +60,7 @@ create_pw() {
 
 generate_ssh_keys() {
   pwgen -1 -s -y 64 | pass insert -m ${pw_store_path}/id_rsa.passphrase
-  pass ${pw_store_path}/id_rsa.passphrase | ./ssh-keygen-ni.sh -C "${email}" -f ${temp_path}
+  pass ${pw_store_path}/id_rsa.passphrase | ${SCRIPT_FOLDER}/ssh-keygen-ni.sh -C "${email}" -f ${temp_path}
 
   # Insert private and public key into pw store
   cat ${temp_path} | pass insert -m ${pw_store_path}/id_rsa

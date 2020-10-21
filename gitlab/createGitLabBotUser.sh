@@ -128,10 +128,12 @@ create_api_token() {
 
 # MAIN
 
+
+create_credentials_in_pass "${PROJECT_NAME}"
+
 username="$(pass "${PW_STORE_PATH}/username")"
 pw="$(pass "${PW_STORE_PATH}/password")"
 
-create_credentials_in_pass "${PROJECT_NAME}"
 create_bot_user "${username}" "${pw}"
 add_ssh_key "${username}"
 create_api_token "${username}"

@@ -33,7 +33,7 @@ pw_store_path=cbi-pass/bots/${project_name}/${site}
 temp_path=/tmp/${short_name}_id_rsa
 
 email="${short_name}-bot@eclipse.org"
-user="eclipse-${short_name}-bot"
+user="genie.${short_name}"
 
 check_pw_does_not_exists
 

@@ -24,8 +24,7 @@ source add_creds_common.sh
 script_name="$(basename ${0})"
 project_name="${1:-}"
 
-site="${2:-}"
-site_name="${site}"
+site_name="${2:-}"
 
 usage() {
   printf "Usage: %s project_name site_name\n" "$script_name"
@@ -40,28 +39,16 @@ if [ "$#" -ne 2 ]; then
   exit 1
 fi
 
-# check that project name is not empty
-if [ "$project_name" == "" ]; then
-  printf "ERROR: a project name must be given.\n"
-  usage
-  exit 1
-fi
-
-# check that project name contains a dot
-if [[ "$project_name" != *.* ]]; then
-  printf "ERROR: the full project name with a dot must be given (e.g. technology.cbi).\n"
-  usage
-  exit 1
-fi
+verify_inputs
 
 # check that site name is not empty
-if [ "${site}" == "" ]; then
+if [ "${site_name}" == "" ]; then
   printf "ERROR: a site (e.g. docker.com) name must be given.\n"
   exit 1
 fi
 
 short_name=${project_name##*.}
-pw_store_path=cbi-pass/bots/${project_name}/${site}
+pw_store_path=cbi-pass/bots/${project_name}/${site_name}
 
 echo -n "${site_name} email: "; read -r email
 # check that email is not empty

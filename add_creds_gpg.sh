@@ -176,12 +176,11 @@ check_prefs
 
 yes_skip_exit "generate a signing (sub-)keypair" generate_sub_keypair
 
-yes_skip_exit "send the new key to the keyserver" send_key
-
 yes_skip_exit "export the keys" export_keys
 
 yes_skip_exit "add the keys, passphrase and metadata to the password store" add_to_pw_store
 
+yes_skip_exit "send the new key to the keyserver" send_key
 
 if [ -d ${tmp_gpg} ]; then
   printf "\nDeleting temporary keystore...\n\n"

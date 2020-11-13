@@ -93,5 +93,5 @@ create_project() {
 }
 
 create_project "${NAME}" "${PROJECT}" "${ORGANIZATION}"
-create_token "Token for ${NAME}"
+create_token "Token for ${PROJECT}"
 

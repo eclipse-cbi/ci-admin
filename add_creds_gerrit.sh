@@ -21,7 +21,7 @@ IFS=$'\n\t'
 
 source add_creds_common.sh
 
-script_name="$(basename ${0})"
+script_name="$(basename "${0}")"
 project_name=${1:-}
 forge=${2:-eclipse}
 
@@ -41,23 +41,25 @@ show_info
 
 get_bot_name() {
   read -p "Enter bot name (without the trailing 'Bot', e.g. 'CBI' for 'CBI Bot'): " bot_name
-  echo ${bot_name}
+  echo "${bot_name}"
 }
 
 create_gerrit_account() {
-  return_value=$(curl -s https://git.${forge}.org/r/accounts/${email})
-  if [[ ${return_value} == "Not found: ${email}" ]]; then
+  return_value=$(curl -s "https://git.${forge}.org/r/accounts/${email}")
+  if [[ ${return_value} == "Account '${email}' not found" ]]; then
     bot_name=$(get_bot_name)
     echo
     printf "Creating Gerrit bot account...\n"
-    pass ${pw_store_path}/id_rsa.pub | ssh -p 29418 git.${forge}.org gerrit create-account --full-name "'${bot_name} Bot'" --email "${email}" --ssh-key - genie.${short_name}
+    pass "${pw_store_path}/id_rsa.pub" | ssh -p "29418 git.${forge}.org" gerrit create-account --full-name "'${bot_name} Bot'" --email "${email}" --ssh-key - "genie.${short_name}"
     # does not work with newer Gerrit versions. Is it even necessary anymore?
     #echo "INSERT INTO account_external_ids (account_id,email_address,external_id) SELECT account_id,\"${email}\",\"gerrit:${email}\" FROM accounts WHERE preferred_email=\"${email}\";" | ssh -p 29418 git.${forge}.org gerrit gsql
     printf "\nFlushing Gerrit caches..."
-    ssh -p 29418 git.${forge}.org gerrit flush-caches
+    ssh -p 29418 "git.${forge}.org" gerrit flush-caches
     printf "Done.\n"
   else
-    printf "Gerrit bot account ${email} already exists. Skipping creation...\n"
+    printf "Gerrit bot account %s already exists. Skipping creation...\n" "${email}"
+    #printf "Adding SSH public key...\n"
+    #pass ${pw_store_path}/id_rsa.pub | ssh -p 29418 git.${forge}.org gerrit set-account --add-ssh-key - genie.${short_name}
     exit 1
   fi
 }

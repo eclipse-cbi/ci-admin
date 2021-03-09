@@ -37,23 +37,30 @@ TARGET="${1:-"."}"
 LATEST_RELEASES=$(cat <<EOF
 [
   {
+    "feature_version": 17,
+    "pre": "ea",
+    "link": "https://download.java.net/java/early_access/jdk17/12/GPL/openjdk-17-ea+12_linux-x64_bin.tar.gz",
+    "name": "openjdk-17-ea+12_linux-x64_bin.tar.gz",
+    "openjdk_version": "17-ea+12"
+  },
+  {
     "feature_version": 16,
     "pre": "ea",
-    "link": "https://download.java.net/java/early_access/jdk16/16/GPL/openjdk-16-ea+16_linux-x64_bin.tar.gz",
-    "name": "openjdk-16-ea+16_linux-x64_bin.tar.gz",
-    "openjdk_version": "16-ea+16"
+    "link": "https://download.java.net/java/GA/jdk16/7863447f0ab643c585b9bdebf67c69db/36/GPL/openjdk-16_linux-x64_bin.tar.gz",
+    "name": "openjdk-16_linux-x64_bin.tar.gz",
+    "openjdk_version": "16+36"
   },
   {
     "feature_version": 15,
-    "link": "https://download.java.net/java/GA/jdk15/779bf45e88a44cbd9ea6621d33e33db1/36/GPL/openjdk-15_linux-x64_bin.tar.gz",
-    "name": "openjdk-15_linux-x64_bin.tar.gz",
-    "openjdk_version": "15"
+    "link": "https://download.java.net/java/GA/jdk15.0.2/0d1cfde4252546c6931946de8db48ee2/7/GPL/openjdk-15.0.2_linux-x64_bin.tar.gz",
+    "name": "openjdk-15.0.2_linux-x64_bin.tar.gz",
+    "openjdk_version": "15.0.2+7"
   },
   {
     "feature_version": 14,
-    "link": "https://download.java.net/java/GA/jdk14.0.1/664493ef4a6946b186ff29eb326336a2/7/GPL/openjdk-14.0.1_linux-x64_bin.tar.gz",
-    "name": "openjdk-14.0.1_linux-x64_bin.tar.gz",
-    "openjdk_version": "14.0.1+7"
+    "link": "https://download.java.net/java/GA/jdk14.0.2/205943a0976c4ed48cb16f1043c5c647/12/GPL/openjdk-14.0.2_linux-x64_bin.tar.gz",
+    "name": "openjdk-14.0.2_linux-x64_bin.tar.gz",
+    "openjdk_version": "14.0.2+12"
   },
   {
     "feature_version": 13,

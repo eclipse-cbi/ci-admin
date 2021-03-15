@@ -68,7 +68,7 @@ pw_store_path=bots/${project_name}/${site}
 
 ml_name="${short_name}-dev"     # Mailing list name (e.g. cbi-dev)
 
-keyserver=pool.sks-keyservers.net           # PGP keyserver
+keyserver="keyserver.ubuntu.com"           # PGP keyserver
 
 tmp_gpg=/tmp/temp_gpg
 tmp_gpg_docker=/run/gnupg

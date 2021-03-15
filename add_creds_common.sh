@@ -58,7 +58,7 @@ create_pw() {
 }
 
 generate_ssh_keys() {
-  pwgen -1 -s -y 64 | pass insert -m ${pw_store_path}/id_rsa.passphrase
+  pwgen -1 -s -r '\' -y 64 | pass insert -m ${pw_store_path}/id_rsa.passphrase
   pass ${pw_store_path}/id_rsa.passphrase | ${SCRIPT_FOLDER}/ssh-keygen-ni.sh -C "${email}" -f ${temp_path}
 
   # Insert private and public key into pw store

@@ -50,11 +50,11 @@ create_gerrit_account() {
     bot_name=$(get_bot_name)
     echo
     printf "Creating Gerrit bot account...\n"
-    pass "${pw_store_path}/id_rsa.pub" | ssh -p "29418 git.${forge}.org" gerrit create-account --full-name "'${bot_name} Bot'" --email "${email}" --ssh-key - "genie.${short_name}"
+    pass "${pw_store_path}/id_rsa.pub" | ssh -p 29418 git.${forge}.org gerrit create-account --full-name "'${bot_name} Bot'" --email "${email}" --ssh-key - "genie.${short_name}"
     # does not work with newer Gerrit versions. Is it even necessary anymore?
     #echo "INSERT INTO account_external_ids (account_id,email_address,external_id) SELECT account_id,\"${email}\",\"gerrit:${email}\" FROM accounts WHERE preferred_email=\"${email}\";" | ssh -p 29418 git.${forge}.org gerrit gsql
     printf "\nFlushing Gerrit caches..."
-    ssh -p 29418 "git.${forge}.org" gerrit flush-caches
+    ssh -p 29418 git.${forge}.org gerrit flush-caches
     printf "Done.\n"
   else
     printf "Gerrit bot account %s already exists. Skipping creation...\n" "${email}"

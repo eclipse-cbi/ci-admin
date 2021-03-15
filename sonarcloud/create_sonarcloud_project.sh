@@ -38,7 +38,7 @@ if [ -z "${NAME}" ]; then
 fi
 
 if [ -z "${PROJECT}" ]; then
-  printf "ERROR: a project (e.g. 'org.eclipse:cbi') must be given.\n" >&2
+  printf "ERROR: a project (e.g. 'org.eclipse_cbi') must be given.\n" >&2
   exit 1
 fi
 
@@ -67,11 +67,20 @@ curl_post() {
     "${SONAR_API_BASE_URL}/${api_path}"
 }
 
+create_project() {
+  local sonar_name="$1"
+  local sonar_project="$2"
+  local sonar_organization="$3"
+
+  echo "Creating SonarCloud project ${sonar_project}:"
+  curl_post "name=${sonar_name}&project=${sonar_project}&organization=${sonar_organization}" 'projects/create' | jq .
+}
+
 create_token() {
-  local name="$1"
+  local token_name="$1"
 
   echo "Creating SonarCloud token:"
-  reply="$(curl_post "name=${name}" 'user_tokens/generate')"
+  reply="$(curl_post "name=${token_name}" 'user_tokens/generate')"
   #echo "${reply}" #debug
 
   # deal with errors (e.g. token exists already)"
@@ -80,16 +89,6 @@ create_token() {
   else
     echo "${reply}" | jq -r '.token'
   fi
-}
-
-
-create_project() {
-  local sonar_name="$1"
-  local sonar_project="$2"
-  local sonar_organization="$3"
-
-  echo "Creating SonarCloud project ${sonar_project}:"
-  curl_post "name=${sonar_name}&project=${sonar_project}&organization=${sonar_organization}" 'projects/create' | jq .
 }
 
 create_project "${NAME}" "${PROJECT}" "${ORGANIZATION}"

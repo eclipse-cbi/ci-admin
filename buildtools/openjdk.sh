@@ -45,7 +45,6 @@ LATEST_RELEASES=$(cat <<EOF
   },
   {
     "feature_version": 16,
-    "pre": "ea",
     "link": "https://download.java.net/java/GA/jdk16/7863447f0ab643c585b9bdebf67c69db/36/GPL/openjdk-16_linux-x64_bin.tar.gz",
     "name": "openjdk-16_linux-x64_bin.tar.gz",
     "openjdk_version": "16+36"

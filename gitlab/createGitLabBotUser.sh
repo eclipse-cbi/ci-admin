@@ -123,7 +123,7 @@ create_api_token() {
   local name="CI token"
 
   local token
-  token="$(curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/users/${user_id}/impersonation_tokens" --data-urlencode "name=${name}" --data "scopes[]=read_api" | jq -r .token)"
+  token="$(curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/users/${user_id}/impersonation_tokens" --data-urlencode "name=${name}" --data "scopes[]=api" | jq -r .token)"
   echo "Adding API token to pass..."
   echo "${token}" | pass insert --echo "${PW_STORE_PATH}/api-token"
 }

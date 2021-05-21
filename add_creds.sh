@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
 #*******************************************************************************
-# Copyright (c) 2020 Eclipse Foundation and others.
+# Copyright (c) 2021 Eclipse Foundation and others.
 # This program and the accompanying materials are made available
 # under the terms of the Eclipse Public License 2.0
 # which is available at http://www.eclipse.org/legal/epl-v20.html
 # SPDX-License-Identifier: EPL-2.0
 #*******************************************************************************
 
-# Add credentials (email, username, password)
-# * Generate password
-# * add credentials to password store
-
+#TODO: fix pw_store-path
 
 # Bash strict-mode
 set -o errexit
@@ -19,65 +16,284 @@ set -o pipefail
 
 IFS=$'\n\t'
 
-source add_creds_common.sh
+SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
-script_name="$(basename ${0})"
-project_name="${1:-}"
+#FIXME 
+PW_STORE_DIR="${HOME}/.password-store/cbi-pass"
 
-site_name="${2:-}"
+source "${SCRIPT_FOLDER}/pass/pass_wrapper.sh"
 
-usage() {
-  printf "Usage: %s project_name site_name\n" "$script_name"
-  printf "\t%-16s project name (e.g. technology.cbi for CBI project).\n" "project_name"
-  printf "\t%-16s site name (e.g. docker.com).\n" "site_name"
-}
+_verify_inputs() {
+  local project_name="${1:-}"
 
-# check that two parameters are given
-if [ "$#" -ne 2 ]; then
-  printf "ERROR: a project name and a site name must be given.\n"
-  usage
-  exit 1
-fi
-
-verify_inputs
-
-# check that site name is not empty
-if [ "${site_name}" == "" ]; then
-  printf "ERROR: a site (e.g. docker.com) name must be given.\n"
-  exit 1
-fi
-
-short_name=${project_name##*.}
-pw_store_path=cbi-pass/bots/${project_name}/${site_name}
-
-echo -n "${site_name} email: "; read -r email
-# check that email is not empty
-if [ "${email}" == "" ]; then
-  printf "ERROR: an email must be given.\n"
-  exit 1
-fi
-
-echo -n "${site_name} username: "; read -r user
-# check that site name is not empty
-if [ "${user}" == "" ]; then
-  printf "ERROR: a username must be given.\n"
-  exit 1
-fi
-
-echo ""
-show_info
-
-# check if password already exists
-if [[ ! $(pass ${pw_store_path} &> /dev/null) ]]; then
-  create_pw
-  if [ "${pw}" == "" ]; then
-    printf "ERROR: a password must be given.\n"
+  # check that project name is not empty
+  if [ "${project_name}" == "" ]; then
+    printf "ERROR: a project name must be given.\n"
     exit 1
   fi
-else
-  printf "WARNING: ${site_name} credentials for ${project_name} already exist. Skipping creation...\n"
+
+  # check that project name contains a dot
+  if [[ "${project_name}" != *.* ]]; then
+    printf "ATTENTION: the full project name does not contain a dot (e.g. technology.cbi). Please double-check that this is intentional!\n"
+    read -p "Press enter to continue or CTRL-C to stop the script"
+  fi
+}
+
+_check_pw_does_not_exists() {
+  local project_name="${1:-}"
+  local site="${2:-}"
+  local pw_store_path="bots/${project_name}/${site}"
+  
+  # check that the entries do not exist yet
+#  if passw cbi "${pw_store_path}" &> /dev/null ; then
+#FIXME 
+  if [[ -f "${PW_STORE_DIR}/${pw_store_path}" ]] ; then
+    printf "ERROR: %s credentials for %s already exist.\n" "${site}" "${project_name}"
+    return 1
+  fi
+  return 0
+}
+
+_show_info() {
+  local project_name="${1:-}"
+  local site="${2:-}"
+  local email="${3:-}"
+  local user="${4:-}"
+  local short_name="${project_name##*.}"
+  
+  printf "Project name: %s\n" "${project_name}"
+  printf "Short name: %s\n" "${short_name}"
+  printf "%s email: %s\n" "${site}" "${email}"
+  printf "%s user: %s\n" "${site}" "${user}"
+}
+
+_add_to_pw_store() {
+  local project_name="${1:-}"
+  local site="${2:-}"
+  local email="${3:-}"
+  local user="${4:-}"
+  local pw="${5:-}"
+
+  local pw_store_path="bots/${project_name}/${site}"
+
+  echo "${email}" | passw cbi insert --echo "${pw_store_path}/email"
+  echo "${user}" | passw cbi insert --echo "${pw_store_path}/username"
+  echo "${pw}" | passw cbi insert --echo "${pw_store_path}/password"
+}
+
+_generate_ssh_keys() {
+  local project_name="${1:-}"
+  local site="${2:-}"
+  local email="${3:-}"
+  local user="${4:-}"
+  local short_name="${project_name##*.}"
+  local temp_path="/tmp/${short_name}_id_rsa"
+
+  # shellcheck disable=SC1003
+  pwgen -1 -s -r '\\"' -y 64 | passw cbi insert -m "${pw_store_path}/id_rsa.passphrase"
+  passw cbi "${pw_store_path}/id_rsa.passphrase" | "${SCRIPT_FOLDER}"/ssh-keygen-ni.sh -C "${email}" -f "${temp_path}"
+
+  # Insert private and public key into pw store
+  cat "${temp_path}" | passw cbi insert -m "${pw_store_path}/id_rsa"
+  cat "${temp_path}.pub" | passw cbi insert -m "${pw_store_path}/id_rsa.pub"
+  rm "${temp_path}"*
+  # Add user
+#TODO: ask, before overwriting 
+  echo "${user}" | passw cbi insert --echo "${pw_store_path}/username"
+}
+
+## commands
+
+help() {
+  printf "Available commands:\n"
+  printf "Command\t\t\tDescription\n\n"
+  printf "user_pw\t\t\tCreate any credentials (username/password).\n"
+  printf "user_pw_prompt\t\tCreate any credentials (username/password).\n"
+  printf "ssh_keys\t\tCreate any SSH credentials (SSH keypair).\n"
+  printf "gerrit\t\t\tCreate Gerrit credentials (SSH keypair).\n"
+  printf "github\t\t\tCreate GitHub credentials (username/password).\n"
+  printf "github_ssh\t\tCreate SSH credentials for GitHub (SSH keypair).\n"
+  printf "ossrh\t\t\tCreate credentials for OSSRH (username/password).\n"
+  printf "projects_storage\tCreate SSH credentials for projects-storage.eclipse.org (SSH keypair).\n"
+  exit 0
+}
+
+gerrit() {
+  local project_name="${1:-}"
+  local site="git.eclipse.org"
+  local short_name="${project_name##*.}"
+  local email="${short_name}-bot@eclipse.org"
+  local user="eclipse-${short_name}-bot"
+  local pw_store_path="bots/${project_name}/${site}"
+
+  _verify_inputs "${project_name}"
+  _show_info "${project_name}" "${site}" "${email}" "${user}"
+
+  if _check_pw_does_not_exists "${project_name}" "${site}"; then
+    _generate_ssh_keys "${project_name}" "${site}" "${email}" "${user}"
+  fi
+
+#TODO: fix behavior
+  return_value=$(curl -s "https://${site}/r/accounts/${email}")
+  if [[ ${return_value} == "Account '${email}' not found" ]]; then
+    local bot_name
+    bot_name="$(read -p "Enter bot name (without the trailing 'Bot', e.g. 'CBI' for 'CBI Bot'): " bot_name)"
+    echo
+    printf "Creating Gerrit bot account...\n"
+    # shellcheck disable=SC2029
+    passw cbi "${pw_store_path}/id_rsa.pub" | ssh -p 29418 "${site}" "gerrit" "create-account" --full-name "'${bot_name} Bot'" --email "${email}" --ssh-key - "genie.${short_name}"
+    printf "\nFlushing Gerrit caches..."
+    ssh -p 29418 "${site}" "gerrit" "flush-caches"
+    printf "Done.\n"
+  else
+    printf "Gerrit bot account %s already exists. Skipping creation...\n" "${email}"
+    #printf "Adding SSH public key...\n"
+    #passw cbi ${pw_store_path}/id_rsa.pub | ssh -p 29418 git.${forge}.org gerrit set-account --add-ssh-key - genie.${short_name}
+    exit 1
+  fi
+}
+
+github() {
+  local project_name="${1:-}"
+  local site="github.com"
+  local short_name="${project_name##*.}"
+  local email="${short_name}-bot@eclipse.org"
+  local user="eclipse-${short_name}-bot"
+
+  user_pw "${project_name}" "${site}" "${email}" "${user}"
+}
+
+github_ssh() {
+  local project_name="${1:-}"
+  local site="github.com"
+  local short_name="${project_name##*.}"
+  local user="eclipse-${short_name}-bot"
+
+  ssh_keys "${project_name}" "${site}" "${user}"
+}
+
+ossrh() {
+  local project_name="${1:-}"
+  local site="oss.sonatype.org"
+  local short_name="${project_name##*.}"
+  local email="${short_name}-bot@eclipse.org"
+  local user="eclipse-${short_name}-bot"
+
+  user_pw "${project_name}" "${site}" "${email}" "${user}"
+  echo
+  echo "Sign up here: https://issues.sonatype.org/secure/Signup!default.jspa"
+  echo "Create an issue here: https://issues.sonatype.org/secure/CreateIssue.jspa?issuetype=21&pid=10134"
+}
+
+projects_storage() {
+  local project_name="${1:-}"
+  local site="projects-storage.eclipse.org"
+  local short_name="${project_name##*.}"
+  local user="eclipse-${short_name}-bot"
+
+  ssh_keys "${project_name}" "${site}" "${user}"
+}
+
+ssh_keys() {
+  local project_name="${1:-}"
+  local site="${2:-}"
+  local username="${3:-}" #optional
+  local short_name="${project_name##*.}"
+  local email="${short_name}-bot@eclipse.org"
+
+  _verify_inputs "${project_name}"
+
+  if [ -z "${site}" ]; then
+    printf "ERROR: a site (e.g. 'gitlab.eclipse.org') must be given.\n"
+    exit 1
+  fi
+
+  local pw_store_path="bots/${project_name}/${site}"
+  #debug
+  #echo "pw_store_path: ${pw_store_path}";
+
+  if [ -z "${username}" ]; then
+    echo "Username not given, using default: genie.${short_name}"
+    user="genie.${short_name}"
+  else
+    user="${username}"
+  fi
+
+  # check that the entries do not exist yet
+  # checks for id_rsa, so different than check_pass_no_exists
+#  if passw cbi "${pw_store_path}/id_rsa" &> /dev/null; then
+#FIXME 
+  if [[ -f "${PW_STORE_DIR}/${pw_store_path}/id_rsa" ]] ; then
+    printf "ERROR: %s SSH credentials for %s already exist in pass.\n" "${site}" "${project_name}"
+    exit 1
+  fi
+
+  _show_info "${project_name}" "${site}" "${email}" "${user}"
+  _generate_ssh_keys "${project_name}" "${site}" "${email}" "${user}"
+}
+
+user_pw() {
+  local project_name="${1:-}"
+  local site="${2:-}"
+  local email="${3:-}"
+  local user="${4:-}"
+  local pw="${5:-}"
+
+  _verify_inputs "${project_name}"
+ 
+  if [ "${site}" == "" ]; then
+    printf "ERROR: a site (e.g. docker.com) name must be given.\n"
+    exit 1
+  fi
+
+  if [ "${email}" == "" ]; then
+    printf "ERROR: an email must be given.\n"
+    exit 1
+  fi
+  
+  if [ "${user}" == "" ]; then
+    printf "ERROR: a username must be given.\n"
+    exit 1
+  fi
+
+  _check_pw_does_not_exists "${project_name}" "${site}"
+  _show_info "${project_name}" "${site}" "${email}" "${user}"
+
+  # generate pw if not given
+  if [[ -z "${pw}" ]]; then
+    pw="$(pwgen -1 -s -y 24)"
+  fi
+  _add_to_pw_store "${project_name}" "${site}" "${email}" "${user}" "${pw}"
+}
+
+user_pw_prompt () {
+  local project_name="${1:-}"
+  local site="${2:-}"
+
+  _verify_inputs "${project_name}"
+
+  if [ "${site}" == "" ]; then
+    printf "ERROR: a site (e.g. docker.com) name must be given.\n"
+    exit 1
+  fi
+
+  echo -n "${site} email: "; read -r email
+  echo -n "${site} username: "; read -r user
+  read -p "Do you want to generate the password? (Y)es, (N)o, E(x)it: " yn
+  case $yn in
+    [Yy]* ) pw="$(pwgen -1 -s -y 24)";printf "%s password: %s\n" "${site}" "${pw}";;
+    [Nn]* ) echo -n "${site} password: ";read -r pw;;
+    [Xx]* ) exit;;
+        * ) echo "Please answer (Y)es, (N)o, E(x)it";exit 1;
+  esac
+
+  user_pw "${project_name}" "${site}" "${email}" "${user}" "${pw}"
+}
+
+
+"$@"
+
+# show help menu, if no first parameter is given
+if [[ -z "${1:-}" ]]; then
+  help
 fi
-
-add_to_pw_store
-
-#TODO: push changes

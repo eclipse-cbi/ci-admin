@@ -37,11 +37,18 @@ TARGET="${1:-"."}"
 LATEST_RELEASES=$(cat <<EOF
 [
   {
+    "feature_version": 18,
+    "pre": "ea",
+    "link": "https://download.java.net/java/early_access/jdk18/3/GPL/openjdk-18-ea+3_linux-x64_bin.tar.gz",
+    "name": "openjdk-18-ea+3_linux-x64_bin.tar.gz",
+    "openjdk_version": "18-ea+3"
+  },
+  {
     "feature_version": 17,
     "pre": "ea",
-    "link": "https://download.java.net/java/early_access/jdk17/21/GPL/openjdk-17-ea+21_linux-x64_bin.tar.gz",
-    "name": "openjdk-17-ea+21_linux-x64_bin.tar.gz",
-    "openjdk_version": "17-ea+21"
+    "link": "https://download.java.net/java/early_access/jdk17/28/GPL/openjdk-17-ea+28_linux-x64_bin.tar.gz",
+    "name": "openjdk-17-ea+28_linux-x64_bin.tar.gz",
+    "openjdk_version": "17-ea+28"
   },
   {
     "feature_version": 16,

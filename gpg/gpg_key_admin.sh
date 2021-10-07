@@ -33,7 +33,7 @@ _expire_sub_key() {
   local key_no="${2:-}"
 
   #works as well
-#  printf "key ${key_no}\nexpire\n5y\nsave\n" | gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback --command-fd 0 --edit-key "${KEY_ID}" 3<<< "${PASSPHRASE}"
+  #printf "key ${key_no}\nexpire\n5y\nsave\n" | _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback --command-fd 0 --edit-key "${key_id}" 3<<< "${PASSPHRASE}"
 
   _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback --command-fd 0 --edit-key "${key_id}" 3<<< "${PASSPHRASE}" << EOF 
 key ${key_no}
@@ -99,6 +99,8 @@ renew() {
 
   local key_id
   key_id="$(_get_key_id "${project_name}")"
+
+  _gpg_sb --list-secret-keys --list-options show-unusable-subkeys
 
   _expire_sub_key "${key_id}" "1"
   _expire_sub_key "${key_id}" "2"

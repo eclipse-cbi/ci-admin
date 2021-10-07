@@ -8,6 +8,8 @@
 # SPDX-License-Identifier: EPL-2.0
 #*******************************************************************************
 
+#TODO: check if repo already exists
+
 # Bash strict-mode
 set -o errexit
 set -o nounset

@@ -82,6 +82,16 @@ _preface() {
   PASSPHRASE="$(pass "${PW_STORE_PATH}/passphrase")"
 }
 
+_upload_question() {
+  read -p "Do you want to send the updated keys to a keyserver? (Y)es, (N)o, E(x)it: " yn
+  case $yn in
+    [Yy]* ) upload "${project_name}";;
+    [Nn]* ) exit 0;;
+    [Xx]* ) exit 0;;
+        * ) echo "Please answer (Y)es, (N)o, E(x)it"; _upload_question;
+  esac
+}
+
 help() {
   printf "Available commands:\n"
   printf "Command\t\tDescription\n\n"
@@ -109,6 +119,18 @@ renew() {
   _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback --armor --export-secret-subkeys "${key_id}" 3<<< "${PASSPHRASE}" > "${project_name}/secret-subkeys.asc"
 
   pass insert -m "${PW_STORE_PATH}/secret-subkeys.asc" < "${project_name}/secret-subkeys.asc"
+
+  echo
+  _upload_question
+  echo
+  echo "TODO: Update secret-subkeys.asc Jenkins credential on JIPP (manually) from /ci-admin/gpg/<project_name>/secret-subkeys.asc"
+  read -p "Press enter to continue or CTRL-C to stop the script"
+  echo
+  echo "Deleting ${project_name} directory..."
+  rm -rf "${project_name}"
+  echo
+  echo "TODO: Push changes to cbi-pass repo."
+  read -p "Press enter to continue or CTRL-C to stop the script"
 }
 
 upload() {

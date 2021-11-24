@@ -21,7 +21,7 @@ SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 #FIXME 
 PW_STORE_DIR="${HOME}/.password-store/cbi-pass"
 
-source "${SCRIPT_FOLDER}/pass/pass_wrapper.sh"
+source "${SCRIPT_FOLDER}/pass_wrapper.sh"
 
 _verify_inputs() {
   local project_name="${1:-}"
@@ -91,7 +91,7 @@ _generate_ssh_keys() {
 
   # shellcheck disable=SC1003
   pwgen -1 -s -r '\\"' -y 64 | passw cbi insert -m "${pw_store_path}/id_rsa.passphrase"
-  passw cbi "${pw_store_path}/id_rsa.passphrase" | "${SCRIPT_FOLDER}"/ssh-keygen-ni.sh -C "${email}" -f "${temp_path}"
+  passw cbi "${pw_store_path}/id_rsa.passphrase" | "${SCRIPT_FOLDER}"/../ssh-keygen-ni.sh -C "${email}" -f "${temp_path}"
 
   # Insert private and public key into pw store
   cat "${temp_path}" | passw cbi insert -m "${pw_store_path}/id_rsa"

@@ -59,9 +59,9 @@ fi
 
 # Export PASSWORD_STORE_DIR from config file
 # shellcheck disable=SC1090
-. "${SCRIPT_FOLDER}/pass/localconfig.sh"
+. "${SCRIPT_FOLDER}/localconfig.sh"
 # shellcheck disable=SC1090
-. "${SCRIPT_FOLDER}/utils/crypto.sh"
+. "${SCRIPT_FOLDER}/../utils/crypto.sh"
 
 short_name=${project_name##*.}
 pw_store_path=bots/${project_name}/${site}

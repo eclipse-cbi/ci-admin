@@ -116,8 +116,9 @@ if [[ ! -f "${file_name}" ]]; then
   exit 1
 fi
 
-#scp tar.gz to bambam
-scp "${file_name}" "bambam:/tmp/"
+#scp tar.gz to backend server
+#TODO: use expect
+scp "${file_name}" "${BACKEND_SERVER_USER}@${BACKEND_SERVER}:/tmp/"
 
 update "${maven_version}"
 

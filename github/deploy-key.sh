@@ -7,7 +7,7 @@
 # SPDX-License-Identifier: EPL-2.0
 #*******************************************************************************
 
-# Deploy a ssh key from pass to github 
+# Deploy a ssh key from pass to github
 
 ################### This section not specific to this program ###################
 # Bash strict-mode
@@ -33,7 +33,7 @@ SCRIPT_FOLDER="$(dirname $(readlink -f "${0}"))"
 SCRIPT_NAME="$(basename $(readlink -f "${0}"))"
 ########################### End of the generic section ##########################
 
-. "${SCRIPT_FOLDER}/../pass/sanity-check.sh"
+#. "${SCRIPT_FOLDER}/../pass/sanity-check.sh"
 
 usage() {
   >&2 printf "Deploy a ssh key from pass to github"
@@ -65,7 +65,7 @@ if ! pass "${pw_store_path}/id_rsa.pub" > /dev/null || ! pass "${pw_store_path}/
   exit 1
 fi
 
-credentials="-u "$(pass "${pw_store_path}/username"):$(pass "${pw_store_path}/password")""
+credentials="-u "$(pass "${pw_store_path}/username"):$(pass "${pw_store_path}/admin-token")""
 
 response="$(mktemp)"
 
@@ -89,7 +89,7 @@ fi
 # add ${pw_store_path}/id_rsa.pub to github
 request=$(cat <<EOM
 {
-  "title": "$(pass ${pw_store_path}/email)", 
+  "title": "$(pass ${pw_store_path}/email)",
   "key": "$(pass ${pw_store_path}/id_rsa.pub)"
 }
 EOM

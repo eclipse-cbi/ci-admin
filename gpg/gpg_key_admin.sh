@@ -123,7 +123,7 @@ renew() {
   echo
   _upload_question
   echo
-  echo "TODO: Update secret-subkeys.asc Jenkins credential on JIPP (manually) from /ci-admin/gpg/<project_name>/secret-subkeys.asc"
+  echo "TODO: Update secret-subkeys.asc Jenkins credential on JIPP (manually) from /ci-admin/gpg/${project_name}/secret-subkeys.asc"
   read -p "Press enter to continue or CTRL-C to stop the script"
   echo
   echo "Deleting ${project_name} directory..."

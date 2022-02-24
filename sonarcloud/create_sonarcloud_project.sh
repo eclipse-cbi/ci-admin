@@ -24,16 +24,23 @@ SONAR_NAME="${2:-}"
 SONAR_PROJECT="${3:-}"
 SONAR_ORG="${4:-eclipse}"
 
+SHORT_NAME="${PROJECT_NAME##*.}"
+
 SONAR_API_BASE_URL="https://sonarcloud.io/api"
 PW_STORE_PATH="cbi-pass/bots/${PROJECT_NAME}"
 
 if [[ ! -f "${SCRIPT_FOLDER}/../.localconfig" ]]; then
   echo "ERROR: File '$(readlink -f "${SCRIPT_FOLDER}/../.localconfig")' does not exists"
-  echo "Create one to configure the sonar token. Example:"
-  echo '{"sonar-token": "abcdefgh1234567890"}'
+  echo "Create one to configure the sonar token and the JIRO root dir. Example:"
+  echo '{'
+  echo '  "sonar-token": "abcdefgh1234567890",'
+  echo '  "jiro-root-dir": "/path/to/jiro-root-dir"'
+  echo '}'
+  exit 1
 fi
 
-SONAR_TOKEN="$(cat "${SCRIPT_FOLDER}/../.localconfig" | jq -r '."sonar-token"')"
+SONAR_TOKEN="$(jq -r '."sonar-token"' < "${SCRIPT_FOLDER}/../.localconfig")"
+JIRO_ROOT_DIR="$(jq -r '."jiro-root-dir"' < "${SCRIPT_FOLDER}/../.localconfig")"
 
 usage() {
   printf "Usage: %s project_name sonar_name sonar_project_id [sonar_org]\n" "${SCRIPT_NAME}"
@@ -42,6 +49,17 @@ usage() {
   printf "\t%-16s sonar_project (e.g. 'org.eclipse.cbi').\n" "sonar_project"
   printf "\t%-16s sonar_org (optional, default is 'eclipse').\n" "sonar_org"
 }
+
+if [ -z "${SONAR_TOKEN}" -o "${SONAR_TOKEN}" == "null" ]; then
+  printf "ERROR: sonar token ('sonar-token') needs to be set in .localconfig.\n" >&2
+  exit 1
+fi
+
+if [ -z "${JIRO_ROOT_DIR}" -o "${JIRO_ROOT_DIR}" == "null" ]; then
+  printf "ERROR: JIRO root dir ('jiro-root-dir') needs to be set in .localconfig.\n" >&2
+  exit 1
+fi
+
 
 if [ -z "${PROJECT_NAME}" ]; then
   printf "ERROR: a project name (e.g. 'technology.cbi' for the CBI project) must be given.\n" >&2
@@ -66,12 +84,6 @@ if [ -z "${SONAR_ORG}" ]; then
   usage
   exit 1
 fi
-
-if [ -z "${SONAR_TOKEN}" -o "${SONAR_TOKEN}" == "null" ]; then
-  printf "ERROR: sonar token needs to be set in .localconfig.\n" >&2
-  exit 1
-fi
-
 
 
 curl_post() {
@@ -98,6 +110,7 @@ create_project() {
 
 create_token() {
   local token_name="Token for ${1:-}"
+  local suffix="${2:-}"
 
   echo "Creating SonarCloud token:"
   reply="$(curl_post "name=${token_name}" 'user_tokens/generate')"
@@ -110,10 +123,47 @@ create_token() {
     token=$(echo "${reply}" | jq -r '.token')
     echo "${token}"
     # Add token to pass
-    echo "${token}" | pass insert --echo "${PW_STORE_PATH}/sonarcloud.io/token"
+    echo "${token}" | pass insert --echo "${PW_STORE_PATH}/sonarcloud.io/token${suffix}"
   fi
 }
 
-create_project "${SONAR_NAME}" "${SONAR_PROJECT}" "${SONAR_ORG}"
-create_token "${SONAR_PROJECT}"
+create_issue_template() {
+  # create issue reply template
+  echo ""
+  echo "Issue reply template:"
+  echo "====================="
+  cat <<EOF
+https://sonarcloud.io/dashboard?id=${SONAR_PROJECT} is set up now.
 
+The ${SHORT_NAME} Jenkins instance has been configured accordingly.
+
+To set up a job that runs the SonarCloud analysis, please follow these steps:
+
+In your job config
+*  Enable "Use secret text(s) or file(s)"
+    Add -> Secret text
+    Select “SonarCloud token for ${SHORT_NAME}${SUFFIX}”
+    Variable: SONARCLOUD_TOKEN
+* Enable "Prepare SonarQube Scanner environment" option
+* In Maven build step,
+  Goals: clean verify -B sonar:sonar
+-Dsonar.projectKey=${SONAR_PROJECT}
+-Dsonar.organization=${SONAR_ORG}
+-Dsonar.host.url=\${SONAR_HOST_URL}
+-Dsonar.login=\${SONARCLOUD_TOKEN}
+EOF
+}
+
+create_project "${SONAR_NAME}" "${SONAR_PROJECT}" "${SONAR_ORG}"
+
+echo -n "${SONAR_PROJECT} suffix?: "; read -r SUFFIX
+if [[ -n "${SUFFIX}" ]]; then
+  SUFFIX="-${SUFFIX}"
+fi
+
+create_token "${SONAR_PROJECT}" "${SUFFIX}"
+
+# add SonarCloud credentials to Jenkins instance
+"${JIRO_ROOT_DIR}/jenkins-create-credentials-token.sh" "sonarcloud" "${PROJECT_NAME}" "${SUFFIX}" 
+
+create_issue_template

@@ -22,6 +22,7 @@ if [[ ! -f "${LOCAL_CONFIG}" ]]; then
   echo "Create one to configure the location of the JIRO root dir and the projects-bot-api root dir. Example:"
   echo '{"jiro-root-dir": "/path/to/jiro/rootdir"}'
   echo '{"projects-bot-api-root-dir": "/path/to/projects-bot-api/rootdir"}'
+  exit 1
 fi
 
 JIRO_ROOT_FOLDER="$(jq -r '."jiro-root-dir"' < "${LOCAL_CONFIG}")"

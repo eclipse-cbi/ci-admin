@@ -15,8 +15,27 @@ set -o pipefail
 
 IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
+LOCAL_CONFIG="${SCRIPT_FOLDER}/../.localconfig"
 
-ROOT_FOLDER="/home/fr3d/git"
+if [[ ! -f "${LOCAL_CONFIG}" ]]; then
+  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
+  echo "Create one to configure the location of the JIRO root dir and the projects-bot-api root dir. Example:"
+  echo '{"jiro-root-dir": "/path/to/jiro/rootdir"}'
+  echo '{"projects-bot-api-root-dir": "/path/to/projects-bot-api/rootdir"}'
+fi
+
+JIRO_ROOT_FOLDER="$(jq -r '."jiro-root-dir"' < "${LOCAL_CONFIG}")"
+PROJECTS_BOT_API_ROOT_FOLDER="$(jq -r '."projects-bot-api-root-dir"' < "${LOCAL_CONFIG}")"
+
+if [[ -z "${JIRO_ROOT_FOLDER}" ]] || [[ "${JIRO_ROOT_FOLDER}" == "null" ]]; then
+  printf "ERROR: 'jiro-root-dir' must be set in %s.\n" "${LOCAL_CONFIG}"
+  exit 1
+fi
+
+if [[ -z "${PROJECTS_BOT_API_ROOT_FOLDER}" ]] || [[ "${PROJECTS_BOT_API_ROOT_FOLDER}" == "null" ]]; then
+  printf "ERROR: 'projects-bot-api-root-dir' must be set in %s.\n" "${LOCAL_CONFIG}"
+  exit 1
+fi
 
 PROJECT_NAME="${1:-}"
 SHORT_NAME=${PROJECT_NAME##*.}
@@ -28,9 +47,9 @@ if [[ -z "${PROJECT_NAME}" ]]; then
 fi
 
 add_gitlab_jcasc_config() {
-  mkdir -p "${ROOT_FOLDER}/jiro/instances/${PROJECT_NAME}/jenkins"
+  mkdir -p "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}/jenkins"
 #TODO: deal with existing configuration.yml file 
-  cat <<EOF > "${ROOT_FOLDER}/jiro/instances/${PROJECT_NAME}/jenkins/configuration.yml"
+  cat <<EOF > "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}/jenkins/configuration.yml"
 unclassified:
   gitLabConnectionConfig:
     connections:
@@ -65,7 +84,7 @@ The recommended way of creating a GitLab triggered job and handle merge request 
 * select Projects: e.g. eclipse/${SHORT_NAME}/${SHORT_NAME}
 * select branches to build, etc}
 EOF
-read -rsp $'Once you are done, press any key to continue...\n' -n1 key
+read -rsp $'Once you are done, press any key to continue...\n' -n1
 }
 
 ####
@@ -74,25 +93,28 @@ echo "# Creating a GitLab bot user..."
 "${SCRIPT_FOLDER}/create_git_lab_bot_user.sh" "${PROJECT_NAME}"
 
 printf "\n# Adding GitLab bot credentials to Jenkins instance...\n"
-${ROOT_FOLDER}/jiro/jenkins-create-credentials-token.sh "gitlab" "${PROJECT_NAME}"
-${ROOT_FOLDER}/jiro/jenkins-create-credentials.sh "${PROJECT_NAME}"
+"${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "gitlab" "${PROJECT_NAME}"
+"${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${PROJECT_NAME}"
 
 printf "\n# Adding GitLab JCasC config to %s Jenkins instance...\n" "${PROJECT_NAME}"
 add_gitlab_jcasc_config
 
 printf "\n# Reloading configuration of the Jenkins instance...\n"
-pushd "${ROOT_FOLDER}/jiro/"
-# TODO: check if connection to cluster is established
+
+echo "Connected to cluster?"
+read -rsp "Press enter to continue or CTRL-C to stop the script"
+
+pushd "${JIRO_ROOT_FOLDER}"
 # TODO: deal with working directory
 ./jenkins-reload-jcasc-only.sh "instances/${PROJECT_NAME}"
 popd
 
 printf "\n# Update projects-bot-api...\n"
-${ROOT_FOLDER}/projects-bots-api/regen_db.sh
+"${PROJECTS_BOT_API_ROOT_FOLDER}/projects-bots-api/regen_db.sh"
 
 printf "\n\n"
-read -rsp $'Once you are done with comparing the diff, press any key to continue...\n' -n1 key
-${ROOT_FOLDER}/projects-bots-api/deploy_db.sh
+read -rsp $'Once you are done with comparing the diff, press any key to continue...\n' -n1
+"${PROJECTS_BOT_API_ROOT_FOLDER}/projects-bots-api/deploy_db.sh"
 
 printf "\n# Adding bot to GitLab group...\n"
 # TODO: read botname from pass?

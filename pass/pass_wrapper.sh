@@ -14,12 +14,22 @@ set -o pipefail
 
 IFS=$'\n\t'
 
-SCRIPT_NAME="$(basename "${0}")"
-SCRIPT_FOLDER_PASS_WRAPPER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
-LOCAL_CONFIG_PATH="${SCRIPT_FOLDER_PASS_WRAPPER}/../.localconfig"
+# Need pass
+if ! command -v pass > /dev/null; then
+  >&2 echo "ERROR: this program requires 'pass'"
+  exit 1
+fi
 
-if [[ ! -f "${LOCAL_CONFIG_PATH}" ]]; then
-  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG_PATH}")' does not exists"
+# Need readlink
+if ! command -v readlink > /dev/null; then
+  >&2 echo "ERROR: this program requires 'readlink'"
+  exit 1
+fi
+
+LOCAL_CONFIG="${HOME}/.cbi/config"
+
+if [[ ! -f "${LOCAL_CONFIG}" ]]; then
+  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
   echo "Create one to configure the location of the password store. Example:"
   echo '{"password-store": {"cbi-dir": "~/.password-store/cbi",'
   echo '                    "it-dir": "~/.password-store/it"}}'
@@ -38,10 +48,20 @@ passw() {
   fi
 
   local PASSWORD_STORE_DIR
-  PASSWORD_STORE_DIR="$(jq -r '.["password-store"]["'"${store}"'-dir"]' "${LOCAL_CONFIG_PATH}")"
+  PASSWORD_STORE_DIR="$(jq -r '.["password-store"]["'"${store}"'-dir"]' "${LOCAL_CONFIG}")"
+
+  if [[ -z "${PASSWORD_STORE_DIR}" ]] || [[ "${PASSWORD_STORE_DIR}" == "null" ]]; then
+    printf "ERROR: '${store}-dir' must be set in %s.\n" "$(readlink -f "${LOCAL_CONFIG}")"
+    exit 1
+  fi
+
   PASSWORD_STORE_DIR="$(readlink -f "${PASSWORD_STORE_DIR/#~\//${HOME}/}")"
   export PASSWORD_STORE_DIR
-  pass "${@:2}"
+
+  local exitCode=0
+  if ! pass "${@:2}"; then
+    exitCode=1
+  fi
 
   # reset env variable
   if [[ ! -z "${backup_pw_store_dir:-}" ]]; then
@@ -50,4 +70,6 @@ passw() {
   else
     unset PASSWORD_STORE_DIR
   fi
+
+  return ${exitCode}
 }

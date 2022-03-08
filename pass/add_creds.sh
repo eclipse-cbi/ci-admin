@@ -7,8 +7,6 @@
 # SPDX-License-Identifier: EPL-2.0
 #*******************************************************************************
 
-#TODO: fix pw_store-path
-
 # Bash strict-mode
 set -o errexit
 set -o nounset
@@ -17,9 +15,6 @@ set -o pipefail
 IFS=$'\n\t'
 
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
-
-#FIXME 
-PW_STORE_DIR="${HOME}/.password-store/cbi-pass"
 
 source "${SCRIPT_FOLDER}/pass_wrapper.sh"
 
@@ -41,14 +36,12 @@ _verify_inputs() {
 
 _check_pw_does_not_exists() {
   local project_name="${1:-}"
-  local site="${2:-}"
-  local pw_store_path="bots/${project_name}/${site}"
-  
+  local path="${2:-}"
+  local pw_store_path="bots/${project_name}/${path}"
+
   # check that the entries do not exist yet
-#  if passw cbi "${pw_store_path}" &> /dev/null ; then
-#FIXME 
-  if [[ -f "${PW_STORE_DIR}/${pw_store_path}" ]] ; then
-    printf "ERROR: %s credentials for %s already exist.\n" "${site}" "${project_name}"
+  if passw cbi "${pw_store_path}" &> /dev/null ; then
+    printf "%s credentials for %s already exist. Skipping creation...\n" "${path}" "${project_name}"
     return 1
   fi
   return 0
@@ -97,9 +90,10 @@ _generate_ssh_keys() {
   cat "${temp_path}" | passw cbi insert -m "${pw_store_path}/id_rsa"
   cat "${temp_path}.pub" | passw cbi insert -m "${pw_store_path}/id_rsa.pub"
   rm "${temp_path}"*
-  # Add user
-#TODO: ask, before overwriting 
-  echo "${user}" | passw cbi insert --echo "${pw_store_path}/username"
+  # Add user (if it does not exist yet)
+  if _check_pw_does_not_exists "${project_name}" "${site}/username"; then
+    echo "${user}" | passw cbi insert --echo "${pw_store_path}/username"
+  fi
 }
 
 ## commands
@@ -127,11 +121,12 @@ gerrit() {
   local pw_store_path="bots/${project_name}/${site}"
 
   _verify_inputs "${project_name}"
-  _show_info "${project_name}" "${site}" "${email}" "${user}"
 
-  if _check_pw_does_not_exists "${project_name}" "${site}"; then
+  if _check_pw_does_not_exists "${project_name}" "${site}/username"; then
     _generate_ssh_keys "${project_name}" "${site}" "${email}" "${user}"
   fi
+
+  _show_info "${project_name}" "${site}" "${email}" "${user}"
 
 #TODO: fix behavior
   return_value=$(curl -s "https://${site}/r/accounts/${email}")
@@ -220,11 +215,7 @@ ssh_keys() {
   fi
 
   # check that the entries do not exist yet
-  # checks for id_rsa, so different than check_pass_no_exists
-#  if passw cbi "${pw_store_path}/id_rsa" &> /dev/null; then
-#FIXME 
-  if [[ -f "${PW_STORE_DIR}/${pw_store_path}/id_rsa" ]] ; then
-    printf "ERROR: %s SSH credentials for %s already exist in pass.\n" "${site}" "${project_name}"
+  if _check_pw_does_not_exists "${project_name}" "${site}/id_rsa"; then
     exit 1
   fi
 
@@ -256,7 +247,9 @@ user_pw() {
     exit 1
   fi
 
-  _check_pw_does_not_exists "${project_name}" "${site}"
+  if _check_pw_does_not_exists "${project_name}" "${site}/username"; then
+    exit 1
+  fi
   _show_info "${project_name}" "${site}" "${email}" "${user}"
 
   # generate pw if not given

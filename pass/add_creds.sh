@@ -132,7 +132,7 @@ gerrit() {
   return_value=$(curl -s "https://${site}/r/accounts/${email}")
   if [[ ${return_value} == "Account '${email}' not found" ]]; then
     local bot_name
-    bot_name="$(read -p "Enter bot name (without the trailing 'Bot', e.g. 'CBI' for 'CBI Bot'): " bot_name)"
+    read -p "Enter bot name (without the trailing 'Bot', e.g. 'CBI' for 'CBI Bot'): " bot_name
     echo
     printf "Creating Gerrit bot account...\n"
     # shellcheck disable=SC2029

@@ -16,16 +16,20 @@ set -o pipefail
 
 IFS=$'\n\t'
 
-SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
-script_name="$(basename "${0}")"
-project_name="${1:-}"
-display_name="${2:-}"
-forge=${3:-eclipse.org}
+SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+SCRIPT_NAME="$(basename "${0}")"
 
-site=gpg
+source "${SCRIPT_FOLDER}/pass_wrapper.sh"
+# shellcheck disable=SC1090
+. "${SCRIPT_FOLDER}/../utils/crypto.sh"
+
+
+PROJECT_NAME="${1:-}"
+DISPLAY_NAME="${2:-}"
+FORGE="${3:-eclipse.org}"
 
 usage() {
-  printf "Usage: %s project_name displayname [forge]\n" "${script_name}"
+  printf "Usage: %s project_name displayname [forge]\n" "${SCRIPT_NAME}"
   printf "\t%-16s project name (e.g. technology.cbi for CBI project).\n" "project_name"
   printf "\t%-16s the full name of the project (e.g. 'Eclipse CBI Project' for CBI project).\n" "display_name"
   printf "\t%-16s the forge (optional) (default is 'eclipse.org').\n" "forge"
@@ -33,63 +37,52 @@ usage() {
 
 ## Verify inputs
 
-if [ "${project_name}" == "" ]; then
+if [ "${PROJECT_NAME}" == "" ]; then
   printf "ERROR: a projectname must be given.\n"
   usage
   exit 1
 fi
 
 # check that project name contains a dot
-if [[ "$project_name" != *.* ]]; then
+if [[ "${PROJECT_NAME}" != *.* ]]; then
   printf "ATTENTION: the full project name does not contain a dot (e.g. technology.cbi). Please double-check that this is intentional!\n"
   read -p "Press enter to continue or CTRL-C to stop the script"
 fi
 
-if [ "${display_name}" == "" ]; then
+if [ "${DISPLAY_NAME}" == "" ]; then
   printf "ERROR: a display name (e.g. 'Eclipse CBI Project' for CBI project) must be given.\n"
   usage
   exit 1
 fi
 
-if [ "${forge}" != "eclipse.org" ] && [ "${forge}" != "locationtech.org" ] && [ "${forge}" != "polarsys.org" ]; then
+if [ "${FORGE}" != "eclipse.org" ] && [ "${FORGE}" != "locationtech.org" ] && [ "${FORGE}" != "polarsys.org" ]; then
   printf "ERROR: forge must either be 'eclipse.org','locationtech.org' or 'polarsys.org'.\n"
   usage
   exit 1
 fi
 
-# Export PASSWORD_STORE_DIR from config file
-# shellcheck disable=SC1090
-. "${SCRIPT_FOLDER}/localconfig.sh"
-# shellcheck disable=SC1090
-. "${SCRIPT_FOLDER}/../utils/crypto.sh"
+short_name="${PROJECT_NAME##*.}"
+ML_NAME="${short_name}-dev"                # Mailing list name (e.g. cbi-dev)
 
-short_name=${project_name##*.}
-pw_store_path=bots/${project_name}/${site}
-
-ml_name="${short_name}-dev"     # Mailing list name (e.g. cbi-dev)
-
-keyserver="keyserver.ubuntu.com"           # PGP keyserver
-
-tmp_gpg=/tmp/temp_gpg
-tmp_gpg_docker=/run/gnupg
-gen_key_config_file=gen_key_config
+TMP_GPG="/tmp/temp_gpg"
+TMP_GPG_DOCKER="/run/gnupg"
 
 gpg_sb() {
-  docker run -i --rm -u "$(id -u)" -v ${tmp_gpg}:${tmp_gpg_docker} eclipsecbi/gnupg:2.2.8-r0 "${@}"
+  docker run -i --rm -u "$(id -u)" -v "${TMP_GPG}:${TMP_GPG_DOCKER}" "eclipsecbi/gnupg:2.2.8-r0" "${@}"
 }
 
-pass_phrase="$(pwgen 64)"
-
 generate_key() {
-  mkdir -p ${tmp_gpg}
-  chmod 700 ${tmp_gpg}
+  local pass_phrase="${1:-}"
+  local gen_key_config_file="gen_key_config"
+  mkdir -p "${TMP_GPG}"
+  chmod 700 "${TMP_GPG}"
   ## generate key config file
-  cat <<EOF > ${tmp_gpg}/${gen_key_config_file}
-%echo Generating keypair for ${display_name} ...
+  cat <<EOF > ${TMP_GPG}/${gen_key_config_file}
+%echo Generating keypair for ${DISPLAY_NAME} ...
 Key-Type: RSA
 Key-Length: 4096
-Name-Real: ${display_name}
-Name-Email: ${ml_name}@${forge}
+Name-Real: ${DISPLAY_NAME}
+Name-Email: ${ML_NAME}@${FORGE}
 Expire-Date: 5y
 # Strengthing hash-preferences
 Preferences: SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed
@@ -97,24 +90,27 @@ Preferences: SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP 
 #%ask-passphrase
 Passphrase: ${pass_phrase}
 # for testing
-#%pubring $ml_name.pub
-#%secring $ml_name.sec
+#%pubring ${ML_NAME}.pub
+#%secring ${ML_NAME}.sec
 %commit
 %echo done
 EOF
 
   printf "\nGenerating key non-interactively...\n\n"
-  gpg_sb --batch --gen-key ${tmp_gpg_docker}/${gen_key_config_file}
+  gpg_sb --batch --gen-key ${TMP_GPG_DOCKER}/${gen_key_config_file}
 
   printf "\nShredding config file...\n\n"
-  shred -n 7 -u -z ${tmp_gpg}/${gen_key_config_file}
+  shred -n 7 -u -z ${TMP_GPG}/${gen_key_config_file}
 
   printf "\nChecking keys...\n\n"
   gpg_sb --list-keys
 }
 
 generate_sub_keypair() {
+  local key_id="${1:-}"
+  local pass_phrase="${2:-}"
   printf "\nGenerating a signing (sub-)keypair...\n"
+  local subkey_cmd
   subkey_cmd=$(cat <<EOM
 addkey
 4
@@ -129,16 +125,21 @@ EOM
 }
 
 check_prefs() {
+  local key_id="${1:-}"
   printf "\nChecking hash-preferences...\n\n"
   gpg_sb --batch --edit-key "${key_id}" showpref save exit
 }
 
 send_key() {
+  local key_id="${1:-}"
+  local keyserver="${2:-}"
   printf "\nSending key to keyserver...\n\n"
-  gpg_sb --keyserver $keyserver --send-keys "${key_id}"
+  gpg_sb --keyserver "${keyserver}" --send-keys "${key_id}"
 }
 
 export_keys(){
+  local key_id="${1:-}"
+  local pass_phrase="${2:-}"
   printf "\nExporting keys...\n\n"
   gpg_sb --batch --passphrase-fd 0 --pinentry-mode=loopback --armor --export "${key_id}" <<< "${pass_phrase}" > public-keys.asc
   gpg_sb --batch --passphrase-fd 0 --pinentry-mode=loopback --armor --export-secret-keys "${key_id}" <<< "${pass_phrase}" > secret-keys.asc
@@ -157,33 +158,41 @@ yes_skip_exit() {
 }
 
 add_to_pw_store() {
-  echo "${pass_phrase}" | pass insert --echo "${pw_store_path}/passphrase"
-  echo "${key_id} " | pass insert --echo "${pw_store_path}/key_id"
-  echo "${ml_name}@${forge}" | pass insert --echo "${pw_store_path}/email"
-  pass insert -m "${pw_store_path}/public-keys.asc" < public-keys.asc
-  pass insert -m "${pw_store_path}/secret-keys.asc" < secret-keys.asc
-  pass insert -m "${pw_store_path}/secret-subkeys.asc" < secret-subkeys.asc
+  local key_id="${1:-}"
+  local pass_phrase="${2:-}"
+  local pw_store_path="${3:-}"
+
+  echo "${pass_phrase}" | passw cbi insert --echo "${pw_store_path}/passphrase"
+  echo "${key_id}" | passw cbi insert --echo "${pw_store_path}/key_id"
+  echo "${ML_NAME}@${FORGE}" | passw cbi insert --echo "${pw_store_path}/email"
+  passw cbi insert -m "${pw_store_path}/public-keys.asc" < public-keys.asc
+  passw cbi insert -m "${pw_store_path}/secret-keys.asc" < secret-keys.asc
+  passw cbi insert -m "${pw_store_path}/secret-subkeys.asc" < secret-subkeys.asc
 }
 
 ## Main
-yes_skip_exit "generate the main key" generate_key
+pass_phrase="$(pwgen 64)"
+keyserver="keyserver.ubuntu.com"           # PGP keyserver
+pw_store_path="bots/${PROJECT_NAME}/gpg"
 
-key_id=$(gpg_sb --list-keys --with-colons "<${ml_name}@${forge}>" | awk -F: '/^pub:/ { print $5 }')
+yes_skip_exit "generate the main key" generate_key "${pass_phrase}"
+
+key_id="$(gpg_sb --list-keys --with-colons "<${ML_NAME}@${FORGE}>" | awk -F: '/^pub:/ { print $5 }')"
 printf "Found key: %s\n" "${key_id}"
 
-check_prefs
+check_prefs "${key_id}"
 
-yes_skip_exit "generate a signing (sub-)keypair" generate_sub_keypair
+yes_skip_exit "generate a signing (sub-)keypair" generate_sub_keypair "${key_id}" "${pass_phrase}"
 
-yes_skip_exit "export the keys" export_keys
+yes_skip_exit "export the keys" export_keys "${key_id}" "${pass_phrase}"
 
-yes_skip_exit "add the keys, passphrase and metadata to the password store" add_to_pw_store
+yes_skip_exit "add the keys, passphrase and metadata to the password store" add_to_pw_store "${key_id}" "${pass_phrase}" "${pw_store_path}"
 
-yes_skip_exit "send the new key to the keyserver" send_key
+yes_skip_exit "send the new key to the keyserver" send_key "${key_id}" "${keyserver}"
 
-if [ -d ${tmp_gpg} ]; then
+if [ -d ${TMP_GPG} ]; then
   printf "\nDeleting temporary keystore...\n\n"
-  rm -rf "${tmp_gpg}"
+  rm -rf "${TMP_GPG}"
 fi
 
 printf "Done.\n"

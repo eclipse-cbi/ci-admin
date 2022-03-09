@@ -19,27 +19,27 @@ LOCAL_CONFIG="${SCRIPT_FOLDER}/../.localconfig"
 
 if [[ ! -f "${LOCAL_CONFIG}" ]]; then
   echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
-  echo "Create one to configure the location of the JIRO root dir and the projects-bot-api root dir. Example:"
+  echo "Create one to configure the location of the JIRO root dir and the projects-bots-api root dir. Example:"
   echo '{"jiro-root-dir": "/path/to/jiro/rootdir"}'
-  echo '{"projects-bot-api-root-dir": "/path/to/projects-bot-api/rootdir"}'
+  echo '{"projects-bots-api-root-dir": "/path/to/projects-bots-api/rootdir"}'
   exit 1
 fi
 
 JIRO_ROOT_FOLDER="$(jq -r '."jiro-root-dir"' < "${LOCAL_CONFIG}")"
-PROJECTS_BOT_API_ROOT_FOLDER="$(jq -r '."projects-bot-api-root-dir"' < "${LOCAL_CONFIG}")"
+PROJECTS_BOTS_API_ROOT_FOLDER="$(jq -r '."projects-bots-api-root-dir"' < "${LOCAL_CONFIG}")"
 
 if [[ -z "${JIRO_ROOT_FOLDER}" ]] || [[ "${JIRO_ROOT_FOLDER}" == "null" ]]; then
   printf "ERROR: 'jiro-root-dir' must be set in %s.\n" "${LOCAL_CONFIG}"
   exit 1
 fi
 
-if [[ -z "${PROJECTS_BOT_API_ROOT_FOLDER}" ]] || [[ "${PROJECTS_BOT_API_ROOT_FOLDER}" == "null" ]]; then
-  printf "ERROR: 'projects-bot-api-root-dir' must be set in %s.\n" "${LOCAL_CONFIG}"
+if [[ -z "${PROJECTS_BOTS_API_ROOT_FOLDER}" ]] || [[ "${PROJECTS_BOTS_API_ROOT_FOLDER}" == "null" ]]; then
+  printf "ERROR: 'projects-bots-api-root-dir' must be set in %s.\n" "${LOCAL_CONFIG}"
   exit 1
 fi
 
 PROJECT_NAME="${1:-}"
-SHORT_NAME=${PROJECT_NAME##*.}
+SHORT_NAME="${PROJECT_NAME##*.}"
 
 # check that project name is not empty
 if [[ -z "${PROJECT_NAME}" ]]; then
@@ -70,6 +70,7 @@ EOF
 }
 
 instructions_template() {
+  printf "\n# Post instructions to GitLab...\n"
   cat <<EOF
 Post the following on the corresponding GitLab issue:
 -------------------------------------------------------
@@ -91,7 +92,7 @@ read -rsp $'Once you are done, press any key to continue...\n' -n1
 ####
 
 echo "# Creating a GitLab bot user..."
-"${SCRIPT_FOLDER}/create_git_lab_bot_user.sh" "${PROJECT_NAME}"
+"${SCRIPT_FOLDER}/create_gitlab_bot_user.sh" "${PROJECT_NAME}"
 
 printf "\n# Adding GitLab bot credentials to Jenkins instance...\n"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "gitlab" "${PROJECT_NAME}"
@@ -110,12 +111,12 @@ pushd "${JIRO_ROOT_FOLDER}"
 ./jenkins-reload-jcasc-only.sh "instances/${PROJECT_NAME}"
 popd
 
-printf "\n# Update projects-bot-api...\n"
-"${PROJECTS_BOT_API_ROOT_FOLDER}/projects-bots-api/regen_db.sh"
+printf "\n# Update projects-bots-api...\n"
+"${PROJECTS_BOTS_API_ROOT_FOLDER}/regen_db.sh"
 
 printf "\n\n"
 read -rsp $'Once you are done with comparing the diff, press any key to continue...\n' -n1
-"${PROJECTS_BOT_API_ROOT_FOLDER}/projects-bots-api/deploy_db.sh"
+"${PROJECTS_BOTS_API_ROOT_FOLDER}/deploy_db.sh"
 
 printf "\n# Adding bot to GitLab group...\n"
 # TODO: read botname from pass?
@@ -128,6 +129,5 @@ printf "\n# Creating Webhooks...\n"
 repo_name="${SHORT_NAME}" # this only works for the default repo
 "${SCRIPT_FOLDER}/create_gitlab_webhook.sh" "${PROJECT_NAME}" "${repo_name}"
 
-printf "\n# Post instructions to Bugzilla...\n"
 instructions_template
 

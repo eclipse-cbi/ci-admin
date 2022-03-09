@@ -15,7 +15,7 @@ set -o pipefail
 
 IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
-LOCAL_CONFIG="${SCRIPT_FOLDER}/../.localconfig"
+LOCAL_CONFIG="${HOME}/.cbi/config"
 
 if [[ ! -f "${LOCAL_CONFIG}" ]]; then
   echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"

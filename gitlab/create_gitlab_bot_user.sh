@@ -15,17 +15,9 @@ set -o nounset
 set -o pipefail
 
 IFS=$'\n\t'
-SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
+SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
-if [[ ! -f "${SCRIPT_FOLDER}/../.localconfig" ]]; then
-  echo "ERROR: File '$(readlink -f "${SCRIPT_FOLDER}/../.localconfig")' does not exists"
-  echo "Create one to configure the location of the password store. Example:"
-  echo '{"password-store": {"cbi-dir": "~/.password-store/cbi"}}'
-fi
-
-PASSWORD_STORE_DIR="$(jq -r '.["password-store"]["cbi-dir"]' "${SCRIPT_FOLDER}/../.localconfig")"
-PASSWORD_STORE_DIR="$(readlink -f "${PASSWORD_STORE_DIR/#~\//${HOME}/}")"
-export PASSWORD_STORE_DIR
+source "${SCRIPT_FOLDER}/pass_wrapper.sh"
 
 GITLAB_PASS_DOMAIN="gitlab.eclipse.org"
 
@@ -43,11 +35,13 @@ PW_STORE_PATH="bots/${PROJECT_NAME}/${GITLAB_PASS_DOMAIN}"
 create_credentials_in_pass() {
   local project_name="${1:-}"
   local short_name="${project_name##*.}"
-  if [[ ! -f "${PASSWORD_STORE_DIR}/bots/${project_name}/${GITLAB_PASS_DOMAIN}/id_rsa.gpg" ]]; then
+
+#TODO: simplify
+  if ! passw cbi "${PW_STORE_PATH}/id_rsa" &> /dev/null ; then
     echo "Creating GitLab SSH credentials in password store..."
     "${SCRIPT_FOLDER}/../pass/add_creds.sh" "ssh_keys" "${project_name}" "${GITLAB_PASS_DOMAIN}" "${short_name}-bot"
-    # create password
-    pwgen -1 -s -r '&' -y 24 | pass insert --echo "${PW_STORE_PATH}/password"
+    # create password (password parameter is required by GitLab API), could be replaced with "force_random_password" API option
+    pwgen -1 -s -r '&' -y 24 | passw cbi insert --echo "${PW_STORE_PATH}/password"
   else
     echo "Found ${GITLAB_PASS_DOMAIN} SSH credentials in password store. Skipping creation..."
   fi
@@ -57,9 +51,9 @@ create_credentials_in_pass() {
 
 create_credentials_in_pass "${PROJECT_NAME}"
 
-username="$(pass "${PW_STORE_PATH}/username")"
-pw="$(pass "${PW_STORE_PATH}/password")"
-id_rsa_pub="$(pass "${PW_STORE_PATH}/id_rsa.pub")"
+username="$(passw cbi "${PW_STORE_PATH}/username")"
+pw="$(passw cbi "${PW_STORE_PATH}/password")"
+id_rsa_pub="$(passw cbi "${PW_STORE_PATH}/id_rsa.pub")"
 
 "${SCRIPT_FOLDER}/gitlab_admin.sh" "create_bot_user" "${PROJECT_NAME}" "${username}" "${pw}"
 
@@ -68,7 +62,7 @@ id_rsa_pub="$(pass "${PW_STORE_PATH}/id_rsa.pub")"
 #TODO: check if api-token already exists
 token="$("${SCRIPT_FOLDER}/gitlab_admin.sh" "create_api_token" "${username}")"
 echo "Adding API token to pass..."
-echo "${token}" | pass insert --echo "${PW_STORE_PATH}/api-token"
+echo "${token}" | passw cbi insert --echo "${PW_STORE_PATH}/api-token"
 
 echo "Done."
 

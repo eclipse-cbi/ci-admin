@@ -16,14 +16,15 @@ set -o pipefail
 
 IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
+LOCAL_CONFIG="${HOME}/.cbi/config"
 
-if [[ ! -f "${SCRIPT_FOLDER}/../.localconfig" ]]; then
-  echo "ERROR: File '$(readlink -f "${SCRIPT_FOLDER}/../.localconfig")' does not exists"
+if [[ ! -f "${LOCAL_CONFIG}" ]]; then
+  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
   echo "Create one to configure the location of the GitLab token. Example:"
   echo '{"gitlab-token": "SUPER_SECRET_TOKEN"}'
 fi
 
-PERSONAL_ACCESS_TOKEN="$(jq -r '."gitlab-token"' < "${SCRIPT_FOLDER}/../.localconfig")"
+PERSONAL_ACCESS_TOKEN="$(jq -r '."gitlab-token"' < "${LOCAL_CONFIG}")"
 TOKEN_HEADER="PRIVATE-TOKEN: ${PERSONAL_ACCESS_TOKEN}"
 API_BASE_URL="${API_BASE_URL:-"https://gitlab.eclipse.org/api/v4"}"
 

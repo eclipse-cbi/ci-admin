@@ -34,7 +34,7 @@ _verify_inputs() {
   fi
 }
 
-_check_pw_does_not_exists() {
+_check_pw_does_not_exist() {
   local project_name="${1:-}"
   local path="${2:-}"
   local pw_store_path="bots/${project_name}/${path}"
@@ -91,7 +91,7 @@ _generate_ssh_keys() {
   cat "${temp_path}.pub" | passw cbi insert -m "${pw_store_path}/id_rsa.pub"
   rm "${temp_path}"*
   # Add user (if it does not exist yet)
-  if _check_pw_does_not_exists "${project_name}" "${site}/username"; then
+  if _check_pw_does_not_exist "${project_name}" "${site}/username"; then
     echo "${user}" | passw cbi insert --echo "${pw_store_path}/username"
   fi
 }
@@ -122,7 +122,7 @@ gerrit() {
 
   _verify_inputs "${project_name}"
 
-  if _check_pw_does_not_exists "${project_name}" "${site}/username"; then
+  if _check_pw_does_not_exist "${project_name}" "${site}/username"; then
     _generate_ssh_keys "${project_name}" "${site}" "${email}" "${user}"
   fi
 
@@ -215,7 +215,7 @@ ssh_keys() {
   fi
 
   # check that the entries do not exist yet
-  if _check_pw_does_not_exists "${project_name}" "${site}/id_rsa"; then
+  if ! _check_pw_does_not_exist "${project_name}" "${site}/id_rsa"; then
     exit 1
   fi
 
@@ -247,7 +247,7 @@ user_pw() {
     exit 1
   fi
 
-  if _check_pw_does_not_exists "${project_name}" "${site}/username"; then
+  if ! _check_pw_does_not_exist "${project_name}" "${site}/username"; then
     exit 1
   fi
   _show_info "${project_name}" "${site}" "${email}" "${user}"

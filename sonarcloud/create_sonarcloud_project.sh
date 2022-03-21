@@ -16,7 +16,6 @@ set -o pipefail
 
 IFS=$'\n\t'
 
-SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 SCRIPT_NAME="$(basename "${0}")"
 
 PROJECT_NAME="${1:-}"
@@ -29,8 +28,9 @@ SHORT_NAME="${PROJECT_NAME##*.}"
 SONAR_API_BASE_URL="https://sonarcloud.io/api"
 PW_STORE_PATH="cbi-pass/bots/${PROJECT_NAME}"
 
-if [[ ! -f "${SCRIPT_FOLDER}/../.localconfig" ]]; then
-  echo "ERROR: File '$(readlink -f "${SCRIPT_FOLDER}/../.localconfig")' does not exists"
+LOCAL_CONFIG="${HOME}/.cbi/config"
+if [[ ! -f "${LOCAL_CONFIG}" ]]; then
+  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
   echo "Create one to configure the sonar token and the JIRO root dir. Example:"
   echo '{'
   echo '  "sonar-token": "abcdefgh1234567890",'
@@ -39,8 +39,8 @@ if [[ ! -f "${SCRIPT_FOLDER}/../.localconfig" ]]; then
   exit 1
 fi
 
-SONAR_TOKEN="$(jq -r '."sonar-token"' < "${SCRIPT_FOLDER}/../.localconfig")"
-JIRO_ROOT_DIR="$(jq -r '."jiro-root-dir"' < "${SCRIPT_FOLDER}/../.localconfig")"
+SONAR_TOKEN="$(jq -r '."sonar-token"' < "${LOCAL_CONFIG}")"
+JIRO_ROOT_DIR="$(jq -r '."jiro-root-dir"' < "${LOCAL_CONFIG}")"
 
 usage() {
   printf "Usage: %s project_name sonar_name sonar_project_id [sonar_org]\n" "${SCRIPT_NAME}"
@@ -51,12 +51,12 @@ usage() {
 }
 
 if [ -z "${SONAR_TOKEN}" -o "${SONAR_TOKEN}" == "null" ]; then
-  printf "ERROR: sonar token ('sonar-token') needs to be set in .localconfig.\n" >&2
+  printf "ERROR: sonar token ('sonar-token') needs to be set in %s.\n" "${LOCAL_CONFIG}" >&2
   exit 1
 fi
 
 if [ -z "${JIRO_ROOT_DIR}" -o "${JIRO_ROOT_DIR}" == "null" ]; then
-  printf "ERROR: JIRO root dir ('jiro-root-dir') needs to be set in .localconfig.\n" >&2
+  printf "ERROR: JIRO root dir ('jiro-root-dir') needs to be set in %s.\n" "${LOCAL_CONFIG}" >&2
   exit 1
 fi
 

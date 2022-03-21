@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+#*******************************************************************************
+# Copyright (c) 2021 Eclipse Foundation and others.
+# This program and the accompanying materials are made available
+# under the terms of the Eclipse Public License 2.0
+# which is available at http://www.eclipse.org/legal/epl-v20.html
+# SPDX-License-Identifier: EPL-2.0
+#*******************************************************************************
 
 # Bash strict-mode
 set -o errexit
@@ -6,8 +13,6 @@ set -o nounset
 set -o pipefail
 
 IFS=$'\n\t'
-
-SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
 maven_version="${1:-}"
 file_name="apache-maven-${maven_version}-bin.tar.gz"
@@ -21,19 +26,19 @@ if [ -z "${maven_version}" ]; then
   exit 1
 fi
 
-# read .localconfig
-local_config_path="${SCRIPT_FOLDER}/../.localconfig"
-if [[ ! -f "${local_config_path}" ]]; then
-  echo "ERROR: File '$(readlink -f "${local_config_path}")' does not exists"
+# read local config
+LOCAL_CONFIG="${HOME}/.cbi/config"
+if [[ ! -f "${LOCAL_CONFIG}" ]]; then
+  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
   echo "Create one to configure db and file server credentials. Example:"
   echo '{"backend_server": {"server": "myserver", "user": "user", "pw": "<path in pass>", "pw_root": "<path in pass>"}}' | jq -M
   exit 1
 fi
 
-BACKEND_SERVER="$(jq -r '.["backend_server"]["server"]' "${local_config_path}")"
-BACKEND_SERVER_USER="$(jq -r '.["backend_server"]["user"]' "${local_config_path}")"
-BACKEND_SERVER_PW="$(jq -r '.["backend_server"]["pw"]' "${local_config_path}")"
-BACKEND_SERVER_PW_ROOT="$(jq -r '.["backend_server"]["pw_root"]' "${local_config_path}")"
+BACKEND_SERVER="$(jq -r '.["backend_server"]["server"]' "${LOCAL_CONFIG}")"
+BACKEND_SERVER_USER="$(jq -r '.["backend_server"]["user"]' "${LOCAL_CONFIG}")"
+BACKEND_SERVER_PW="$(jq -r '.["backend_server"]["pw"]' "${LOCAL_CONFIG}")"
+BACKEND_SERVER_PW_ROOT="$(jq -r '.["backend_server"]["pw_root"]' "${LOCAL_CONFIG}")"
 
 update_latest_question() {
   local version="${1:-}"
@@ -107,6 +112,9 @@ update() {
   expect eof
 "
 }
+
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_rsa
 
 #download Maven
 wget -c "${download_url}"

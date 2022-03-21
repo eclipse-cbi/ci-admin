@@ -15,23 +15,20 @@ set -o pipefail
 
 IFS=$'\n\t'
 
-SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
-
 #TODO: use pass wrapper
 
-
-# read .localconfig
-local_config_path="${SCRIPT_FOLDER}/../.localconfig"
-if [[ ! -f "${local_config_path}" ]]; then
-  echo "ERROR: File '$(readlink -f "${local_config_path}")' does not exists"
+# read local config
+LOCAL_CONFIG="${HOME}/.cbi/config"
+if [[ ! -f "${LOCAL_CONFIG}" ]]; then
+  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
   echo "Create one to configure db and file server credentials. Example:"
   echo '{"db_server": {"server": "myserver", "user": "user", "mysql_user": "username", "mysql_pw": "<path in pass>"}}' | jq -M
 fi
 
-DB_SERVER="$(jq -r '.["db_server"]["server"]' "${local_config_path}")"
-DB_SERVER_USER="$(jq -r '.["db_server"]["user"]' "${local_config_path}")"
-DB_SERVER_MYSQL_USER="$(jq -r '.["db_server"]["mysql_user"]' "${local_config_path}")"
-DB_SERVER_MYSQL_PW="$(jq -r '.["db_server"]["mysql_pw"]' "${local_config_path}")"
+DB_SERVER="$(jq -r '.["db_server"]["server"]' "${LOCAL_CONFIG}")"
+DB_SERVER_USER="$(jq -r '.["db_server"]["user"]' "${LOCAL_CONFIG}")"
+DB_SERVER_MYSQL_USER="$(jq -r '.["db_server"]["mysql_user"]' "${LOCAL_CONFIG}")"
+DB_SERVER_MYSQL_PW="$(jq -r '.["db_server"]["mysql_pw"]' "${LOCAL_CONFIG}")"
 
 
 help() {

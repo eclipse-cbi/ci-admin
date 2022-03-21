@@ -17,7 +17,7 @@ set -o pipefail
 IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
-source "${SCRIPT_FOLDER}/pass_wrapper.sh"
+source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 
 GITLAB_PASS_DOMAIN="gitlab.eclipse.org"
 

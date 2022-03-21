@@ -17,7 +17,7 @@ set -o pipefail
 IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
-source "${SCRIPT_FOLDER}/pass_wrapper.sh"
+source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 
 GITLAB_PASS_DOMAIN="gitlab.eclipse.org"
 
@@ -45,7 +45,7 @@ create_gitlab_webhook() {
 
   if ! passw cbi "${PW_STORE_PATH}/webhook-secret" &> /dev/null ; then
     echo "Creating webhook secret credentials in password store..."
-    pwgen -1 -s -r '&' -y 24 | passw cbi insert --echo "${PW_STORE_PATH}/webhook-secret"
+    pwgen -1 -s -r '&\!|%' -y 24 | passw cbi insert --echo "${PW_STORE_PATH}/webhook-secret"
   else
     echo "Found ${GITLAB_PASS_DOMAIN} webhook-secret credentials in password store. Skipping creation..."
   fi

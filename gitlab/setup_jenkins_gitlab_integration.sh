@@ -81,10 +81,10 @@ A webhook that will trigger CI jobs has been added as well.
 The recommended way of creating a GitLab triggered job and handle merge request is as follows:
 * create a Multi-branch pipeline job
 * in your job config under "Branch Sources > Add source" select "GitLab project"
-* select Checkout Credentials: "${SHORT_NAME}-bot (GitLab bot (SSH))
+* select Checkout Credentials: "${SHORT_NAME}-bot (GitLab bot (SSH))"
 * select Owner: eclipse/${SHORT_NAME}
 * select Projects: e.g. eclipse/${SHORT_NAME}/${SHORT_NAME}
-* select branches to build, etc}
+* select branches to build, etc
 EOF
 read -rsp $'Once you are done, press any key to continue...\n' -n1
 }

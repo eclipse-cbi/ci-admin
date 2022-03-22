@@ -180,7 +180,7 @@ fi
 
 # generate the ssh key
 /usr/bin/expect << EOF > /dev/null
-    spawn docker run --rm -it -u $(id -u) -v $(readlink -f "$(dirname "${output_keyfile}")"):/tmp/ssh-keygen/ eclipsecbi/openssh:7.7_p1-r4 -- ssh-keygen -f /tmp/ssh-keygen/$(basename "${output_keyfile}") -t ${key_type} -b ${bits} -C "${comment}"
+    spawn docker run --rm -it -u $(id -u) -v $(readlink -f "$(dirname "${output_keyfile}")"):/tmp/ssh-keygen/ eclipsecbi/openssh:8.8_p1-r1 -- ssh-keygen -f /tmp/ssh-keygen/$(basename "${output_keyfile}") -t ${key_type} -b ${bits} -C "${comment}"
     expect "Enter passphrase (empty for no passphrase): "
     send "$(printf "%q" "${passphrase}")\r"
     expect "Enter same passphrase again: "

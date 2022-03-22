@@ -28,10 +28,11 @@ mkdir -p temp
 pushd temp
 
 question() {
-  read -p "Which credentials should be changed? (P)rojects-storage, (G)it, E(x)it: " pgx
-  case $pgx in
-    [Pp]* ) domain="projects-storage";;
-    [Gg]* ) domain="git";;
+  read -p "Which credentials should be changed? (P)rojects-storage, (G)it, Git(H)ub, E(x)it: " pghx
+  case $pghx in
+    [Pp]* ) domain="projects-storage.eclipse.org";;
+    [Gg]* ) domain="git.eclipse.org";;
+    [Hh]* ) domain="github.com";;
     [Xx]* ) exit;;
         * ) echo "Please answer (P)rojects-storage, (G)it, E(x)it"; question;;
   esac
@@ -41,7 +42,7 @@ question
 
 echo "Replacing ${domain} credentials..."
 
-pw_store_path="cbi-pass/bots/${project_name}/${domain}.eclipse.org"
+pw_store_path="cbi-pass/bots/${project_name}/${domain}"
 
 # Get private key from pass
 pass "${pw_store_path}/id_rsa" > id_rsa

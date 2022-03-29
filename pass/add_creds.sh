@@ -175,12 +175,6 @@ ossrh() {
   local user="eclipse-${short_name}-bot"
 
   user_pw "${project_name}" "${site}" "${email}" "${user}"
-  echo
-  echo "Sign up here: https://issues.sonatype.org/secure/Signup!default.jspa"
-  echo "Create an issue here: https://issues.sonatype.org/secure/CreateIssue.jspa?issuetype=21&pid=10134"
-  echo "  Summary: Eclipse ${short_name} Project"
-  echo "  Description: Please create the appropriate configuration for the Eclipse ${short_name} project. Thanks"
-  echo "  Group ID: org.eclipse.${short_name}"
 }
 
 projects_storage() {

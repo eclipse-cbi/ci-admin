@@ -18,6 +18,10 @@ IFS=$'\n\t'
 # TODO:
 # help menu generated from function names
 
+# PGP keyserver
+KEYSERVER="keyserver.ubuntu.com"
+KEYSERVER="pgp.mit.edu"                      # unreliable!
+
 TMP_GPG="/tmp/temp_gpg_test"
   
 rm -rf "${TMP_GPG}"
@@ -95,7 +99,8 @@ _upload_question() {
 help() {
   printf "Available commands:\n"
   printf "Command\t\tDescription\n\n"
-  printf "renew\t\tRenew exipration key to key server.\n"
+  printf "renew\t\tRenew expiration and send key to key server.\n"
+  printf "revoke\t\tRevoke public key on key server.\n"
   printf "upload\t\tUpload public key to key server.\n"
   printf "test\t\tTest if passphrase works with GPG keys.\n"
   exit 0
@@ -133,19 +138,37 @@ renew() {
   read -p "Press enter to continue or CTRL-C to stop the script"
 }
 
-upload() {
+revoke() {
   local project_name="${1:-}"
   _preface "${project_name}"
 
-  #local keyserver="pgp.mit.edu"                      # PGP keyserver (unreliable!)
-  #local keyserver="pool.sks-keyservers.net"          # PGP keyserver
-  local keyserver="keyserver.ubuntu.com"             # PGP keyserver
+  local key_id
+  key_id="$(_get_key_id "${project_name}")"
+
+  local revoke_file="revoke.asc"
+
+  _gpg_sb --list-keys
+
+  _gpg_sb --output "${revoke_file}" --passphrase-fd 3 --pinentry-mode=loopback --gen-revoke "${key_id}" 3<<< "${PASSPHRASE}"
+  _gpg_sb --import "${revoke_file}"
+
+  _gpg_sb --keyserver "${KEYSERVER}" --search-keys "${key_id}"
+
+  echo
+  _upload_question
+  
+  rm -rf "${revoke_file}"
+}
+
+upload() {
+  local project_name="${1:-}"
+  _preface "${project_name}"
 
   local key_id
   key_id="$(_get_key_id "${project_name}")"
 
   printf "\nSending key to keyserver...\n\n"
-  _gpg_sb --keyserver "${keyserver}" --send-keys "${key_id}"
+  _gpg_sb --keyserver "${KEYSERVER}" --send-keys "${key_id}"
 }
 
 test() {

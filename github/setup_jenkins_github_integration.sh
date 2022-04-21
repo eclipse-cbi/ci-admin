@@ -70,6 +70,7 @@ set_up_github_account() {
 # Setting up GitHub bot account...
 ==================================
 * Set up GitHub bot account (https://github.com/signup)
+  * Take credentials from pass
 * Verify email
 * Add SSH public key to GitHub bot account (Settings -> SSh and GPG keys -> New SSH key)
 * Create API and admin token (Settings -> Developer Settings -> Personal access tokens)
@@ -82,6 +83,7 @@ set_up_github_account() {
     * Expiration: No expiration
     * Scopes:     repo, workflow, write:packages, delete:packages, admin:org,
                   admin:public_key, admin:repo_hook, user, admin:gpg_key
+  * Add token to pass (api-token, admin-token)
 * Add GitHub bot to project’s GitHub org (invite via webmaster account)
 EOF
   read -rsp $'Once you are done, press any key to continue...\n' -n1
@@ -99,6 +101,10 @@ add_jenkins_credentials() {
 
 update_projects_bot_api() {
   printf "\n# Update projects-bots-api...\n"
+
+  echo "Connected to cluster?"
+  read -p "Press enter to continue or CTRL-C to stop the script"
+
   "${PROJECTS_BOTS_API_ROOT_FOLDER}/regen_db.sh"
 
   printf "\n\n"

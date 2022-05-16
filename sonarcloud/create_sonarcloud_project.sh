@@ -15,7 +15,7 @@ set -o nounset
 set -o pipefail
 
 IFS=$'\n\t'
-
+SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 SCRIPT_NAME="$(basename "${0}")"
 
 PROJECT_NAME="${1:-}"
@@ -26,7 +26,8 @@ SONAR_ORG="${4:-eclipse}"
 SHORT_NAME="${PROJECT_NAME##*.}"
 
 SONAR_API_BASE_URL="https://sonarcloud.io/api"
-PW_STORE_PATH="cbi-pass/bots/${PROJECT_NAME}"
+
+source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 
 LOCAL_CONFIG="${HOME}/.cbi/config"
 if [[ ! -f "${LOCAL_CONFIG}" ]]; then
@@ -123,15 +124,15 @@ create_token() {
     token=$(echo "${reply}" | jq -r '.token')
     echo "${token}"
     # Add token to pass
-    echo "${token}" | pass insert --echo "${PW_STORE_PATH}/sonarcloud.io/token${suffix}"
+    echo "${token}" | passw cbi insert --echo "bots/${PROJECT_NAME}/sonarcloud.io/token${suffix}"
   fi
 }
 
 create_issue_template() {
-  # create issue reply template
+  # create issue response template
   echo ""
-  echo "Issue reply template:"
-  echo "====================="
+  echo "Issue response template:"
+  echo "========================"
   cat <<EOF
 https://sonarcloud.io/dashboard?id=${SONAR_PROJECT} is set up now.
 
@@ -164,6 +165,7 @@ fi
 create_token "${SONAR_PROJECT}" "${SUFFIX}"
 
 # add SonarCloud credentials to Jenkins instance
+printf "\nCreating SonarCloud credentials in ${SHORT_NAME CI instance...\n"
 "${JIRO_ROOT_DIR}/jenkins-create-credentials-token.sh" "sonarcloud" "${PROJECT_NAME}" "${SUFFIX}" 
 
 create_issue_template

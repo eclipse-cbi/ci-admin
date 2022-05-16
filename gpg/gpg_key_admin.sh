@@ -14,6 +14,9 @@ set -o nounset
 set -o pipefail
 
 IFS=$'\n\t'
+SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
+
+source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 
 # TODO:
 # help menu generated from function names
@@ -50,12 +53,13 @@ EOF
 _get_key_id() {
   local project_name="${1:-}"
   local short_name="${project_name##*.}"
+  local pw_store_path="bots/${project_name}/gpg"
 
   # read mail address from pass if possible
   local ml_name
-  ml_name="$(pass "${PW_STORE_PATH}/email")"
+  ml_name="$(passw cbi "${pw_store_path}/email")"
   if [[ -z "${ml_name}" ]]; then
-    printf "ERROR: %s/email not found. Trying %s-dev instead.\n" "${PW_STORE_PATH}" "${short_name}"
+    printf "ERROR: %s/email not found. Trying %s-dev instead.\n" "${pw_store_path}" "${short_name}"
     ml_name="${short_name}-dev@eclipse.org"
   fi
   printf "\nml_name: %s\n" "${ml_name}" 1>&2
@@ -76,14 +80,14 @@ _preface() {
 
   echo "allow-loopback-pinentry" > "${TMP_GPG}/gpg-agent.conf"
 
-  PW_STORE_PATH="cbi-pass/bots/${project_name}/gpg"
+  local pw_store_path="bots/${project_name}/gpg"
 
   # import parent and sub keys
-  _gpg_sb --batch --import <<< "$(pass "${PW_STORE_PATH}/secret-keys.asc")"
-  _gpg_sb --batch --import <<< "$(pass "${PW_STORE_PATH}/secret-subkeys.asc")"
+  _gpg_sb --batch --import <<< "$(passw cbi "${pw_store_path}/secret-keys.asc")"
+  _gpg_sb --batch --import <<< "$(passw cbi "${pw_store_path}/secret-subkeys.asc")"
 
   # get passphrase from pass
-  PASSPHRASE="$(pass "${PW_STORE_PATH}/passphrase")"
+  PASSPHRASE="$(passw cbi "${pw_store_path}/passphrase")"
 }
 
 _upload_question() {
@@ -113,6 +117,8 @@ renew() {
   local project_name="${1:-}"
   _preface "${project_name}"
 
+  local pw_store_path="bots/${project_name}/gpg"
+
   local key_id
   key_id="$(_get_key_id "${project_name}")"
 
@@ -124,7 +130,7 @@ renew() {
   mkdir -p "${project_name}"
   _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback --armor --export-secret-subkeys "${key_id}" 3<<< "${PASSPHRASE}" > "${project_name}/secret-subkeys.asc"
 
-  pass insert -m "${PW_STORE_PATH}/secret-subkeys.asc" < "${project_name}/secret-subkeys.asc"
+  passw cbi insert -m "${pw_store_path}/secret-subkeys.asc" < "${project_name}/secret-subkeys.asc"
 
   echo
   _upload_question
@@ -172,12 +178,12 @@ sign() {
 
   echo "allow-loopback-pinentry" > "${TMP_GPG}/gpg-agent.conf"
   # import webmaster's key
-  local pw_store_path_wm="eclipse/IT/accounts/gpg/webmaster"
-  _gpg_sb --import <<< "$(pass "${pw_store_path_wm}/secret-key.asc")"
+  local pw_store_path_wm="IT/accounts/gpg/webmaster"
+  _gpg_sb --import <<< "$(passw it "${pw_store_path_wm}/secret-key.asc")"
 
   # import public key
-  PW_STORE_PATH="cbi-pass/bots/${project_name}/gpg"
-  _gpg_sb --batch --import <<< "$(pass "${PW_STORE_PATH}/public-keys.asc")"
+  local pw_store_path="bots/${project_name}/gpg"
+  _gpg_sb --batch --import <<< "$(passw cbi "${pw_store_path}/public-keys.asc")"
 
   local key_id
   key_id="$(_get_key_id "${project_name}")"

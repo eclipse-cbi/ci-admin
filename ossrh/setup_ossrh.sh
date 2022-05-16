@@ -21,7 +21,7 @@ source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 
 if [[ ! -f "${LOCAL_CONFIG}" ]]; then
   echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
-  echo "Create one to configure the location of the JIRO root dir and the projects-bots-api root dir. Example:"
+  echo "Create one to configure the location of the JIRO root dir. Example:"
   echo '{"jiro-root-dir": "/path/to/jiro/rootdir"}'
   exit 1
 fi

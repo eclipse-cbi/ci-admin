@@ -19,8 +19,8 @@ IFS=$'\n\t'
 # help menu generated from function names
 
 # PGP keyserver
+#KEYSERVER="pgp.mit.edu"                      # unreliable!
 KEYSERVER="keyserver.ubuntu.com"
-KEYSERVER="pgp.mit.edu"                      # unreliable!
 
 TMP_GPG="/tmp/temp_gpg_test"
   
@@ -101,8 +101,9 @@ help() {
   printf "Command\t\tDescription\n\n"
   printf "renew\t\tRenew expiration and send key to key server.\n"
   printf "revoke\t\tRevoke public key on key server.\n"
-  printf "upload\t\tUpload public key to key server.\n"
+  printf "sign\t\tSign key with webmaster key.\n"
   printf "test\t\tTest if passphrase works with GPG keys.\n"
+  printf "upload\t\tUpload public key to key server.\n"
   exit 0
 }
 
@@ -160,15 +161,33 @@ revoke() {
   rm -rf "${revoke_file}"
 }
 
-upload() {
+sign() {
   local project_name="${1:-}"
-  _preface "${project_name}"
+
+  # check that project name is not empty
+  if [[ -z "${project_name}" ]]; then
+    printf "ERROR: a project name must be given (e.g. technology.cbi for CBI project).\n"
+    exit 1
+  fi
+
+  echo "allow-loopback-pinentry" > "${TMP_GPG}/gpg-agent.conf"
+  # import webmaster's key
+  local pw_store_path_wm="eclipse/IT/accounts/gpg/webmaster"
+  _gpg_sb --import <<< "$(pass "${pw_store_path_wm}/secret-key.asc")"
+
+  # import public key
+  PW_STORE_PATH="cbi-pass/bots/${project_name}/gpg"
+  _gpg_sb --batch --import <<< "$(pass "${PW_STORE_PATH}/public-keys.asc")"
 
   local key_id
   key_id="$(_get_key_id "${project_name}")"
 
-  printf "\nSending key to keyserver...\n\n"
-  _gpg_sb --keyserver "${KEYSERVER}" --send-keys "${key_id}"
+  _gpg_sb --list-keys
+  echo "Found key ${key_id}."
+  _gpg_sb --sign-key "${key_id}"
+
+  #TODO: use _upload_question
+  upload "${project_name}"
 }
 
 test() {
@@ -182,7 +201,20 @@ test() {
   echo "1234" | _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback -o /dev/null --local-user "${key_id}" -as - 3<<< "${PASSPHRASE}" && echo "The passphrase stored in pass is correct!"
 }
 
+upload() {
+  local project_name="${1:-}"
+  _preface "${project_name}"
+
+  local key_id
+  key_id="$(_get_key_id "${project_name}")"
+
+  printf "\nSending key to keyserver...\n\n"
+  _gpg_sb --keyserver "${KEYSERVER}" --send-keys "${key_id}"
+}
+
 "$@"
+
+#TODO: check that only the listed commands are used
 
 # show help menu, if no first parameter is given
 if [[ -z "${1:-}" ]]; then

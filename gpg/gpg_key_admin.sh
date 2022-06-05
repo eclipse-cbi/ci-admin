@@ -91,12 +91,13 @@ _preface() {
 }
 
 _upload_question() {
+  local project_name="${1:-}"
   read -p "Do you want to send the updated keys to a keyserver? (Y)es, (N)o, E(x)it: " yn
   case $yn in
     [Yy]* ) upload "${project_name}";;
     [Nn]* ) exit 0;;
     [Xx]* ) exit 0;;
-        * ) echo "Please answer (Y)es, (N)o, E(x)it"; _upload_question;
+        * ) echo "Please answer (Y)es, (N)o, E(x)it"; _upload_question "${project_name}";
   esac
 }
 
@@ -133,7 +134,7 @@ renew() {
   passw cbi insert -m "${pw_store_path}/secret-subkeys.asc" < "${project_name}/secret-subkeys.asc"
 
   echo
-  _upload_question
+  _upload_question "${project_name}"
   echo
   echo "TODO: Update secret-subkeys.asc Jenkins credential on JIPP (manually) from /ci-admin/gpg/${project_name}/secret-subkeys.asc"
   read -p "Press enter to continue or CTRL-C to stop the script"
@@ -162,7 +163,7 @@ revoke() {
   _gpg_sb --keyserver "${KEYSERVER}" --search-keys "${key_id}"
 
   echo
-  _upload_question
+  _upload_question "${project_name}"
   
   rm -rf "${revoke_file}"
 }
@@ -179,7 +180,11 @@ sign() {
   echo "allow-loopback-pinentry" > "${TMP_GPG}/gpg-agent.conf"
   # import webmaster's key
   local pw_store_path_wm="IT/accounts/gpg/webmaster"
-  _gpg_sb --import <<< "$(passw it "${pw_store_path_wm}/secret-key.asc")"
+  local passphrase_wm=
+  passphrase_wm="$(passw it "${pw_store_path_wm}/passphrase")"
+
+  _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback --import <<< "$(passw it "${pw_store_path_wm}/secret-key.asc")" 3<<< "${passphrase_wm}"
+  
 
   # import public key
   local pw_store_path="bots/${project_name}/gpg"
@@ -190,10 +195,11 @@ sign() {
 
   _gpg_sb --list-keys
   echo "Found key ${key_id}."
-  _gpg_sb --sign-key "${key_id}"
+  _gpg_sb --batch --yes --passphrase-fd 3 --pinentry-mode=loopback --sign-key "${key_id}" 3<<< "${passphrase_wm}"
 
-  #TODO: use _upload_question
-  upload "${project_name}"
+  #TODO: update public key in pass?
+
+  _upload_question "${project_name}"
 }
 
 test() {

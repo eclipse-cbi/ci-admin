@@ -146,9 +146,7 @@ create_api_token() {
   user_id="$(_get_id_from_username "${username}")"
   local name="CI token"
 
-  local token
-  token="$(curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/users/${user_id}/impersonation_tokens" --data-urlencode "name=${name}" --data "scopes[]=api" | jq -r .token 1>&2) "
-  echo "${token}"
+  curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/users/${user_id}/impersonation_tokens" --data-urlencode "name=${name}" --data "scopes[]=api" | jq -r '.token'
 }
 
 create_bot_user() {

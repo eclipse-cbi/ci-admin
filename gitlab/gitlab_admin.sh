@@ -62,7 +62,7 @@ _create_user_api() {
   local email="${3:-}"
   local name="${4:-}" #display name
 
-  curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/users" --data "username=${username}" --data "password=${pw}" --data "email=${email}" --data "name=${name}"
+  curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/users" --data "username=${username}" --data "password=${pw}" --data "email=${email}" --data "name=${name}" --data "skip_confirmation=true"
 }
 
 _create_webhook_api() {

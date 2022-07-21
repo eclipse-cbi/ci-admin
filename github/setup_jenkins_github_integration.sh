@@ -105,6 +105,9 @@ update_projects_bot_api() {
   echo "Connected to cluster?"
   read -p "Press enter to continue or CTRL-C to stop the script"
 
+  echo "Pulled latest version of projects-bots-api?"
+  read -p "Press enter to continue or CTRL-C to stop the script"
+
   "${PROJECTS_BOTS_API_ROOT_FOLDER}/regen_db.sh"
 
   printf "\n\n"

@@ -265,7 +265,12 @@ setup_ossrh() {
   #dump secret-subkeys
   mkdir "${PROJECT_NAME}"
   pass "cbi-pass/bots/${PROJECT_NAME}/gpg/secret-subkeys.asc" > "${PROJECT_NAME}/secret-subkeys.asc"
+  echo "Exported secret-subkeys.asc to ${PROJECT_NAME}/secret-subkeys.asc."
   popd
+  "${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${PROJECT_NAME}"
+  printf "\n"
+  echo "Added secret-subkeys.asc to JIPP (manually for now)?"
+  read -p "Press enter to continue or CTRL-C to stop the script"
   printf "\n"
 }
 
@@ -284,10 +289,11 @@ question() {
 issue_template() {
   local short_name="${PROJECT_NAME##*.}"
   cat <<EOF
+
 Post the following on the corresponding GitLab issue:
 -----------------------------------------------------
 
-The ${short_name} JIPP on Jiro is available here now:
+The ${DISPLAY_NAME} JIPP on Jiro is available here now:
 
 => https://ci.eclipse.org/${short_name}
 
@@ -346,9 +352,6 @@ question "setup OSSRH credentials" "setup_ossrh"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${PROJECT_NAME}"
 
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "auto" "${PROJECT_NAME}"
-
-echo "Added secret-subkeys.asc?"
-read -p "Press enter to continue or CTRL-C to stop the script"
 
 issue_template
 

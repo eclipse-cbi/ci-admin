@@ -87,7 +87,10 @@ _get_project_id() {
 
 _get_group_id() {
   local groupname="${1:-}"
-  curl -s --header "${TOKEN_HEADER}" "${API_BASE_URL}/groups?search=${groupname}" | jq -r '.[].id'
+  #curl -s --header "${TOKEN_HEADER}" "${API_BASE_URL}/groups?search=${groupname}" | jq -r '.[].id'
+  # filter for path
+  local jq_query=".[] | select(.path == \"${groupname}\") | .id" 
+  curl -s --header "${TOKEN_HEADER}" "${API_BASE_URL}/groups?search=${groupname}" | jq -r "${jq_query}"
 }
 
 help() {

@@ -111,6 +111,7 @@ pushd "${JIRO_ROOT_FOLDER}"
 ./jenkins-reload-jcasc-only.sh "instances/${PROJECT_NAME}"
 popd
 
+# TODO: don't update if the bot has been added before
 printf "\n# Update projects-bots-api...\n"
 "${PROJECTS_BOTS_API_ROOT_FOLDER}/regen_db.sh"
 
@@ -125,6 +126,7 @@ group_name="${SHORT_NAME}"
 access_level=40 # 40 = Maintainer
 "${SCRIPT_FOLDER}/gitlab_admin.sh" "add_user_to_group" "${group_name}" "${bot_name}" "${access_level}"
 
+# TODO: make optional?
 printf "\n# Creating Webhooks...\n"
 repo_name="${SHORT_NAME}" # this only works for the default repo
 "${SCRIPT_FOLDER}/create_gitlab_webhook.sh" "${PROJECT_NAME}" "${repo_name}"

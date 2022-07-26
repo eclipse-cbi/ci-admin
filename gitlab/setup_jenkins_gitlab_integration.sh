@@ -67,6 +67,26 @@ unclassified:
       name: "gitlab.eclipse.org"
       serverUrl: "https://gitlab.eclipse.org"
 EOF
+  
+  printf "\n# Reloading configuration of the Jenkins instance...\n"
+  
+  echo "Connected to cluster?"
+  read -rsp "Press enter to continue or CTRL-C to stop the script"
+  
+  pushd "${JIRO_ROOT_FOLDER}"
+  # TODO: deal with working directory
+  ./jenkins-reload-jcasc-only.sh "instances/${PROJECT_NAME}"
+  popd
+}
+
+add_bot_to_projects-bot-api() {
+  # TODO: don't update if the bot has been added before
+  printf "\n# Update projects-bots-api...\n"
+  "${PROJECTS_BOTS_API_ROOT_FOLDER}/regen_db.sh"
+  
+  printf "\n\n"
+  read -rsp $'Once you are done with comparing the diff, press any key to continue...\n' -n1
+  "${PROJECTS_BOTS_API_ROOT_FOLDER}/deploy_db.sh"
 }
 
 instructions_template() {
@@ -86,7 +106,7 @@ The recommended way of creating a GitLab triggered job and handle merge request 
 * select Projects: e.g. eclipse/${SHORT_NAME}/${SHORT_NAME}
 * select branches to build, etc
 EOF
-read -rsp $'Once you are done, press any key to continue...\n' -n1
+  read -rsp $'Once you are done, press any key to continue...\n' -n1
 }
 
 ####
@@ -101,23 +121,7 @@ printf "\n# Adding GitLab bot credentials to Jenkins instance...\n"
 printf "\n# Adding GitLab JCasC config to %s Jenkins instance...\n" "${PROJECT_NAME}"
 add_gitlab_jcasc_config
 
-printf "\n# Reloading configuration of the Jenkins instance...\n"
-
-echo "Connected to cluster?"
-read -rsp "Press enter to continue or CTRL-C to stop the script"
-
-pushd "${JIRO_ROOT_FOLDER}"
-# TODO: deal with working directory
-./jenkins-reload-jcasc-only.sh "instances/${PROJECT_NAME}"
-popd
-
-# TODO: don't update if the bot has been added before
-printf "\n# Update projects-bots-api...\n"
-"${PROJECTS_BOTS_API_ROOT_FOLDER}/regen_db.sh"
-
-printf "\n\n"
-read -rsp $'Once you are done with comparing the diff, press any key to continue...\n' -n1
-"${PROJECTS_BOTS_API_ROOT_FOLDER}/deploy_db.sh"
+add_bot_to_projects-bot-api
 
 printf "\n# Adding bot to GitLab group...\n"
 # TODO: read botname from pass?

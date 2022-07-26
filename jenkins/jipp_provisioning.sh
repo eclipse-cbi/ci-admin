@@ -297,7 +297,6 @@ The ${DISPLAY_NAME} JIPP on Jiro is available here now:
 
 => https://ci.eclipse.org/${short_name}
 
-
 PLEASE NOTE:
 * Publishing to download.eclipse.org requires access via SCP. We've added the credentials to the JIPP. Please see https://wiki.eclipse.org/Jenkins#How_do_I_deploy_artifacts_to_download.eclipse.org.3F for more info.
 
@@ -306,6 +305,9 @@ PLEASE NOTE:
 * You can find more info about Jenkins here: https://wiki.eclipse.org/Jenkins
 
 Please let us know if you need any additional plug-ins.
+
+-----------------------------------------------------
+
 EOF
 read -rsp $'Once you are done, press any key to continue...\n' -n1
 }
@@ -343,6 +345,7 @@ add_pub_key "${PROJECT_NAME}"
 
 # ask if GitHub bot credentials should be created
 question "setup GitHub bot credentials" "setup_github"
+#TODO: run /ci-admin/github/setup_jenkins_github_integration.sh
 
 # ask if OSSRH/gpg credentials should be created
 question "setup OSSRH credentials" "setup_ossrh"
@@ -354,5 +357,11 @@ question "setup OSSRH credentials" "setup_ossrh"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "auto" "${PROJECT_NAME}"
 
 issue_template
+
+#TODO: commit changes to JIRO repo
+pushd "${JIRO_ROOT_FOLDER}"
+git add "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}"
+#git commit -m "Provisioning JIPP for project ${PROJECT_NAME}"
+popd
 
 rm -rf "${PROJECT_NAME}"

@@ -78,12 +78,7 @@ set_up_github_account() {
     * Name:       Jenkins GitHub Plugin token https://ci.eclipse.org/${SHORT_NAME}
     * Expiration: No expiration
     * Scopes:     repo:status, public_repo, admin:repo_hook
-  * Admin token
-    * Name:       Admin token
-    * Expiration: No expiration
-    * Scopes:     repo, workflow, write:packages, delete:packages, admin:org,
-                  admin:public_key, admin:repo_hook, user, admin:gpg_key
-  * Add token to pass (api-token, admin-token)
+  * Add token to pass (api-token)
 * Add GitHub bot to project’s GitHub org (invite via webmaster account)
 EOF
   read -rsp $'Once you are done, press any key to continue...\n' -n1

@@ -51,12 +51,12 @@ usage() {
   printf "\t%-16s sonar_org (optional, default is 'eclipse').\n" "sonar_org"
 }
 
-if [ -z "${SONAR_TOKEN}" -o "${SONAR_TOKEN}" == "null" ]; then
+if [ -z "${SONAR_TOKEN}" ] || [ "${SONAR_TOKEN}" == "null" ]; then
   printf "ERROR: sonar token ('sonar-token') needs to be set in %s.\n" "${LOCAL_CONFIG}" >&2
   exit 1
 fi
 
-if [ -z "${JIRO_ROOT_DIR}" -o "${JIRO_ROOT_DIR}" == "null" ]; then
+if [ -z "${JIRO_ROOT_DIR}" ] || [ "${JIRO_ROOT_DIR}" == "null" ]; then
   printf "ERROR: JIRO root dir ('jiro-root-dir') needs to be set in %s.\n" "${LOCAL_CONFIG}" >&2
   exit 1
 fi
@@ -129,10 +129,15 @@ create_token() {
 }
 
 create_issue_template() {
+  local ci="${1:-}"
   # create issue response template
   echo ""
   echo "Issue response template:"
   echo "========================"
+  echo
+  echo "https://sonarcloud.io/dashboard?id=${SONAR_PROJECT} is set up now."
+  
+  if "${ci}"; then
   cat <<EOF
 https://sonarcloud.io/dashboard?id=${SONAR_PROJECT} is set up now.
 
@@ -143,7 +148,7 @@ To set up a job that runs the SonarCloud analysis, please follow these steps:
 In your job config
 *  Enable "Use secret text(s) or file(s)"
     Add -> Secret text
-    Select “SonarCloud token for ${SHORT_NAME}${SUFFIX}”
+    Select "SonarCloud token for ${SHORT_NAME}${SUFFIX}"
     Variable: SONARCLOUD_TOKEN
 * Enable "Prepare SonarQube Scanner environment" option
 * In Maven build step,
@@ -153,19 +158,34 @@ In your job config
 -Dsonar.host.url=\${SONAR_HOST_URL}
 -Dsonar.login=\${SONARCLOUD_TOKEN}
 EOF
+  else
+    printf "\n\nTODO: add token to GitHub repo/org secret\n\n"
+  fi
 }
+
+
+## MAIN
 
 create_project "${SONAR_NAME}" "${SONAR_PROJECT}" "${SONAR_ORG}"
 
 echo -n "${SONAR_PROJECT} suffix?: "; read -r SUFFIX
 if [[ -n "${SUFFIX}" ]]; then
   SUFFIX="-${SUFFIX}"
+else
+  SUFFIX=""
 fi
 
 create_token "${SONAR_PROJECT}" "${SUFFIX}"
 
 # add SonarCloud credentials to Jenkins instance
-printf "\nCreating SonarCloud credentials in ${SHORT_NAME CI instance...\n"
-"${JIRO_ROOT_DIR}/jenkins-create-credentials-token.sh" "sonarcloud" "${PROJECT_NAME}" "${SUFFIX}" 
 
-create_issue_template
+if [[ -d "${JIRO_ROOT_DIR}/instances/${PROJECT_NAME}" ]]; then
+  printf "\nCreating SonarCloud credentials in %s CI instance...\n" "${SHORT_NAME}"
+  "${JIRO_ROOT_DIR}/jenkins-create-credentials-token.sh" "sonarcloud" "${PROJECT_NAME}" "${SUFFIX}"
+  ci=true
+else
+  printf "\nNo Jiro instance found for %s CI instance. Skipping...\n" "${SHORT_NAME}"
+  ci=false
+fi
+
+create_issue_template "${ci}"

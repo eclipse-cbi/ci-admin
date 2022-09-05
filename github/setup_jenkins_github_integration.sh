@@ -73,7 +73,7 @@ set_up_github_account() {
   * Take credentials from pass
 * Verify email
 * Add SSH public key to GitHub bot account (Settings -> SSh and GPG keys -> New SSH key)
-* Create API and admin token (Settings -> Developer Settings -> Personal access tokens)
+* Create API token (Settings -> Developer Settings -> Personal access tokens)
   * API token
     * Name:       Jenkins GitHub Plugin token https://ci.eclipse.org/${SHORT_NAME}
     * Expiration: No expiration

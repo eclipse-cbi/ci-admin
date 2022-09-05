@@ -47,7 +47,20 @@ if [[ -z "${PROJECT_NAME}" ]]; then
   exit 1
 fi
 
+question() {
+  local message="${1:-}"
+  local action="${2:-}"
+  read -p "Do you want to ${message}? (Y)es, (N)o, E(x)it: " yn
+  case $yn in
+    [Yy]* ) ${action};;
+    [Nn]* ) return ;;
+    [Xx]* ) exit 0;;
+        * ) echo "Please answer (Y)es, (N)o, E(x)it"; question "${message}" "${action}";
+  esac
+}
+
 add_gitlab_jcasc_config() {
+  printf "\n# Adding GitLab JCasC config to %s Jenkins instance...\n" "${PROJECT_NAME}"
   mkdir -p "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}/jenkins"
 #TODO: deal with existing configuration.yml file 
   cat <<EOF > "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}/jenkins/configuration.yml"
@@ -89,6 +102,21 @@ add_bot_to_projects-bot-api() {
   "${PROJECTS_BOTS_API_ROOT_FOLDER}/deploy_db.sh"
 }
 
+add_bot_to_group() {
+  printf "\n# Adding bot to GitLab group...\n"
+  # TODO: read botname from pass?
+  bot_name="${SHORT_NAME}-bot"
+  group_name="${SHORT_NAME}"
+  access_level=40 # 40 = Maintainer
+  "${SCRIPT_FOLDER}/gitlab_admin.sh" "add_user_to_group" "${group_name}" "${bot_name}" "${access_level}"
+}
+
+create_a_webhook() {
+  printf "\n# Creating Webhooks...\n"
+  repo_name="${SHORT_NAME}" # this only works for the default repo
+  "${SCRIPT_FOLDER}/create_gitlab_webhook.sh" "${PROJECT_NAME}" "${repo_name}"
+}
+
 instructions_template() {
   printf "\n# Post instructions to GitLab...\n"
   cat <<EOF
@@ -118,22 +146,13 @@ printf "\n# Adding GitLab bot credentials to Jenkins instance...\n"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "gitlab" "${PROJECT_NAME}"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${PROJECT_NAME}"
 
-printf "\n# Adding GitLab JCasC config to %s Jenkins instance...\n" "${PROJECT_NAME}"
 add_gitlab_jcasc_config
 
 add_bot_to_projects-bot-api
 
-printf "\n# Adding bot to GitLab group...\n"
-# TODO: read botname from pass?
-bot_name="${SHORT_NAME}-bot"
-group_name="${SHORT_NAME}"
-access_level=40 # 40 = Maintainer
-"${SCRIPT_FOLDER}/gitlab_admin.sh" "add_user_to_group" "${group_name}" "${bot_name}" "${access_level}"
+add_bot_to_group
 
-# TODO: make optional?
-printf "\n# Creating Webhooks...\n"
-repo_name="${SHORT_NAME}" # this only works for the default repo
-"${SCRIPT_FOLDER}/create_gitlab_webhook.sh" "${PROJECT_NAME}" "${repo_name}"
+question "create a webhook" create_a_webhook
 
 instructions_template
 

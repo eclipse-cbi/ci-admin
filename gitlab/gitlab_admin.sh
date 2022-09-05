@@ -82,7 +82,7 @@ _get_id_from_username() {
 _get_project_id() {
 #TODO: fail if no project id is found?
   local repo_name="${1:-}"
-  curl -s --header "${TOKEN_HEADER}" "${API_BASE_URL}/projects?search=${repo_name}" | jq -r '.[] | select(.path_with_namespace | startswith("eclipse/")) | .id'
+  curl -s --header "${TOKEN_HEADER}" "${API_BASE_URL}/projects?search=${repo_name}" | jq '[.[] | select(.path_with_namespace | startswith("eclipse/")) | {id: .id, name: .name}]'
 }
 
 _get_group_id() {
@@ -180,8 +180,42 @@ create_webhook() {
   _check_parameter "repo name" "${repo_name}"
   _check_parameter "webhook URL" "${hook_url}"
   _check_parameter "webhook secret" "${hook_secret}"
+  local list_of_ids
+  list_of_ids="$(_get_project_id "${repo_name}")"
+
+  #echo "${list_of_ids}" | jq '.'
+  local list_length
+  list_length="$(echo "${list_of_ids}" | jq '. | length')"
+
   local repo_id
-  repo_id="$(_get_project_id "${repo_name}")"
+  if [[ "${list_length}" -gt 1 ]] ; then
+    # show repo names
+    echo "Found ${list_length} repos:"
+    local i=1
+    for n in $(echo "${list_of_ids}" | jq -r '.[].name'); do
+      echo "${i}: ${n}"
+      ((i=i+1))
+    done
+    # choose repo
+    local repo_no
+    repo_no="$(_choose_repo "$((i-1))")"
+    if [[ -z "${repo_no}" ]]; then
+      echo "No repo ID found for ${repo_name}"
+      exit 1
+    fi
+    repo_id="$(echo "${list_of_ids}" | jq -r ".[$((repo_no-1))].id")"
+  elif [[ "${list_length}" -eq 0 ]]; then
+    echo "Empty array!"
+    repo_id=""
+  else
+    # return the single id
+    repo_id="$(echo "${list_of_ids}" | jq -r '.[0].id')"
+  fi
+
+  if [[ -z "${repo_id}" ]]; then
+    echo "No repo ID found for ${repo_name}"
+    exit 1
+  fi
 
   # if webhook already exists, skip
 #TODO: this assumes that only one webhook per repo is set

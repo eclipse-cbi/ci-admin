@@ -144,6 +144,7 @@ echo "# Creating a GitLab bot user..."
 
 printf "\n# Adding GitLab bot credentials to Jenkins instance...\n"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "gitlab" "${PROJECT_NAME}"
+"${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "gitlab-pat" "${PROJECT_NAME}"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${PROJECT_NAME}"
 
 add_gitlab_jcasc_config

@@ -142,16 +142,16 @@ EOF
 echo "# Creating a GitLab bot user..."
 "${SCRIPT_FOLDER}/create_gitlab_bot_user.sh" "${PROJECT_NAME}"
 
+add_bot_to_projects-bot-api
+
+add_bot_to_group
+
 printf "\n# Adding GitLab bot credentials to Jenkins instance...\n"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "gitlab" "${PROJECT_NAME}"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "gitlab-pat" "${PROJECT_NAME}"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${PROJECT_NAME}"
 
 add_gitlab_jcasc_config
-
-add_bot_to_projects-bot-api
-
-add_bot_to_group
 
 question "create a webhook" create_a_webhook
 

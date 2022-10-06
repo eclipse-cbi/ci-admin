@@ -80,15 +80,15 @@ unclassified:
       name: "gitlab.eclipse.org"
       serverUrl: "https://gitlab.eclipse.org"
 EOF
-  
+
   printf "\n# Reloading configuration of the Jenkins instance...\n"
   
   echo "Connected to cluster?"
   read -rsp "Press enter to continue or CTRL-C to stop the script"
   
-  pushd "${JIRO_ROOT_FOLDER}"
+  pushd "${JIRO_ROOT_FOLDER}/incubation"
   # TODO: deal with working directory
-  ./jenkins-reload-jcasc-only.sh "instances/${PROJECT_NAME}"
+  ./update_jcasc_config.sh "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}"
   popd
 }
 
@@ -148,7 +148,7 @@ add_bot_to_group
 
 printf "\n# Adding GitLab bot credentials to Jenkins instance...\n"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "gitlab" "${PROJECT_NAME}"
-"${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "gitlab-pat" "${PROJECT_NAME}"
+"${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "gitlab_pat" "${PROJECT_NAME}"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${PROJECT_NAME}"
 
 add_gitlab_jcasc_config

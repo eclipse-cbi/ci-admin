@@ -59,10 +59,13 @@ id_rsa_pub="$(passw cbi "${PW_STORE_PATH}/id_rsa.pub")"
 
 "${SCRIPT_FOLDER}/gitlab_admin.sh" "add_ssh_key" "${username}" "${id_rsa_pub}"
 
-#TODO: check if api-token already exists
-token="$("${SCRIPT_FOLDER}/gitlab_admin.sh" "create_api_token" "${username}")"
-echo "Adding API token to pass..."
-echo "${token}" | passw cbi insert --echo "${PW_STORE_PATH}/api-token"
+if ! passw cbi "${PW_STORE_PATH}/api-token" &> /dev/null ; then
+  token="$("${SCRIPT_FOLDER}/gitlab_admin.sh" "create_api_token" "${username}")"
+  echo "Adding API token to pass..."
+  echo "${token}" | passw cbi insert --echo "${PW_STORE_PATH}/api-token"
+else
+  echo "Found ${GITLAB_PASS_DOMAIN} api-token in password store. Skipping creation..."
+fi
 
 echo "Done."
 

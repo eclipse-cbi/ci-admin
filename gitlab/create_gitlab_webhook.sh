@@ -35,21 +35,20 @@ if [ -z "${REPO_NAME}" ]; then
   exit 1
 fi
 
-PW_STORE_PATH="bots/${PROJECT_NAME}/${GITLAB_PASS_DOMAIN}"
-
-
 create_gitlab_webhook() {
   local project_name="${1:-}"
   local repo_name="${2:-}"
   local webhook_url="${3:-}"
 
-  if ! passw cbi "${PW_STORE_PATH}/webhook-secret" &> /dev/null ; then
+  local pw_store_path="bots/${project_name}/${GITLAB_PASS_DOMAIN}"
+
+  if ! passw cbi "${pw_store_path}/webhook-secret" &> /dev/null ; then
     echo "Creating webhook secret credentials in password store..."
-    pwgen -1 -s -r '&\!|%' -y 24 | passw cbi insert --echo "${PW_STORE_PATH}/webhook-secret"
+    pwgen -1 -s -r '&\!|%' -y 24 | passw cbi insert --echo "${pw_store_path}/webhook-secret"
   else
     echo "Found ${GITLAB_PASS_DOMAIN} webhook-secret credentials in password store. Skipping creation..."
   fi
-  webhook_secret="$(passw cbi "${PW_STORE_PATH}/webhook-secret")"
+  webhook_secret="$(passw cbi "${pw_store_path}/webhook-secret")"
 
  "${SCRIPT_FOLDER}/gitlab_admin.sh" "create_webhook" "${repo_name}" "${webhook_url}" "${webhook_secret}"
 }

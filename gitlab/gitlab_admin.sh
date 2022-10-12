@@ -15,7 +15,6 @@ set -o nounset
 set -o pipefail
 
 IFS=$'\n\t'
-SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 LOCAL_CONFIG="${HOME}/.cbi/config"
 
 if [[ ! -f "${LOCAL_CONFIG}" ]]; then

@@ -96,13 +96,13 @@ addRepoToGroupRepo() {
 createBugReply () {
     local repo_id=$1
     echo "
-Bugzilla reply template:    
+Helpdesk reply template:    
 ------------------------
 
-The following repos were created for ${repo_id}.
+The following repos were created for ${repo_id}:
 
-group:     https://repo.eclipse.org/content/repositories/${repo_id}/
-releases:  https://repo.eclipse.org/content/repositories/${repo_id}-releases/
+group:     https://repo.eclipse.org/content/repositories/${repo_id}/ \
+releases:  https://repo.eclipse.org/content/repositories/${repo_id}-releases/ \
 snapshots: https://repo.eclipse.org/content/repositories/${repo_id}-snapshots/
 
 Details on how to use repo.eclipse.org can be found on the wiki at https://wiki.eclipse.org/Services/Nexus and https://wiki.eclipse.org/Jenkins

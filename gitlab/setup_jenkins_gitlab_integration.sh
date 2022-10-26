@@ -142,6 +142,9 @@ EOF
 echo "# Creating a GitLab bot user..."
 "${SCRIPT_FOLDER}/create_gitlab_bot_user.sh" "${PROJECT_NAME}"
 
+echo "Connected to cluster?"
+read -p "Press enter to continue or CTRL-C to stop the script"
+
 add_bot_to_projects-bot-api
 
 add_bot_to_group

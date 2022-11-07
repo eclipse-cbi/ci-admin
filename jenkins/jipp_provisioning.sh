@@ -246,9 +246,8 @@ add_pub_key() {
 
 setup_github() {
   printf "\n\n### Setting up GitHub bot credentials...\n"
-  pushd "${CI_ADMIN_ROOT}/pass"
-  ./add_creds.sh github "${PROJECT_NAME}"
-  ./add_creds.sh github_ssh "${PROJECT_NAME}"
+  pushd "${CI_ADMIN_ROOT}/github"
+  ./setup_jenkins_github_integration.sh "${PROJECT_NAME}"
   popd
   printf "\n"
 }
@@ -286,7 +285,7 @@ issue_template() {
   local short_name="${PROJECT_NAME##*.}"
   cat <<EOF
 
-Post the following on the corresponding GitLab issue:
+Post the following on the corresponding HelpDesk issue:
 -----------------------------------------------------
 
 The ${DISPLAY_NAME} JIPP on Jiro is available here now:

@@ -117,7 +117,7 @@ update_projects_bot_api() {
 instructions_template() {
   printf "\n# Post instructions to GitLab...\n"
   cat <<EOF
-Post the following on the corresponding GitLab issue:
+Post the following on the corresponding HelpDesk issue:
 -------------------------------------------------------
 GitHub bot (ID: eclipse-${SHORT_NAME}-bot) has been created. Credentials have been added to the ${SHORT_NAME} JIPP.
 

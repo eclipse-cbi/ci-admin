@@ -28,15 +28,6 @@ if [[ -z "${PROJECT_NAME}" ]]; then
   exit 1
 fi
 
-# get display name from PMI API
-DISPLAY_NAME="$(curl -sSL "https://projects.eclipse.org/api/projects/${PROJECT_NAME}.json" | jq -r .[].name)"
-if [[ -z "${DISPLAY_NAME}" ]]; then
-  printf "ERROR: display name for %s not found in PMI API.\n" "${PROJECT_NAME}"
-  exit 1
-else
-  printf "Found display name: %s.\n" "${DISPLAY_NAME}"
-fi
-
 JIRO_ROOT_FOLDER="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "jiro-root-dir")"
 
 cleanup() {
@@ -44,39 +35,58 @@ cleanup() {
 }
 trap cleanup EXIT
 
-pass_base_path="cbi-pass/bots/${PROJECT_NAME}/gpg"
-secret_subkeys_filename="secret-subkeys.asc"
+PASS_BASE_PATH="cbi-pass/bots/${PROJECT_NAME}/gpg"
+SECRET_SUBKEYS_FILENAME="secret-subkeys.asc"
 
 # create pgp credentials
-if pass "${pass_base_path}/secret-subkeys.asc" &> /dev/null ; then
-  printf "%s credentials for %s already exist. Skipping creation...\n" "${pass_base_path}" "${PROJECT_NAME}"
-else
-  "${SCRIPT_FOLDER}/../pass/add_creds_gpg.sh" "${PROJECT_NAME}" "${DISPLAY_NAME}"
-fi
+create_pgp_credentials() {
+  local project_name="${1:-}"
 
-# add credentials to Jenkins instance
-"${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${PROJECT_NAME}"
+  # get display name from PMI API
+  local display_name
+  display_name="$(curl -sSL "https://projects.eclipse.org/api/projects/${project_name}.json" | jq -r .[].name)"
+  if [[ -z "${display_name}" ]]; then
+    printf "ERROR: display name for %s not found in PMI API.\n" "${project_name}"
+    read -p "Press enter a display name for '${project_name}': " display_name
+    if [[ -z "${display_name}" ]]; then
+      exit 1
+    fi
+  else
+    printf "Found display name: %s.\n" "${display_name}"
+  fi
+
+  if pass "${PASS_BASE_PATH}/secret-subkeys.asc" &> /dev/null ; then
+    printf "%s credentials for %s already exist. Skipping creation...\n" "${PASS_BASE_PATH}" "${project_name}"
+  else
+    "${SCRIPT_FOLDER}/../pass/add_creds_gpg.sh" "${project_name}" "${display_name}"
+  fi
+
+  # add credentials to Jenkins instance
+  "${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${project_name}"
 
 
-# extract secret-subkeys.asc file from pass
-pass "${pass_base_path}/secret-subkeys.asc" > "${secret_subkeys_filename}"
+  # extract secret-subkeys.asc file from pass
+  pass "${PASS_BASE_PATH}/secret-subkeys.asc" > "${SECRET_SUBKEYS_FILENAME}"
 
-# Add manually to JIPP
-echo
-echo "Add ${secret_subkeys_filename} to ${SHORT_NAME} JIPP manually..."
-read -rsp "Press enter to continue or CTRL-C to stop the script"
-echo
+  # Add manually to JIPP
+  echo
+  echo "Add ${SECRET_SUBKEYS_FILENAME} to ${SHORT_NAME} JIPP manually..."
+  read -rsp "Press enter to continue or CTRL-C to stop the script"
+  echo
+}
+
+create_pgp_credentials "${PROJECT_NAME}"
 
 # Add GPG passphrase
 gpg_passphrase_secret_id="gpg-passphrase"
-gpg_passphrase="$(pass "${pass_base_path}/passphrase")"
+gpg_passphrase="$(pass "${PASS_BASE_PATH}/passphrase")"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "default" "${PROJECT_NAME}" "${gpg_passphrase_secret_id}" "GPG Passphrase" "${gpg_passphrase}"
 
 # Sign with webmaster's key
 "${SCRIPT_FOLDER}/gpg_key_admin.sh" "sign" "${PROJECT_NAME}"
 
 # Get public key ID
-public_key_id="$(pass "${pass_base_path}/key_id")"
+public_key_id="$(pass "${PASS_BASE_PATH}/key_id")"
 
 # Show helpdesk response template
 printf "\n\n# Post instructions in HelpDesk ticket...\n"
@@ -88,7 +98,7 @@ Your public key is https://keyserver.ubuntu.com/pks/lookup?op=vindex&search=0x${
 The key has been signed with the webmaster's key.
 
 Jenkins credentials IDs are:
-* ${secret_subkeys_filename}
+* ${SECRET_SUBKEYS_FILENAME}
 * ${gpg_passphrase_secret_id}
 
 EOF

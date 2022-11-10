@@ -60,6 +60,7 @@ passw() {
 
   local exitCode=0
   if ! pass "${@:2}"; then
+    >&2 echo "ERROR: pass entry not found - " "${@:2}" "in store $store"
     exitCode=1
   fi
 

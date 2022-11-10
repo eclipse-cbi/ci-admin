@@ -20,9 +20,6 @@ SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 SCRIPT_NAME="$(basename "${0}")"
 
 source "${SCRIPT_FOLDER}/pass_wrapper.sh"
-# shellcheck disable=SC1090
-. "${SCRIPT_FOLDER}/../utils/crypto.sh"
-
 
 PROJECT_NAME="${1:-}"
 DISPLAY_NAME="${2:-}"
@@ -171,7 +168,8 @@ add_to_pw_store() {
 }
 
 ## Main
-pass_phrase="$(pwgen 64)"
+# '<', '>' and '&' need to be filtered out, since jenkins credentials have issues with those characters
+pass_phrase=$(pwgen -1 -s -r '\\"<>&' -y 64)
 keyserver="keyserver.ubuntu.com"           # PGP keyserver
 pw_store_path="bots/${PROJECT_NAME}/gpg"
 

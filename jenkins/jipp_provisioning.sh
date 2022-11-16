@@ -15,6 +15,7 @@
 #    - check if download dir exists
 #    - check if genie user is part of the project LDAP/Unix group
 #  - fix LDAP on projects-storage
+#  - create Gerrit credentials and add them to pass
 #  - create projects-storage credentials and add them to pass
 #  - add pub key to genie to .ssh/authorized_keys in home dir on projects-storage
 #  - create new JIRO JIPP
@@ -320,9 +321,10 @@ ssh-add ~/.ssh/id_rsa
 check_genie_user "${PROJECT_NAME}"
 fix_ldap "${PROJECT_NAME}"
 
-#FIXME: projects_storage creds should not be created, if they already exist
+#FIXME: gerrit and projects_storage creds should not be created, if they already exist
 
 pushd "${CI_ADMIN_ROOT}/pass"
+./add_creds.sh gerrit "${PROJECT_NAME}" || : # if creds already exist, ignore exit code 1
 ./add_creds.sh projects_storage "${PROJECT_NAME}" || : # if creds already exist, ignore exit code 1
 popd
 

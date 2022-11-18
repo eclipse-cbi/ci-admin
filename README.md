@@ -9,5 +9,6 @@ Most scripts will not work without access to the password store or the internal 
 * [bash 4](https://www.gnu.org/software/bash/)
 * [curl](https://curl.se/)
 * [docker](https://www.docker.com)
+* [git](https://git-scm.com)
 * [jq](https://stedolan.github.io/jq/)
 * [pass](https://www.passwordstore.org)

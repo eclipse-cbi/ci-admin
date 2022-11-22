@@ -19,6 +19,8 @@ IFS=$'\n\t'
 
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 
+source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
+
 PROJECT_NAME="${1:-}"
 SHORT_NAME="${PROJECT_NAME##*.}"
 
@@ -35,7 +37,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-PASS_BASE_PATH="cbi-pass/bots/${PROJECT_NAME}/gpg"
+PASS_BASE_PATH="bots/${PROJECT_NAME}/gpg"
 SECRET_SUBKEYS_FILENAME="secret-subkeys.asc"
 
 # create pgp credentials
@@ -55,7 +57,7 @@ create_pgp_credentials() {
     printf "Found display name: %s.\n" "${display_name}"
   fi
 
-  if pass "${PASS_BASE_PATH}/secret-subkeys.asc" &> /dev/null ; then
+  if passw cbi "${PASS_BASE_PATH}/secret-subkeys.asc" &> /dev/null ; then
     printf "%s credentials for %s already exist. Skipping creation...\n" "${PASS_BASE_PATH}" "${project_name}"
   else
     "${SCRIPT_FOLDER}/../pass/add_creds_gpg.sh" "${project_name}" "${display_name}"
@@ -66,7 +68,7 @@ create_pgp_credentials() {
 
 
   # extract secret-subkeys.asc file from pass
-  pass "${PASS_BASE_PATH}/secret-subkeys.asc" > "${SECRET_SUBKEYS_FILENAME}"
+  passw cbi "${PASS_BASE_PATH}/secret-subkeys.asc" > "${SECRET_SUBKEYS_FILENAME}"
 
   # Add manually to JIPP
   echo
@@ -79,14 +81,14 @@ create_pgp_credentials "${PROJECT_NAME}"
 
 # Add GPG passphrase
 gpg_passphrase_secret_id="gpg-passphrase"
-gpg_passphrase="$(pass "${PASS_BASE_PATH}/passphrase")"
+gpg_passphrase="$(passw cbi "${PASS_BASE_PATH}/passphrase")"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "default" "${PROJECT_NAME}" "${gpg_passphrase_secret_id}" "GPG Passphrase" "${gpg_passphrase}"
 
 # Sign with webmaster's key
 "${SCRIPT_FOLDER}/gpg_key_admin.sh" "sign" "${PROJECT_NAME}"
 
 # Get public key ID
-public_key_id="$(pass "${PASS_BASE_PATH}/key_id")"
+public_key_id="$(passw cbi "${PASS_BASE_PATH}/key_id")"
 
 # Show helpdesk response template
 printf "\n\n# Post instructions in HelpDesk ticket...\n"

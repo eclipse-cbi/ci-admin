@@ -78,6 +78,8 @@ key_id="$(_get_key_id "${project_name}")"
 
 echo "old passphrase: ${PASSPHRASE}"
 
+#TODO: suggest new passphrase
+
 read -rp "Enter new passphrase: " NEW_PASSPHRASE
 
 # TODO automate
@@ -93,3 +95,9 @@ passw cbi insert -m "${pw_store_path}/secret-keys.asc" < "secret-keys.asc"
 passw cbi insert -m "${pw_store_path}/secret-subkeys.asc" < "secret-subkeys.asc"
 
 echo "${NEW_PASSPHRASE}" | passw cbi insert --echo "${pw_store_path}/passphrase"
+
+rm -rf "secret-keys.asc"
+rm -rf "secret-subkeys.asc"
+
+echo "Done."
+

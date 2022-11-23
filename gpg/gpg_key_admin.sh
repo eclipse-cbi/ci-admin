@@ -15,7 +15,7 @@ set -o pipefail
 
 IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
-
+#shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 
 # TODO:
@@ -179,11 +179,11 @@ sign() {
 
   echo "allow-loopback-pinentry" > "${TMP_GPG}/gpg-agent.conf"
   # import webmaster's key
-  local pw_store_path_wm="IT/accounts/gpg/webmaster"
+  local pw_store_path_wm="gpg/webmaster"
   local passphrase_wm=
-  passphrase_wm="$(passw it "${pw_store_path_wm}/passphrase")"
+  passphrase_wm="$(passw cbi "${pw_store_path_wm}/passphrase")"
 
-  _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback --import <<< "$(passw it "${pw_store_path_wm}/secret-key.asc")" 3<<< "${passphrase_wm}"
+  _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback --import <<< "$(passw cbi "${pw_store_path_wm}/secret-key.asc")" 3<<< "${passphrase_wm}"
   
 
   # import public key

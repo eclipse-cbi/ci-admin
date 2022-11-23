@@ -18,7 +18,7 @@ set -o pipefail
 IFS=$'\n\t'
 
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
-
+#shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 
 PROJECT_NAME="${1:-}"

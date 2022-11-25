@@ -18,6 +18,7 @@ TOKEN_URL="https://accounts.eclipse.org/oauth2/token"
 PROFILE_URL="https://api.eclipse.org/account/profile"
 
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+#shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 
 _request_access_token() {

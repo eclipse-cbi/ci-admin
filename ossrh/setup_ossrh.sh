@@ -17,6 +17,7 @@ IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 LOCAL_CONFIG="${HOME}/.cbi/config"
 
+#shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 
 if [[ ! -f "${LOCAL_CONFIG}" ]]; then

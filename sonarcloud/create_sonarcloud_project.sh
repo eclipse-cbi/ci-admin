@@ -27,6 +27,7 @@ SHORT_NAME="${PROJECT_NAME##*.}"
 
 SONAR_API_BASE_URL="https://sonarcloud.io/api"
 
+#shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 
 LOCAL_CONFIG="${HOME}/.cbi/config"

@@ -18,7 +18,7 @@ IFS=$'\n\t'
 
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 SCRIPT_NAME="$(basename "${0}")"
-
+#shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/pass_wrapper.sh"
 
 PROJECT_NAME="${1:-}"

@@ -10,6 +10,8 @@
 
 # Rename a project
 
+#TODO: write verbose output to log file and be less verbose by default
+
 # Bash strict-mode
 set -o errexit
 set -o nounset
@@ -84,8 +86,11 @@ fix_pass() {
       echo "${NEW_SHORT_NAME}-bot@eclipse.org" | passw cbi insert --echo "${new_pass_project}/gitlab.eclipse.org/email"
     fi
 
-  #TODO more
-  #TODO: create list of changes for external services like GitHub
+#TODO more
+#TODO: create list of changes for external services like GitHub
+#TODO: automate renaming of accounts
+    echo "TODO: change accounts on websites (GitHub, GitLab, etc)"
+    read -rsp $'Once you are done, press any key to continue...\n' -n1
   else
     echo "Project short name did not change, skipping renaming of usernames, etc in pass..."
   fi

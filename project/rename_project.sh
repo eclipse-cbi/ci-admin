@@ -49,8 +49,8 @@ fix_pass() {
 
   # move pass credentials
   # check if it's already moved
-  if [[ -d "${password_store_dir}/bots/${NEW_PROJECT_NAME}" ]]; then
-    echo "${password_store_dir}/bots/${NEW_PROJECT_NAME} already exists, skipping..."
+  if [[ -d "${password_store_dir}/${new_pass_project}" ]]; then
+    echo "${password_store_dir}/${new_pass_project} already exists, skipping..."
   else
     pushd "${password_store_dir}/bots/"
     git mv "${PROJECT_NAME}" "${NEW_PROJECT_NAME}"
@@ -59,26 +59,26 @@ fix_pass() {
 
   if [[ "${OLD_SHORT_NAME}" != "${NEW_SHORT_NAME}" ]]; then
     # Gerrit
-    if [[ -d "${password_store_dir}/bots/${NEW_PROJECT_NAME}/git.eclipse.org" ]]; then
+    if [[ -d "${password_store_dir}/${new_pass_project}/git.eclipse.org" ]]; then
       echo "Updating Gerrit username (=> \"genie.${NEW_SHORT_NAME}\")..."
       echo "genie.${NEW_SHORT_NAME}" | passw cbi insert --echo "${new_pass_project}/git.eclipse.org/username"
     fi
 
     # projects-storage.eclipse.org
-    if [[ -d "${password_store_dir}/bots/${NEW_PROJECT_NAME}/projects-storage.eclipse.org" ]]; then
+    if [[ -d "${password_store_dir}/${new_pass_project}/projects-storage.eclipse.org" ]]; then
       echo "Updating projects-storage username (=> \"genie.${NEW_SHORT_NAME}\")..."
       echo "genie.${NEW_SHORT_NAME}" | passw cbi insert --echo "${new_pass_project}/projects-storage.eclipse.org/username"
     fi
 
     # GitHub
-    if [[ -d "${password_store_dir}/bots/${NEW_PROJECT_NAME}/github.com" ]]; then
+    if [[ -d "${password_store_dir}/${new_pass_project}/github.com" ]]; then
       echo "Updating GitHub username and email (=> \"eclipse-${NEW_SHORT_NAME}-bot\", \"${NEW_SHORT_NAME}-bot@eclipse.org\")..."
       echo "eclipse-${NEW_SHORT_NAME}-bot" | passw cbi insert --echo "${new_pass_project}/github.com/username"
       echo "${NEW_SHORT_NAME}-bot@eclipse.org" | passw cbi insert --echo "${new_pass_project}/github.com/email"
     fi
 
     # GitLab
-    if [[ -d "${password_store_dir}/bots/${NEW_PROJECT_NAME}/gitlab.eclipse.org" ]]; then
+    if [[ -d "${password_store_dir}/${new_pass_project}/gitlab.eclipse.org" ]]; then
       echo "Updating GitLab username and email (=> \"${NEW_SHORT_NAME}-bot\", \"${NEW_SHORT_NAME}-bot@eclipse.org\")..."
       echo "${NEW_SHORT_NAME}-bot" | passw cbi insert --echo "${new_pass_project}/gitlab.eclipse.org/username"
       echo "${NEW_SHORT_NAME}-bot@eclipse.org" | passw cbi insert --echo "${new_pass_project}/gitlab.eclipse.org/email"

@@ -63,33 +63,13 @@ if [ -z "${DISPLAY_NAME}" ]; then
   exit 1
 fi
 
-LOCAL_CONFIG="${HOME}/.cbi/config"
+JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
 
-if [[ ! -f "${LOCAL_CONFIG}" ]]; then
-  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
-  echo "Create one to configure the location of the JIRO root dir and file server credentials. Example:"
-  echo '{"jiro-root-dir": "/path/to/jiro/rootdir", "file_server": {"server": "myserver", "user": "user2", "pw": "<path in pass>", "pw_root": "<path in pass>", "pw_ldap": "<path in pass>"}}' | jq -M
-  exit 1
-fi
-
-JIRO_ROOT_FOLDER="$(jq -r '."jiro-root-dir"' < "${LOCAL_CONFIG}")"
-
-if [[ -z "${JIRO_ROOT_FOLDER}" ]] || [[ "${JIRO_ROOT_FOLDER}" == "null" ]]; then
-  printf "ERROR: 'jiro-root-dir' must be set in %s.\n" "${LOCAL_CONFIG}"
-  exit 1
-fi
-
-FILE_SERVER="$(jq -r '.["file_server"]["server"]' "${LOCAL_CONFIG}")"
-FILE_SERVER_USER="$(jq -r '.["file_server"]["user"]' "${LOCAL_CONFIG}")"
-FILE_SERVER_PW="$(jq -r '.["file_server"]["pw"]' "${LOCAL_CONFIG}")"
-FILE_SERVER_PW_ROOT="$(jq -r '.["file_server"]["pw_root"]' "${LOCAL_CONFIG}")"
-FILE_SERVER_PW_LDAP="$(jq -r '.["file_server"]["pw_ldap"]' "${LOCAL_CONFIG}")"
-
-if [[ -z "${FILE_SERVER}" ]] || [[ "${FILE_SERVER}" == "null" ]]; then
-  printf "ERROR: 'file_server/server' must be set in %s.\n" "${LOCAL_CONFIG}. Example:"
-  echo '{"file_server": {"server": "myserver", "user": "user2", "pw": "<path in pass>", "pw_root": "<path in pass>", "pw_ldap": "<path in pass>"}}' | jq -M
-  exit 1
-fi
+FILE_SERVER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "server" "file_server")"
+FILE_SERVER_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "user" "file_server")"
+FILE_SERVER_PW="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "pw" "file_server")"
+FILE_SERVER_PW_ROOT="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "pw_root" "file_server")"
+FILE_SERVER_PW_LDAP="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "pw_ldap" "file_server")"
 
 check_genie_user() {
   local project_name="${1:-}"
@@ -173,10 +153,10 @@ fix_ldap() {
   
   # fix LDAP
   #TODO: fix expect: spawn id exp4 not open issues
-  send \"./fix_ldap.sh $genieUser\r\"
-  interact -o -nobuffer -re \"$ldapPasswordPrompt\" return
-  send_user \"\n\"
-  send \"[exec pass $pwLdap]\r\"
+#  send \"./fix_ldap.sh $genieUser\r\"
+#  interact -o -nobuffer -re \"$ldapPasswordPrompt\" return
+#  send_user \"\n\"
+#  send \"[exec pass $pwLdap]\r\"
 
   # exit su and exit ssh
   send \"exit\rexit\r\"
@@ -308,36 +288,3 @@ ssh-add ~/.ssh/id_rsa
 check_genie_user "${PROJECT_NAME}"
 fix_ldap "${PROJECT_NAME}"
 
-#FIXME: gerrit and projects_storage creds should not be created, if they already exist
-
-pushd "${CI_ADMIN_ROOT}/pass"
-./add_creds.sh gerrit "${PROJECT_NAME}" || : # if creds already exist, ignore exit code 1
-./add_creds.sh projects_storage "${PROJECT_NAME}" || : # if creds already exist, ignore exit code 1
-popd
-
-add_pub_key "${PROJECT_NAME}"
-
-"${JIRO_ROOT_FOLDER}/incubation/create_new_jiro_jipp.sh" "${PROJECT_NAME}" "${DISPLAY_NAME}"
-
-# ask if GitHub bot credentials should be created
-question "setup GitHub bot credentials" "setup_github"
-#TODO: run /ci-admin/github/setup_jenkins_github_integration.sh
-
-# ask if OSSRH/gpg credentials should be created
-question "setup OSSRH credentials" "setup_ossrh"
-
-#TODO: only if github or ossrh setup was executed
-# create Jenkins credentials
-"${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${PROJECT_NAME}"
-
-"${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "auto" "${PROJECT_NAME}"
-
-issue_template
-
-#TODO: commit changes to JIRO repo
-pushd "${JIRO_ROOT_FOLDER}"
-git add "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}"
-#git commit -m "Provisioning JIPP for project ${PROJECT_NAME}"
-popd
-
-rm -rf "${PROJECT_NAME}"

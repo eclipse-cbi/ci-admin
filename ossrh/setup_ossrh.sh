@@ -15,24 +15,13 @@ set -o pipefail
 
 IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
-LOCAL_CONFIG="${HOME}/.cbi/config"
+
+CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
 #shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 
-if [[ ! -f "${LOCAL_CONFIG}" ]]; then
-  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
-  echo "Create one to configure the location of the JIRO root dir. Example:"
-  echo '{"jiro-root-dir": "/path/to/jiro/rootdir"}'
-  exit 1
-fi
-
-JIRO_ROOT_FOLDER="$(jq -r '."jiro-root-dir"' < "${LOCAL_CONFIG}")"
-
-if [[ -z "${JIRO_ROOT_FOLDER}" ]] || [[ "${JIRO_ROOT_FOLDER}" == "null" ]]; then
-  printf "ERROR: 'jiro-root-dir' must be set in %s.\n" "${LOCAL_CONFIG}"
-  exit 1
-fi
+JIRO_ROOT_FOLDER="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "jiro-root-dir")"
 
 PROJECT_NAME="${1:-}"
 DISPLAY_NAME="${2:-}"
@@ -61,7 +50,7 @@ open_url() {
 
 create_ossrh_credentials() {
   printf "\nCreating OSSRH credentials...\n"
-  "${SCRIPT_FOLDER}/../pass/add_creds.sh" "ossrh" "${PROJECT_NAME}" || true
+  "${CI_ADMIN_ROOT}/pass/add_creds.sh" "ossrh" "${PROJECT_NAME}" || true
 
   local username
   local pw
@@ -92,7 +81,7 @@ create_ossrh_credentials() {
 create_gpg_credentials() {
   printf "Creating GPG credentials...\n"
 #TODO: skip if GPG creds already exist
-  "${SCRIPT_FOLDER}/..//pass/add_creds_gpg.sh" "${PROJECT_NAME}" "${DISPLAY_NAME}"
+  "${CI_ADMIN_ROOT}/pass/add_creds_gpg.sh" "${PROJECT_NAME}" "${DISPLAY_NAME} Project"
 }
 
 create_jenkins_credentials() {

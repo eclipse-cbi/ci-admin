@@ -15,7 +15,7 @@
 #    - check if download dir exists
 #    - check if genie user is part of the project LDAP/Unix group
 #  - fix LDAP on projects-storage
-#  - create Gerrit credentials and add them to pass
+#  - create Gerrit credentials and add them to pass (TODO: remove)
 #  - create projects-storage credentials and add them to pass
 #  - add pub key to genie to .ssh/authorized_keys in home dir on projects-storage
 #  - create new JIRO JIPP
@@ -37,7 +37,7 @@ IFS=$'\n\t'
 
 SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}")"
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
-CI_ADMIN_ROOT="${SCRIPT_FOLDER}/../"
+CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
 #TODO: refactor expect scripts?
 
@@ -254,20 +254,7 @@ setup_github() {
 }
 
 setup_ossrh() {
-  printf "\n### Setting up OSSRH credentials...\n"
-  pushd "${CI_ADMIN_ROOT}/pass"
-  ./add_creds_gpg.sh "${PROJECT_NAME}" "${DISPLAY_NAME} Project"
-  ./add_creds.sh ossrh "${PROJECT_NAME}"
-  #dump secret-subkeys
-  mkdir "${PROJECT_NAME}"
-  pass "cbi-pass/bots/${PROJECT_NAME}/gpg/secret-subkeys.asc" > "${PROJECT_NAME}/secret-subkeys.asc"
-  echo "Exported secret-subkeys.asc to ${PROJECT_NAME}/secret-subkeys.asc."
-  popd
-  "${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${PROJECT_NAME}"
-  printf "\n"
-  echo "Added secret-subkeys.asc to JIPP (manually for now)?"
-  read -p "Press enter to continue or CTRL-C to stop the script"
-  printf "\n"
+  "${CI_ADMIN_ROOT}/ossrh/setup_ossrh.sh" "${PROJECT_NAME}" "${DISPLAY_NAME}"
 }
 
 question() {

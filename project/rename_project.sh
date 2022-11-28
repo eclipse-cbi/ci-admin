@@ -113,8 +113,17 @@ rename_jipp() {
   "${JIRO_ROOT_FOLDER}/incubation/rename_jipp.sh" "${PROJECT_NAME}" "${NEW_PROJECT_NAME}"
 }
 
+update_projects_bot_api() {
+  echo
+  echo "TODO:"
+  echo " * update projects-bot-api"
+  echo " * update projects-bot-api extensions.jsonnet file"
+}
+
 fix_pass
 question "rename the JIPP" "rename_jipp"
+
+update_projects_bot_api
 
 echo
 echo "TODO:"

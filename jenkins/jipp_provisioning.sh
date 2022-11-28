@@ -153,10 +153,10 @@ fix_ldap() {
   
   # fix LDAP
   #TODO: fix expect: spawn id exp4 not open issues
-#  send \"./fix_ldap.sh $genieUser\r\"
-#  interact -o -nobuffer -re \"$ldapPasswordPrompt\" return
-#  send_user \"\n\"
-#  send \"[exec pass $pwLdap]\r\"
+  send \"./fix_ldap.sh $genieUser\r\"
+  interact -o -nobuffer -re \"$ldapPasswordPrompt\" return
+  send_user \"\n\"
+  send \"[exec pass $pwLdap]\r\"
 
   # exit su and exit ssh
   send \"exit\rexit\r\"
@@ -288,3 +288,36 @@ ssh-add ~/.ssh/id_rsa
 check_genie_user "${PROJECT_NAME}"
 fix_ldap "${PROJECT_NAME}"
 
+#FIXME: gerrit and projects_storage creds should not be created, if they already exist
+
+pushd "${CI_ADMIN_ROOT}/pass"
+./add_creds.sh gerrit "${PROJECT_NAME}" || : # if creds already exist, ignore exit code 1
+./add_creds.sh projects_storage "${PROJECT_NAME}" || : # if creds already exist, ignore exit code 1
+popd
+
+add_pub_key "${PROJECT_NAME}"
+
+"${JIRO_ROOT_FOLDER}/incubation/create_new_jiro_jipp.sh" "${PROJECT_NAME}" "${DISPLAY_NAME}"
+
+# ask if GitHub bot credentials should be created
+question "setup GitHub bot credentials" "setup_github"
+#TODO: run /ci-admin/github/setup_jenkins_github_integration.sh
+
+# ask if OSSRH/gpg credentials should be created
+question "setup OSSRH credentials" "setup_ossrh"
+
+#TODO: only if github or ossrh setup was executed
+# create Jenkins credentials
+"${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${PROJECT_NAME}"
+
+"${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "auto" "${PROJECT_NAME}"
+
+issue_template
+
+#TODO: commit changes to JIRO repo
+pushd "${JIRO_ROOT_FOLDER}"
+git add "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}"
+#git commit -m "Provisioning JIPP for project ${PROJECT_NAME}"
+popd
+
+rm -rf "${PROJECT_NAME}"

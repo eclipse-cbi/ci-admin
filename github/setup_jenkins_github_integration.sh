@@ -15,6 +15,8 @@ set -o pipefail
 
 IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
+CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
+
 LOCAL_CONFIG="${HOME}/.cbi/config"
 
 if [[ ! -f "${LOCAL_CONFIG}" ]]; then
@@ -25,19 +27,8 @@ if [[ ! -f "${LOCAL_CONFIG}" ]]; then
   exit 1
 fi
 
-JIRO_ROOT_FOLDER="$(jq -r '."jiro-root-dir"' < "${LOCAL_CONFIG}")"
-
-PROJECTS_BOTS_API_ROOT_FOLDER="$(jq -r '."projects-bots-api-root-dir"' < "${LOCAL_CONFIG}")"
-
-if [[ -z "${JIRO_ROOT_FOLDER}" ]] || [[ "${JIRO_ROOT_FOLDER}" == "null" ]]; then
-  printf "ERROR: 'jiro-root-dir' must be set in %s.\n" "${LOCAL_CONFIG}"
-  exit 1
-fi
-
-if [[ -z "${PROJECTS_BOTS_API_ROOT_FOLDER}" ]] || [[ "${PROJECTS_BOTS_API_ROOT_FOLDER}" == "null" ]]; then
-  printf "ERROR: 'projects-bots-api-root-dir' must be set in %s.\n" "${LOCAL_CONFIG}"
-  exit 1
-fi
+JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
+PROJECTS_BOTS_API_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "projects-bots-api-root-dir")"
 
 PROJECT_NAME="${1:-}"
 SHORT_NAME="${PROJECT_NAME##*.}"
@@ -59,8 +50,8 @@ fi
 
 create_github_credentials() {
   echo "# Creating GitHub bot user credentials..."
-  "${SCRIPT_FOLDER}/../pass/add_creds.sh" "github" "${PROJECT_NAME}" || true
-  "${SCRIPT_FOLDER}/../pass/add_creds.sh" "github_ssh" "${PROJECT_NAME}" || true
+  "${CI_ADMIN_ROOT}/pass/add_creds.sh" "github" "${PROJECT_NAME}" || true
+  "${CI_ADMIN_ROOT}/pass/add_creds.sh" "github_ssh" "${PROJECT_NAME}" || true
 }
 
 set_up_github_account() {

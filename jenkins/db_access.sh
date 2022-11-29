@@ -15,21 +15,16 @@ set -o pipefail
 
 IFS=$'\n\t'
 
-#TODO: use pass wrapper
+SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
-# read local config
-LOCAL_CONFIG="${HOME}/.cbi/config"
-if [[ ! -f "${LOCAL_CONFIG}" ]]; then
-  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
-  echo "Create one to configure db and file server credentials. Example:"
-  echo '{"db_server": {"server": "myserver", "user": "user", "mysql_user": "username", "mysql_pw": "<path in pass>"}}' | jq -M
-fi
+#shellcheck disable=SC1091
+source "${CI_ADMIN_ROOT}/pass/pass_wrapper.sh"
 
-DB_SERVER="$(jq -r '.["db_server"]["server"]' "${LOCAL_CONFIG}")"
-DB_SERVER_USER="$(jq -r '.["db_server"]["user"]' "${LOCAL_CONFIG}")"
-DB_SERVER_MYSQL_USER="$(jq -r '.["db_server"]["mysql_user"]' "${LOCAL_CONFIG}")"
-DB_SERVER_MYSQL_PW="$(jq -r '.["db_server"]["mysql_pw"]' "${LOCAL_CONFIG}")"
-
+DB_SERVER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "server" "db_server")"
+DB_SERVER_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "user" "db_server")"
+DB_SERVER_MYSQL_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "mysql_user" "db_server")"
+DB_SERVER_MYSQL_PW="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "mysql_pw" "db_server")"
 
 help() {
   printf "Available commands:\n"
@@ -53,7 +48,8 @@ _query_db() {
   local user="${DB_SERVER_USER}"
   local server="${DB_SERVER}"
   local mysqlUser="${DB_SERVER_MYSQL_USER}"
-  local mysqlPw="${DB_SERVER_MYSQL_PW}"
+  local mysqlPw
+  mysqlPw="$(passw it "${DB_SERVER_MYSQL_PW}")"
 
   local userPrompt="$user@$server:~> *"
   local mysqlPasswordPrompt="Enter \[Pp\]assword: *"
@@ -79,7 +75,7 @@ _query_db() {
   # use mysql
   send \"mysql -u $mysqlUser -p -h foundation eclipsefoundation\r\"
   interact -o -nobuffer -re \"$mysqlPasswordPrompt\" return
-  send \"[exec pass $mysqlPw]\r\"
+  send \"$mysqlPw\r\"
   expect -re \"$mysqlPrompt\"
   
   send \"$mysqlQuery\"

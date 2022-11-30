@@ -93,7 +93,7 @@ EOF
 }
 
 add_bot_to_projects-bot-api() {
-  # TODO: don't update if the bot has been added before
+#TODO: don't update if the bot has been added before
   printf "\n# Update projects-bots-api...\n"
   "${PROJECTS_BOTS_API_ROOT_FOLDER}/regen_db.sh"
   
@@ -111,6 +111,7 @@ add_bot_to_group() {
   "${SCRIPT_FOLDER}/gitlab_admin.sh" "add_user_to_group" "${group_name}" "${bot_name}" "${access_level}"
 }
 
+#TODO: create a group webhook instead
 create_a_webhook() {
   printf "\n# Creating Webhooks...\n"
   repo_name="${SHORT_NAME}" # this only works for the default repo
@@ -120,7 +121,8 @@ create_a_webhook() {
 instructions_template() {
   printf "\n# Post instructions to GitLab...\n"
   cat <<EOF
-Post the following on the corresponding GitLab issue:
+
+Post the following on the corresponding HelpDesk issue:
 -------------------------------------------------------
 
 A GitLab bot user for ${PROJECT_NAME} has been created along with credentials that have been added to the CI instance.
@@ -133,6 +135,7 @@ The recommended way of creating a GitLab triggered job and handle merge request 
 * select Owner: eclipse/${SHORT_NAME}
 * select Projects: e.g. eclipse/${SHORT_NAME}/${SHORT_NAME}
 * select branches to build, etc
+
 EOF
   read -rsp $'Once you are done, press any key to continue...\n' -n1
 }

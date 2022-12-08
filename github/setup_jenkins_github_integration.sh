@@ -17,16 +17,6 @@ IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
-LOCAL_CONFIG="${HOME}/.cbi/config"
-
-if [[ ! -f "${LOCAL_CONFIG}" ]]; then
-  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
-  echo "Create one to configure the location of the JIRO root dir and the projects-bots-api root dir. Example:"
-  echo '{"jiro-root-dir": "/path/to/jiro/rootdir"}'
-  echo '{"projects-bots-api-root-dir": "/path/to/projects-bots-api/rootdir"}'
-  exit 1
-fi
-
 JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
 PROJECTS_BOTS_API_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "projects-bots-api-root-dir")"
 

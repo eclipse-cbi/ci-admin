@@ -113,6 +113,29 @@ create_jenkins_credentials() {
   read -rsp $'\nOnce you are done, press any key to continue...' -n1
 }
 
+ossrh_comment_template() {
+    cat << EOF
+
+
+Issue comment template for HelpDesk issue once the OSSRH ticket is resolved (usually takes a few hours):
+--------------------------------------------------------------------------------------------------------
+
+https://issues.sonatype.org/browse/OSSRH-XXXX is resolved now.
+
+The default Maven settings contain a server definition named 'ossrh' to let you upload things to Sonatype's server.
+This server id should be used in a distributionManagement repository somewhere specifying the URL.
+See http://central.sonatype.org/pages/ossrh-guide.html#releasing-to-central and http://central.sonatype.org/pages/ossrh-guide.html#ossrh-usage-notes for details.
+The GPG passphrase is also configured (encrypted) in the settings (as described at
+https://maven.apache.org/plugins/maven-gpg-plugin/usage.html#Configure_passphrase_in_settings.xml). It's recommended to use the maven-gpg-plugin.
+See also https://wiki.eclipse.org/Jenkins#How_can_artifacts_be_deployed_to_OSSRH_.2F_Maven_Central.3F
+
+Let us know when you promoted your first release so we can comment on
+https://issues.sonatype.org/browse/OSSRH-XXXX. Or you can do this yourself.
+
+EOF
+
+}
+
 # Main
 create_ossrh_credentials
 
@@ -123,6 +146,9 @@ create_jenkins_credentials
 #TODO: deploy/update Maven settings file automatically
 echo
 echo "TODO: Re-deploy JIRO instance to update Maven settings file."
+read -rsp $'\nOnce you are done, press any key to continue...' -n1
+
+ossrh_comment_template
 read -rsp $'\nOnce you are done, press any key to continue...' -n1
 
 rm -rf "${PROJECT_NAME}"

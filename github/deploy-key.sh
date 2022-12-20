@@ -29,8 +29,8 @@ if ! command -v readlink > /dev/null; then
   exit 1
 fi
 
-SCRIPT_FOLDER="$(dirname $(readlink -f "${0}"))"
-SCRIPT_NAME="$(basename $(readlink -f "${0}"))"
+#SCRIPT_FOLDER="$(dirname $(readlink -f "${0}"))"
+SCRIPT_NAME="$(basename "$(readlink -f "${0}")")"
 ########################### End of the generic section ##########################
 
 #. "${SCRIPT_FOLDER}/../pass/sanity-check.sh"
@@ -72,16 +72,16 @@ response="$(mktemp)"
 # get existing user pub keys
 response_code="$(curl -K- https://api.github.com/user/keys -o "${response}" -s -w "%{http_code}" <<< ${credentials})"
 if [[ $response_code -ne 200 ]]; then
-  >&2 printf "ERROR: while getting list of ssh public key for project ${project_name} (username=$(pass "${pw_store_path}/username")).\n"
+  >&2 printf "ERROR: while getting list of ssh public key for project %s (username=%s).\n" "${project_name}" "$(pass "${pw_store_path}/username")"
   >&2 cat "${response}"
   rm "${response}"
   exit 1
 fi
 
 # check if one matches with ${pw_store_path}/id_rsa.pub
-if [[ $(jq -r "[ .[] | select(.key == (\"$(pass ${pw_store_path}/id_rsa.pub)\"|sub(\"[[:space:]]+$\"; \"\"))) ]|length" $response) -ne 0 ]]; then
+if [[ $(jq -r "[ .[] | select(.key == (\"$(pass "${pw_store_path}/id_rsa.pub")\"|sub(\"[[:space:]]+$\"; \"\"))) ]|length" "${response}") -ne 0 ]]; then
   >&2 echo "ERROR: ssh public key for project ${project_name} is already deployed to github"
-  >&2 jq ".[] | select(.key == (\"$(pass ${pw_store_path}/id_rsa.pub)\"|sub(\"[[:space:]]+$\"; \"\")))" $response
+  >&2 jq ".[] | select(.key == (\"$(pass "${pw_store_path}/id_rsa.pub")\"|sub(\"[[:space:]]+$\"; \"\")))" "${response}"
   rm "${response}"
   exit 2
 fi
@@ -96,7 +96,7 @@ EOM
 )
 response_code="$(curl -K- -X POST -H "Content-Type: application/json" -d "${request}" https://api.github.com/user/keys -o "${response}" -s -w "%{http_code}" <<< ${credentials})"
 if [[ $response_code -ne 201 ]]; then
-  >&2 printf "ERROR: while adding ssh public key for project ${project_name} (username=$(pass "${pw_store_path}/username")). Response code is not 201.\n"
+  >&2 printf "ERROR: while adding ssh public key for project %s (username=%s). Response code is not 201.\n" "${project_name}" "$(pass "${pw_store_path}/username")"
   >&2 cat "${response}"
   rm "${response}"
   exit 1

@@ -23,10 +23,11 @@ if ! command -v readlink > /dev/null; then
   exit 1
 fi
 
-SCRIPT_FOLDER="$(dirname $(readlink -f "${0}"))"
-SCRIPT_NAME="$(basename $(readlink -f "${0}"))"
+SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
+SCRIPT_NAME="$(basename "$(readlink -f "${0}")")"
 ########################### End of the generic section ##########################
 
+#shellcheck disable=SC1091
 . "${SCRIPT_FOLDER}/../pass/sanity-check.sh"
 
 usage() {
@@ -63,14 +64,14 @@ fi
 pw_store_path="bots/${project_name}/github.com"
 
 if pass "${pw_store_path}/username" &> /dev/null || pass "${pw_store_path}/password" &> /dev/null || pass "${pw_store_path}/email" &> /dev/null ; then
-  >&2 printf "ERROR: some credentials already exist in pass for '${pw_store_path}'.\n"
+  >&2 printf "ERROR: some credentials already exist in pass for '%s'.\n" "${pw_store_path}"
   >&2 pass "${pw_store_path}"
   exit 4
 fi 
 
-password=$(${SCRIPT_FOLDER}/../utils/read-secret.sh)
-echo ${username} | pass insert -m ${pw_store_path}/username > /dev/null
-echo ${email} | pass insert -m ${pw_store_path}/email > /dev/null
-pass insert -m ${pw_store_path}/password <<< "${password}" > /dev/null
+password="$("${SCRIPT_FOLDER}/../utils/read-secret.sh")"
+echo "${username}" | pass insert -m "${pw_store_path}/username" > /dev/null
+echo "${email}" | pass insert -m "${pw_store_path}/email" > /dev/null
+pass insert -m "${pw_store_path}/password" <<< "${password}" > /dev/null
 
 echo "Github credentials of project '${project_name}' has been sucessfuly generated and stored in pass"

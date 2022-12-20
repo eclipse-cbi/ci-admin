@@ -112,10 +112,10 @@ add_bot_to_group() {
 }
 
 #TODO: create a group webhook instead
-create_a_webhook() {
-  printf "\n# Creating Webhooks...\n"
-  repo_name="${SHORT_NAME}" # this only works for the default repo
-  "${SCRIPT_FOLDER}/create_gitlab_webhook.sh" "${PROJECT_NAME}" "${repo_name}"
+create_group_webhook() {
+  group_name="${SHORT_NAME}" # this only works for the default group
+  printf "\n# Creating group webhook for group '${group_name}'...\n"
+  "${SCRIPT_FOLDER}/create_gitlab_webhook.sh" "group" "${PROJECT_NAME}" "${group_name}"
 }
 
 instructions_template() {
@@ -159,7 +159,7 @@ printf "\n# Adding GitLab bot credentials to Jenkins instance...\n"
 
 add_gitlab_jcasc_config
 
-question "create a webhook" create_a_webhook
+question "create a group webhook" create_group_webhook
 
 instructions_template
 

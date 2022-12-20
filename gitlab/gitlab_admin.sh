@@ -37,6 +37,15 @@ _check_parameter() {
   fi
 }
 
+#TODO: deal with invalid input (use case command?)
+_select_no() {
+  local choices="${1:-}"
+  local PS3="Please enter your choice: "
+  select choice in ${choices}; do
+    echo "You selected '${choice}'."; break;
+  done
+}
+
 #TODO extract curl call
 
 _add_user_to_group_api() {
@@ -61,16 +70,42 @@ _create_user_api() {
   local email="${3:-}"
   local name="${4:-}" #display name
 
-  curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/users" --data "username=${username}" --data "password=${pw}" --data "email=${email}" --data "name=${name}" --data "skip_confirmation=true"
+  curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/users"\
+       --data "username=${username}"\
+       --data "password=${pw}"\
+       --data "email=${email}"\
+       --data "name=${name}"\
+       --data "skip_confirmation=true"
 }
 
-_create_webhook_api() {
+_create_repo_webhook_api() {
   local repo_id="${1:-}"
   local hook_url="${2:-}"
   local hook_secret="${3:-}"
 
   #default trigger events: push, tag push, comments (note events), merge requests
-  curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/projects/${repo_id}/hooks" --data "url=${hook_url}" --data "token=${hook_secret}" --data "push_events=true" --data "tag_push_events=true" --data "note_events=true" --data "merge_requests_events=true"
+  curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/projects/${repo_id}/hooks"\
+       --data "url=${hook_url}"\
+       --data "token=${hook_secret}"\
+       --data "push_events=true"\
+       --data "tag_push_events=true"\
+       --data "note_events=true"\
+       --data "merge_requests_events=true"
+}
+
+_create_group_webhook_api() {
+  local group_id="${1:-}"
+  local hook_url="${2:-}"
+  local hook_secret="${3:-}"
+
+  #default trigger events: push, tag push, comments (note events), merge requests
+  curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/groups/${group_id}/hooks"\
+       --data "url=${hook_url}"\
+       --data "token=${hook_secret}"\
+       --data "push_events=true"\
+       --data "tag_push_events=true"\
+       --data "note_events=true"\
+       --data "merge_requests_events=true"
 }
 
 _get_id_from_username() {
@@ -88,8 +123,9 @@ _get_group_id() {
   local groupname="${1:-}"
   #curl -s --header "${TOKEN_HEADER}" "${API_BASE_URL}/groups?search=${groupname}" | jq -r '.[].id'
   # filter for path
-  local jq_query=".[] | select(.path == \"${groupname}\") | .id" 
-  curl -s --header "${TOKEN_HEADER}" "${API_BASE_URL}/groups?search=${groupname}" | jq -r "${jq_query}"
+  #local jq_query=".[] | select(.path == \"${groupname}\") | .id" 
+  #curl -s --header "${TOKEN_HEADER}" "${API_BASE_URL}/groups?search=${groupname}" | jq -r "${jq_query}"
+  curl -s --header "${TOKEN_HEADER}" "${API_BASE_URL}/groups?search=${groupname}"
 }
 
 help() {
@@ -99,7 +135,8 @@ help() {
   printf "add_user_to_group\tAdd user to group.\n"
   printf "create_api_token\tCreate API token.\n"
   printf "create_bot_user\t\tCreate GitLab bot user.\n"
-  printf "create_webhook\t\tCreate webhook.\n"
+  printf "create_repo_webhook\tCreate repo webhook.\n"
+  printf "create_group_webhook\tCreate group webhook.\n"
   exit 0
 }
 
@@ -172,7 +209,7 @@ create_bot_user() {
   fi
 }
 
-create_webhook() {
+create_repo_webhook() {
   local repo_name="${1:-}"
   local hook_url="${2:-}"
   local hook_secret="${3:-}"
@@ -189,16 +226,11 @@ create_webhook() {
   local repo_id
   if [[ "${list_length}" -gt 1 ]] ; then
     # show repo names
-    echo "Found ${list_length} repos:"
-    local i=1
-    for n in $(echo "${list_of_ids}" | jq -r '.[].name'); do
-      echo "${i}: ${n}"
-      ((i=i+1))
-    done
-    # choose repo
-    local repo_no
-    repo_no="$(_choose_repo "$((i-1))")"
-    if [[ -z "${repo_no}" ]]; then
+    echo "Found ${list_length} repos for '${repo_name}':"
+    _select_no "$(echo "${list_of_ids}" | jq -r '.[].name')"
+    local repo_no="${REPLY}"
+    #TODO: should sanity be checked here or in _select_no() ?
+    if [[ -z "${repo_no}" ]] || [[ ! "${repo_no}" =~ ^[[:digit:]]+$ ]]; then
       echo "No repo ID found for ${repo_name}"
       exit 1
     fi
@@ -211,7 +243,7 @@ create_webhook() {
     repo_id="$(echo "${list_of_ids}" | jq -r '.[0].id')"
   fi
 
-  if [[ -z "${repo_id}" ]]; then
+  if [[ -z "${repo_id}" ]] || [[ "${repo_id}" == "null" ]]; then
     echo "No repo ID found for ${repo_name}"
     exit 1
   fi
@@ -226,6 +258,55 @@ create_webhook() {
   fi
 }
 
+create_group_webhook() {
+  local group_name="${1:-}"
+  local hook_url="${2:-}"
+  local hook_secret="${3:-}"
+  _check_parameter "group name" "${group_name}"
+  _check_parameter "webhook URL" "${hook_url}"
+  _check_parameter "webhook secret" "${hook_secret}"
+  local list_of_ids
+
+  list_of_ids="$(_get_group_id "${group_name}")"
+
+  #echo "${list_of_ids}" | jq '.'
+  local list_length
+  list_length="$(echo "${list_of_ids}" | jq '. | length')"
+
+  local group_id
+  if [[ "${list_length}" -gt 1 ]] ; then
+    # show group names
+    echo "Found ${list_length} groups for '${group_name}':"
+    _select_no "$(echo "${list_of_ids}" | jq -r '.[].name')"
+    local group_no="${REPLY}"
+    #TODO: should sanity be checked here or in _select_no() ?
+    if [[ -z "${group_no}" ]] || [[ ! "${group_no}" =~ ^[[:digit:]]+$ ]]; then
+      echo "No group ID found for ${group_name}"
+      exit 1
+    fi
+    group_id="$(echo "${list_of_ids}" | jq -r ".[$((group_no-1))].id")"
+  elif [[ "${list_length}" -eq 0 ]]; then
+    echo "Empty array!"
+    group_id=""
+  else
+    # return the single id
+    group_id="$(echo "${list_of_ids}" | jq -r '.[0].id')"
+  fi
+
+  if [[ -z "${group_id}" ]] || [[ "${group_id}" == "null" ]]; then
+    echo "No group ID found for ${group_name}"
+    exit 1
+  fi
+
+  # if webhook already exists, skip
+#TODO: this assumes that only one webhook per group is set
+  echo "group_id: ${group_id}"
+  if  curl -sSL --header "${TOKEN_HEADER}" "${API_BASE_URL}/groups/${group_id}/hooks" | jq -e '.|length > 0' > /dev/null; then
+    echo "Webhook for group '${group_name}' already exists. Skipping creation..."
+  else
+    _create_group_webhook_api "${group_id}" "${hook_url}" "${hook_secret}" | jq .
+  fi
+}
 
 "$@"
 

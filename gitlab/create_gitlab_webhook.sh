@@ -21,24 +21,30 @@ source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 
 GITLAB_PASS_DOMAIN="gitlab.eclipse.org"
 
-PROJECT_NAME="${1:-}"
-REPO_NAME="${2:-}"
-SHORT_NAME=${PROJECT_NAME##*.}
+help() {
+  printf "Available commands:\n"
+  printf "Command\t\tDescription\n\n"
+  printf "repo\t\tCreate repo webhook.\n"
+  printf "group\t\tCreate group webhook.\n"
+  exit 0
+}
 
-# verify input
-if [ -z "${PROJECT_NAME}" ]; then
-  printf "ERROR: a project name (e.g. 'technology.cbi' for CBI project) must be given.\n"
-  exit 1
-fi
-if [ -z "${REPO_NAME}" ]; then
-  printf "ERROR: a repo name (e.g. 'cbi') must be given.\n"
-  exit 1
-fi
-
-create_gitlab_webhook() {
+_create_gitlab_webhook() {
   local project_name="${1:-}"
-  local repo_name="${2:-}"
-  local webhook_url="${3:-}"
+  local repo_group_name="${2:-}"
+  local repo_group="${3:-}"
+  local short_name="${project_name##*.}"
+  local webhook_url="https://ci.eclipse.org/${short_name}/gitlab-webhook/post"
+
+  # verify input
+  if [ -z "${project_name}" ]; then
+    printf "ERROR: a project name (e.g. 'technology.cbi' for CBI project) must be given.\n"
+    exit 1
+  fi
+  if [ -z "${repo_group_name}" ]; then
+    printf "ERROR: a %s name must be given.\n" "${repo_group}"
+    exit 1
+  fi
 
   local pw_store_path="bots/${project_name}/${GITLAB_PASS_DOMAIN}"
 
@@ -46,14 +52,29 @@ create_gitlab_webhook() {
     echo "Creating webhook secret credentials in password store..."
     pwgen -1 -s -r '&\!|%' -y 24 | passw cbi insert --echo "${pw_store_path}/webhook-secret"
   else
-    echo "Found ${GITLAB_PASS_DOMAIN} webhook-secret credentials in password store. Skipping creation..."
+    echo "Found ${GITLAB_PASS_DOMAIN} webhook-secret credentials for '${project_name}' in password store. Skipping creation..."
   fi
   webhook_secret="$(passw cbi "${pw_store_path}/webhook-secret")"
 
- "${SCRIPT_FOLDER}/gitlab_admin.sh" "create_webhook" "${repo_name}" "${webhook_url}" "${webhook_secret}"
+ "${SCRIPT_FOLDER}/gitlab_admin.sh" "create_${repo_group}_webhook" "${repo_group_name}" "${webhook_url}" "${webhook_secret}"
 }
 
-webhook_url="https://ci.eclipse.org/${SHORT_NAME}/gitlab-webhook/post"
+repo() {
+  local project_name="${1:-}"
+  local repo_name="${2:-}"
+  _create_gitlab_webhook "${project_name}" "${repo_name}" "repo"
+}
 
-create_gitlab_webhook "${PROJECT_NAME}" "${REPO_NAME}" "${webhook_url}"
+group() {
+  local project_name="${1:-}"
+  local group_name="${2:-}"
+  _create_gitlab_webhook "${project_name}" "${group_name}" "group"
+}
+
+"$@"
+
+# show help menu, if no first parameter is given
+if [[ -z "${1:-}" ]]; then
+  help
+fi
 

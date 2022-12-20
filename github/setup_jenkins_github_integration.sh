@@ -79,10 +79,10 @@ update_projects_bot_api() {
   printf "\n# Update projects-bots-api...\n"
 
   echo "Connected to cluster?"
-  read -p "Press enter to continue or CTRL-C to stop the script"
+  read -rp "Press enter to continue or CTRL-C to stop the script"
 
   echo "Pulled latest version of projects-bots-api?"
-  read -p "Press enter to continue or CTRL-C to stop the script"
+  read -rp "Press enter to continue or CTRL-C to stop the script"
 
   "${PROJECTS_BOTS_API_ROOT_FOLDER}/regen_db.sh"
 
@@ -93,6 +93,11 @@ update_projects_bot_api() {
 
   printf "\n# TODO: Double check that bot account has been added to API (https://api.eclipse.org/bots)...\n"
   read -rsp $'Once you are done, press any key to continue...\n' -n1
+}
+
+create_org_webhook() {
+  echo "# Creating organization webhook..."
+  "${SCRIPT_FOLDER}/create_webhook.sh" "${PROJECT_NAME}" "eclipse-${SHORT_NAME}"
 }
 
 instructions_template() {
@@ -117,6 +122,18 @@ By default all branches and PRs will be scanned and dedicated build jobs will be
 EOF
 }
 
+question() {
+  local message="${1:-}"
+  local action="${2:-}"
+  read -rp "Do you want to ${message}? (Y)es, (N)o, E(x)it: " yn
+  case $yn in
+    [Yy]* ) ${action};;
+    [Nn]* ) return ;;
+    [Xx]* ) exit 0;;
+        * ) echo "Please answer (Y)es, (N)o, E(x)it"; question "${message}" "${action}";
+  esac
+}
+
 #### MAIN
 
 create_github_credentials
@@ -126,6 +143,8 @@ set_up_github_account
 update_projects_bot_api
 
 add_jenkins_credentials
+
+question "create an org webhook" create_org_webhook
 
 printf "\n# TODO: Set up GitHub config in Jenkins...\n"
 printf "\n# TODO: Commit changes to pass...\n"

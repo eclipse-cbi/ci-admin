@@ -85,6 +85,7 @@ gpg_passphrase="$(passw cbi "${PASS_BASE_PATH}/passphrase")"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "default" "${PROJECT_NAME}" "${gpg_passphrase_secret_id}" "GPG Passphrase" "${gpg_passphrase}"
 
 # Sign with webmaster's key
+printf "\n\n# Sign GPG public key with Webmaster key...\n"
 "${SCRIPT_FOLDER}/gpg_key_admin.sh" "sign" "${PROJECT_NAME}"
 
 # Get public key ID

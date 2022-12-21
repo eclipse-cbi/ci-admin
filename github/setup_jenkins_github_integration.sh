@@ -101,11 +101,11 @@ create_org_webhook() {
 }
 
 instructions_template() {
-  printf "\n# Post instructions to GitLab...\n"
   cat <<EOF
+
 Post the following on the corresponding HelpDesk issue:
 -------------------------------------------------------
-GitHub bot (ID: eclipse-${SHORT_NAME}-bot) has been created. Credentials have been added to the ${SHORT_NAME} JIPP.
+A GitHub bot (ID: eclipse-${SHORT_NAME}-bot) has been created. Credentials have been added to the ${SHORT_NAME} JIPP.
 
 To set up a job that builds pull requests, you can use a Freestyle job and the GitHub Pull Request Builder (GHPRB) Plugin.
 

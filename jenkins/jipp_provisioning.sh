@@ -10,14 +10,11 @@
 
 # Provision a new Jenkins instance on JIRO
 
-#  - add JIPP to projectServices DB on foundation
 #  - check genie user on projects-storages
 #    - check if genie home dir exists
 #    - check if download dir exists
 #    - check if genie user is part of the project LDAP/Unix group
 #  - fix LDAP on projects-storage
-#  - wait for puppet/nginx
-#    - TODO: automate
 #  - create Gerrit credentials and add them to pass (TODO: remove)
 #  - create projects-storage credentials and add them to pass
 #  - add pub key to genie to .ssh/authorized_keys in home dir on projects-storage
@@ -287,16 +284,9 @@ read -p "Press enter to continue or CTRL-C to stop the script"
 eval "$(ssh-agent -s)"
 ssh-add ~/.ssh/id_rsa
 
-"${SCRIPT_FOLDER}/db_access.sh" add_jipp "${PROJECT_NAME}"
-
 #TODO: assume that check_genie_user and fix_ldap are no longer required
 check_genie_user "${PROJECT_NAME}"
 fix_ldap "${PROJECT_NAME}"
-
-#TODO: automate wait
-echo "Wait for puppet/nginx to create proxypass"
-echo "- wait for 404 to become 503 or force update manually"
-read -p "Press enter to continue or CTRL-C to stop the script"
 
 #FIXME: gerrit and projects_storage creds should not be created, if they already exist
 

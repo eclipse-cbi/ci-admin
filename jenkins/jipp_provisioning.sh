@@ -82,7 +82,8 @@ check_genie_user() {
 
   echo
   echo "Checks for ${genie_user}:"
-  
+
+  #shellcheck disable=SC2087
   ssh "${user}"@"${server}" /bin/bash << EOF
   if [[ -d "/opt/public/hipp/homes/${genie_user}" ]]; then
     printf "Genie homedir:\t\texists\n"
@@ -227,20 +228,23 @@ add_pub_key() {
 
 setup_github() {
   printf "\n\n### Setting up GitHub bot credentials...\n"
-  pushd "${CI_ADMIN_ROOT}/github"
+  pushd "${CI_ADMIN_ROOT}/github" > /dev/null
   ./setup_jenkins_github_integration.sh "${PROJECT_NAME}"
-  popd
+  popd > /dev/null
   printf "\n"
 }
 
 setup_ossrh() {
-  "${CI_ADMIN_ROOT}/ossrh/setup_ossrh.sh" "${PROJECT_NAME}" "${DISPLAY_NAME}"
+  pushd "${CI_ADMIN_ROOT}/ossrh" > /dev/null
+  ./setup_ossrh.sh "${PROJECT_NAME}" "${DISPLAY_NAME}"
+  popd > /dev/null
+  printf "\n"
 }
 
 question() {
   local message="${1:-}"
   local action="${2:-}"
-  read -p "Do you want to ${message}? (Y)es, (N)o, E(x)it: " yn
+  read -rp "Do you want to ${message}? (Y)es, (N)o, E(x)it: " yn
   case $yn in
     [Yy]* ) ${action};;
     [Nn]* ) return ;;
@@ -254,7 +258,7 @@ issue_template() {
   cat <<EOF
 
 Post the following on the corresponding HelpDesk issue:
------------------------------------------------------
+-------------------------------------------------------
 
 The ${DISPLAY_NAME} JIPP on Jiro is available here now:
 
@@ -278,7 +282,7 @@ read -rsp $'Once you are done, press any key to continue...\n' -n1
 ## MAIN ##
 
 echo "Connected to cluster?"
-read -p "Press enter to continue or CTRL-C to stop the script"
+read -rp "Press enter to continue or CTRL-C to stop the script"
 
 #TODO: can this be done differently?
 eval "$(ssh-agent -s)"
@@ -290,10 +294,10 @@ fix_ldap "${PROJECT_NAME}"
 
 #FIXME: gerrit and projects_storage creds should not be created, if they already exist
 
-pushd "${CI_ADMIN_ROOT}/pass"
+pushd "${CI_ADMIN_ROOT}/pass" > /dev/null
 ./add_creds.sh gerrit "${PROJECT_NAME}" || : # if creds already exist, ignore exit code 1
 ./add_creds.sh projects_storage "${PROJECT_NAME}" || : # if creds already exist, ignore exit code 1
-popd
+popd > /dev/null
 
 add_pub_key "${PROJECT_NAME}"
 
@@ -301,7 +305,6 @@ add_pub_key "${PROJECT_NAME}"
 
 # ask if GitHub bot credentials should be created
 question "setup GitHub bot credentials" "setup_github"
-#TODO: run /ci-admin/github/setup_jenkins_github_integration.sh
 
 # ask if OSSRH/gpg credentials should be created
 question "setup OSSRH credentials" "setup_ossrh"
@@ -309,15 +312,14 @@ question "setup OSSRH credentials" "setup_ossrh"
 #TODO: only if github or ossrh setup was executed
 # create Jenkins credentials
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${PROJECT_NAME}"
-
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "auto" "${PROJECT_NAME}"
 
 issue_template
 
 #TODO: commit changes to JIRO repo
-pushd "${JIRO_ROOT_FOLDER}"
+pushd "${JIRO_ROOT_FOLDER}" > /dev/null
 git add "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}"
 #git commit -m "Provisioning JIPP for project ${PROJECT_NAME}"
-popd
+popd > /dev/null
 
 rm -rf "${PROJECT_NAME}"

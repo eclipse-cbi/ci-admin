@@ -113,6 +113,14 @@ create_jenkins_credentials() {
   read -rsp $'\nOnce you are done, press any key to continue...' -n1
 }
 
+regen_maven_settings() {
+  echo
+  echo "Regenerating Maven settings file for Jenkins instance..."
+  pushd "${JIRO_ROOT_FOLDER}/incubation" > /dev/null
+  ./regen_maven_settings.sh "../instances/${PROJECT_NAME}"
+  popd > /dev/null
+}
+
 ossrh_comment_template() {
     cat << EOF
 
@@ -143,10 +151,7 @@ create_gpg_credentials
 
 create_jenkins_credentials
 
-#TODO: deploy/update Maven settings file automatically
-echo
-echo "TODO: Re-deploy JIRO instance to update Maven settings file."
-read -rsp $'\nOnce you are done, press any key to continue...' -n1
+regen_maven_settings
 
 ossrh_comment_template
 read -rsp $'\nOnce you are done, press any key to continue...' -n1

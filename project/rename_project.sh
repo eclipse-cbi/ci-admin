@@ -19,10 +19,12 @@ set -o pipefail
 
 IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
+CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
-JIRO_ROOT_FOLDER="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "jiro-root-dir")"
+JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
+PROJECTS_BOTS_API_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "projects-bots-api-root-dir")"
 #shellcheck disable=SC1091
-source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
+source "${CI_ADMIN_ROOT}/pass/pass_wrapper.sh"
 
 PROJECT_NAME="${1:-}"
 NEW_PROJECT_NAME="${2:-}"
@@ -46,7 +48,7 @@ echo
 # adapt pass credentials
 fix_pass() {
   local password_store_dir
-  password_store_dir="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "cbi-dir" "password-store")"
+  password_store_dir="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "cbi-dir" "password-store")"
   local new_pass_project="bots/${NEW_PROJECT_NAME}"
 
   # move pass credentials
@@ -114,10 +116,26 @@ rename_jipp() {
 }
 
 update_projects_bot_api() {
-  echo
-  echo "TODO:"
-  echo " * update projects-bot-api"
-  echo " * update projects-bot-api extensions.jsonnet file"
+  printf "\n# Update projects-bots-api...\n"
+
+  echo "Connected to cluster?"
+  read -rp "Press enter to continue or CTRL-C to stop the script"
+
+  echo "Pulled latest version of projects-bots-api?"
+  read -rp "Press enter to continue or CTRL-C to stop the script"
+
+  echo "Update project name in extensions.jsonnet file (if it exists)..."
+  sed -i "s/${PROJECT_NAME}/${NEW_PROJECT_NAME}/" "${PROJECTS_BOTS_API_ROOT_FOLDER}/src/main/jsonnet/extensions.jsonnet"
+
+  "${PROJECTS_BOTS_API_ROOT_FOLDER}/regen_db.sh"
+
+  printf "\n\n"
+#TODO: Show error if files are equal
+  read -rsp $'Once you are done with comparing the diff, press any key to continue...\n' -n1
+  "${PROJECTS_BOTS_API_ROOT_FOLDER}/deploy_db.sh"
+
+  printf "\n# TODO: Double check that bot account has been added to API (https://api.eclipse.org/bots)...\n"
+  read -rsp $'Once you are done, press any key to continue...\n' -n1
 }
 
 fix_pass

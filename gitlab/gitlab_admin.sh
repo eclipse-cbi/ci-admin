@@ -128,6 +128,43 @@ _get_group_id() {
   curl -s --header "${TOKEN_HEADER}" "${API_BASE_URL}/groups?search=${groupname}"
 }
 
+_get_single_group_id() {
+  local group_name="${1:-}"
+  local list_of_ids
+  list_of_ids="$(_get_group_id "${group_name}")"
+
+  #echo "${list_of_ids}" | jq '.'
+  local list_length
+  list_length="$(echo "${list_of_ids}" | jq '. | length')"
+
+  local group_id
+  if [[ "${list_length}" -gt 1 ]] ; then
+    # show group names
+    echo "Found ${list_length} groups for '${group_name}':"
+    _select_no "$(echo "${list_of_ids}" | jq -r '.[].name')"
+    local group_no="${REPLY}"
+    #TODO: should sanity be checked here or in _select_no() ?
+    if [[ -z "${group_no}" ]] || [[ ! "${group_no}" =~ ^[[:digit:]]+$ ]]; then
+      echo "No group ID found for ${group_name}"
+      exit 1
+    fi
+    group_id="$(echo "${list_of_ids}" | jq -r ".[$((group_no-1))].id")"
+  elif [[ "${list_length}" -eq 0 ]]; then
+    echo "Empty array!"
+    group_id=""
+  else
+    # return the single id
+    group_id="$(echo "${list_of_ids}" | jq -r '.[0].id')"
+  fi
+
+  if [[ -z "${group_id}" ]] || [[ "${group_id}" == "null" ]]; then
+    echo "No group ID found for ${group_name}"
+    exit 1
+  fi
+
+  echo "${group_id}"
+}
+
 help() {
   printf "Available commands:\n"
   printf "Command\t\t\tDescription\n\n"
@@ -171,8 +208,8 @@ add_user_to_group() {
   local user_id
   user_id="$(_get_id_from_username "${username}")"
   local group_id
-  group_id="$(_get_group_id "${groupname}")"
-
+  group_id="$(_get_single_group_id "${groupname}")"
+  echo "Group ID: ${group_id}"
 
   _add_user_to_group_api "${group_id}" "${user_id}" "${access_level}" | jq .
 }
@@ -265,42 +302,13 @@ create_group_webhook() {
   _check_parameter "group name" "${group_name}"
   _check_parameter "webhook URL" "${hook_url}"
   _check_parameter "webhook secret" "${hook_secret}"
-  local list_of_ids
-
-  list_of_ids="$(_get_group_id "${group_name}")"
-
-  #echo "${list_of_ids}" | jq '.'
-  local list_length
-  list_length="$(echo "${list_of_ids}" | jq '. | length')"
 
   local group_id
-  if [[ "${list_length}" -gt 1 ]] ; then
-    # show group names
-    echo "Found ${list_length} groups for '${group_name}':"
-    _select_no "$(echo "${list_of_ids}" | jq -r '.[].name')"
-    local group_no="${REPLY}"
-    #TODO: should sanity be checked here or in _select_no() ?
-    if [[ -z "${group_no}" ]] || [[ ! "${group_no}" =~ ^[[:digit:]]+$ ]]; then
-      echo "No group ID found for ${group_name}"
-      exit 1
-    fi
-    group_id="$(echo "${list_of_ids}" | jq -r ".[$((group_no-1))].id")"
-  elif [[ "${list_length}" -eq 0 ]]; then
-    echo "Empty array!"
-    group_id=""
-  else
-    # return the single id
-    group_id="$(echo "${list_of_ids}" | jq -r '.[0].id')"
-  fi
-
-  if [[ -z "${group_id}" ]] || [[ "${group_id}" == "null" ]]; then
-    echo "No group ID found for ${group_name}"
-    exit 1
-  fi
+  group_id="$(_get_single_group_id "${groupname}")"
 
   # if webhook already exists, skip
 #TODO: this assumes that only one webhook per group is set
-  echo "group_id: ${group_id}"
+  echo "Group ID: ${group_id}"
   if  curl -sSL --header "${TOKEN_HEADER}" "${API_BASE_URL}/groups/${group_id}/hooks" | jq -e '.|length > 0' > /dev/null; then
     echo "Webhook for group '${group_name}' already exists. Skipping creation..."
   else

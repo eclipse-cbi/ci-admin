@@ -54,7 +54,9 @@ add_secret_to_github_repo() {
   cat <<EOF
 
 TODO:
-* Add API token the requested GitHub repositories/organization as repository/organization secret (ID: GITLAB_API_TOKEN)
+* add API token to the requested GitHub repositories/organization as repository/organization secret (ID: GITLAB_API_TOKEN) or
+* add API token to CI instance
+
 
 EOF
   read -rsp $'Once you are done, press any key to continue...\n' -n1

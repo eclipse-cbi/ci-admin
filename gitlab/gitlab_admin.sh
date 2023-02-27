@@ -304,7 +304,7 @@ create_group_webhook() {
   _check_parameter "webhook secret" "${hook_secret}"
 
   local group_id
-  group_id="$(_get_single_group_id "${groupname}")"
+  group_id="$(_get_single_group_id "${group_name}")"
 
   # if webhook already exists, skip
 #TODO: this assumes that only one webhook per group is set

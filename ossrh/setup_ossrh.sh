@@ -20,6 +20,8 @@ CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
 #shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
+#shellcheck disable=SC1091
+source "${SCRIPT_FOLDER}/../utils/common.sh"
 
 JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
 
@@ -149,9 +151,9 @@ create_ossrh_credentials
 
 create_gpg_credentials
 
-create_jenkins_credentials
+_question_action "create Jenkins credentials" create_jenkins_credentials
 
-regen_maven_settings
+_question_action "regenerate Maven settings for Jenkins" regen_maven_settings
 
 ossrh_comment_template
 read -rsp $'\nOnce you are done, press any key to continue...' -n1

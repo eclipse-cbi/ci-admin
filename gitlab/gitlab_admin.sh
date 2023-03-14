@@ -42,7 +42,7 @@ _select_no() {
   local choices="${1:-}"
   local PS3="Please enter your choice: "
   select choice in ${choices}; do
-    echo "You selected '${choice}'."; break;
+    echo "You selected '${choice}'." >&2; break;
   done
 }
 
@@ -140,17 +140,17 @@ _get_single_group_id() {
   local group_id
   if [[ "${list_length}" -gt 1 ]] ; then
     # show group names
-    echo "Found ${list_length} groups for '${group_name}':"
+    echo "Found ${list_length} groups for '${group_name}':" >&2
     _select_no "$(echo "${list_of_ids}" | jq -r '.[].name')"
     local group_no="${REPLY}"
     #TODO: should sanity be checked here or in _select_no() ?
     if [[ -z "${group_no}" ]] || [[ ! "${group_no}" =~ ^[[:digit:]]+$ ]]; then
-      echo "No group ID found for ${group_name}"
+      echo "No group ID found for ${group_name}" >&2
       exit 1
     fi
     group_id="$(echo "${list_of_ids}" | jq -r ".[$((group_no-1))].id")"
   elif [[ "${list_length}" -eq 0 ]]; then
-    echo "Empty array!"
+    echo "Empty array!" >&2
     group_id=""
   else
     # return the single id
@@ -158,7 +158,7 @@ _get_single_group_id() {
   fi
 
   if [[ -z "${group_id}" ]] || [[ "${group_id}" == "null" ]]; then
-    echo "No group ID found for ${group_name}"
+    echo "No group ID found for ${group_name}" >&2
     exit 1
   fi
 

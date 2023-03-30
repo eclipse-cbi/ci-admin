@@ -62,7 +62,7 @@ question() {
 add_gitlab_jcasc_config() {
   printf "\n# Adding GitLab JCasC config to %s Jenkins instance...\n" "${PROJECT_NAME}"
   mkdir -p "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}/jenkins"
-#TODO: deal with existing configuration.yml file 
+#TODO: deal with existing configuration.yml file
   cat <<EOF > "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}/jenkins/configuration.yml"
 unclassified:
   gitLabConnectionConfig:
@@ -79,13 +79,14 @@ unclassified:
     - credentialsId: "gitlab-personal-access-token"
       name: "gitlab.eclipse.org"
       serverUrl: "https://gitlab.eclipse.org"
+      webhookSecretCredentialsId: "gitlab-webhook-secret"
 EOF
 
   printf "\n# Reloading configuration of the Jenkins instance...\n"
-  
+
   echo "Connected to cluster?"
   read -rsp "Press enter to continue or CTRL-C to stop the script"
-  
+
   pushd "${JIRO_ROOT_FOLDER}/incubation"
   # TODO: deal with working directory
   ./update_jcasc_config.sh "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}"
@@ -96,7 +97,7 @@ add_bot_to_projects-bot-api() {
 #TODO: don't update if the bot has been added before
   printf "\n# Update projects-bots-api...\n"
   "${PROJECTS_BOTS_API_ROOT_FOLDER}/regen_db.sh"
-  
+
   printf "\n\n"
   read -rsp $'Once you are done with comparing the diff, press any key to continue...\n' -n1
   "${PROJECTS_BOTS_API_ROOT_FOLDER}/deploy_db.sh"
@@ -155,6 +156,7 @@ add_bot_to_group
 printf "\n# Adding GitLab bot credentials to Jenkins instance...\n"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "gitlab" "${PROJECT_NAME}"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "gitlab_pat" "${PROJECT_NAME}"
+"${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "gitlab_webhook_secret" "${PROJECT_NAME}"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${PROJECT_NAME}"
 
 add_gitlab_jcasc_config

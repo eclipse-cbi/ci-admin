@@ -117,7 +117,7 @@ The recommended way is to use a Multibranch Pipeline job instead (a Jenkinsfile 
 5. Configure behaviors 
 6. Save
 
-By default all branches and PRs will be scanned and dedicated build jobs will be created automatically (if a Jenkinsfile is found).
+By default, all branches and PRs will be scanned and dedicated build jobs will be created automatically (if a Jenkinsfile is found).
 
 EOF
 }

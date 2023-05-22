@@ -110,8 +110,6 @@ create_jenkins_credentials() {
   echo "The following credentials have been added to the ${DISPLAY_NAME} CI instance:"
   echo "  * OSSRH"
   echo "  * GPG"
-  echo
-  echo "The process for allowing deployments to OSSRH has been started. We are currently waiting for https://issues.sonatype.org/browse/OSSRH-XXXX to be resolved."
   read -rsp $'\nOnce you are done, press any key to continue...' -n1
 }
 
@@ -125,6 +123,12 @@ regen_maven_settings() {
 
 ossrh_comment_template() {
     cat << EOF
+
+Issue comment template for HelpDesk issue after the OSSRH ticket has been created but is not resolved yet:
+----------------------------------------------------------------------------------------------------------
+
+The process for allowing deployments to OSSRH has been started. We are currently waiting for https://issues.sonatype.org/browse/OSSRH-XXXX to be resolved.
+
 
 
 Issue comment template for HelpDesk issue once the OSSRH ticket is resolved (usually takes a few hours):

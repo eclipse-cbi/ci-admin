@@ -142,11 +142,11 @@ set_up_github_account
 
 update_projects_bot_api
 
-add_jenkins_credentials
+question "add Jenkins credentials" add_jenkins_credentials
 
 question "create an org webhook" create_org_webhook
 
-printf "\n# TODO: Set up GitHub config in Jenkins...\n"
+printf "\n# TODO: Set up GitHub config in Jenkins (if applicable)...\n"
 printf "\n# TODO: Commit changes to pass...\n"
 
 read -rsp $'Once you are done, press any key to continue...\n' -n1

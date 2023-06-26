@@ -83,7 +83,7 @@ _generate_ssh_keys() {
   local temp_path="/tmp/${short_name}_id_rsa"
 
   # shellcheck disable=SC1003
-  pwgen -1 -s -r '\\"' -y 64 | passw cbi insert -m "${pw_store_path}/id_rsa.passphrase"
+  pwgen -1 -s -r '\\"-' -y 64 | passw cbi insert -m "${pw_store_path}/id_rsa.passphrase"
   passw cbi "${pw_store_path}/id_rsa.passphrase" | "${SCRIPT_FOLDER}"/../ssh-keygen-ni.sh -C "${email}" -f "${temp_path}"
 
   # Insert private and public key into pw store

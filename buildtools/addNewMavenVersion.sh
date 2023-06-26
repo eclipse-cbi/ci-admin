@@ -15,8 +15,8 @@ set -o pipefail
 IFS=$'\n\t'
 
 maven_version="${1:-}"
-file_name="apache-maven-${maven_version}-bin.tar.gz"
-download_url="https://downloads.apache.org/maven/maven-3/${maven_version}/binaries/${file_name}"
+FILE_NAME="apache-maven-${maven_version}-bin.tar.gz"
+DOWNLOAD_URL="https://archive.apache.org/dist/maven/maven-3/${maven_version}/binaries/${FILE_NAME}"
 
 MAVEN_TOOLS_PATH="/home/data/cbi/buildtools/apache-maven"
 
@@ -35,10 +35,20 @@ if [[ ! -f "${LOCAL_CONFIG}" ]]; then
   exit 1
 fi
 
+JIRO_ROOT_FOLDER="$(jq -r '."jiro-root-dir"' < "${LOCAL_CONFIG}")"
+
 BACKEND_SERVER="$(jq -r '.["backend_server"]["server"]' "${LOCAL_CONFIG}")"
 BACKEND_SERVER_USER="$(jq -r '.["backend_server"]["user"]' "${LOCAL_CONFIG}")"
 BACKEND_SERVER_PW="$(jq -r '.["backend_server"]["pw"]' "${LOCAL_CONFIG}")"
 BACKEND_SERVER_PW_ROOT="$(jq -r '.["backend_server"]["pw_root"]' "${LOCAL_CONFIG}")"
+
+download_maven() {
+  wget -c "${DOWNLOAD_URL}"
+  if [[ ! -f "${FILE_NAME}" ]]; then
+    echo "${FILE_NAME} does not exist! Error during download?"
+    exit 1
+  fi
+}
 
 update_latest_question() {
   local version="${1:-}"
@@ -53,7 +63,7 @@ update_latest_question() {
 
 update() {
   local maven_version="${1:-}"
-  local file_name="apache-maven-${maven_version}-bin.tar.gz"
+  local FILE_NAME="apache-maven-${maven_version}-bin.tar.gz"
 
   local user="${BACKEND_SERVER_USER}"
   local server="${BACKEND_SERVER}"
@@ -72,8 +82,8 @@ update() {
   fi
 
   expect -c "
-  #5 seconds timeout
-  set timeout 5
+  #10 seconds timeout
+  set timeout 10
 
   # ssh to remote
   spawn ssh $user@$server
@@ -96,10 +106,10 @@ update() {
   expect -re \"$serverRootPrompt\"
 
   # extract file
-  send \"tar xzf /tmp/${file_name} -C ${MAVEN_TOOLS_PATH}\r\"
+  send \"tar xzf /tmp/${FILE_NAME} -C ${MAVEN_TOOLS_PATH}\r\"
   send \"mv ${MAVEN_TOOLS_PATH}/apache-maven-${maven_version} ${MAVEN_TOOLS_PATH}/${maven_version}\r\"
   # TODO: only remove when target dir exists as expected
-  send \"rm /tmp/${file_name}\r\"
+  send \"rm /tmp/${FILE_NAME}\r\"
   send \"ls -al ${MAVEN_TOOLS_PATH}\r\"
   if { \"$update_latest\" == \"true\" } {
     send \"cd ${MAVEN_TOOLS_PATH}\r\"
@@ -113,22 +123,35 @@ update() {
 "
 }
 
+update_jiro_template() {
+  local maven_version="${1:-}"
+  echo "Updating JIRO tools-maven.hbs template..."
+  # update /jiro/templates/jenkins/partials/tools-maven.hbs
+  maven_template="${JIRO_ROOT_FOLDER}/templates/jenkins/partials/tools-maven.hbs"
+  yq e ".maven.installations += [{\"name\": \"apache-maven-${maven_version}\", \"home\": \"/opt/tools/apache-maven/${maven_version}\"}]" -i "${maven_template}" 
+  # fix order of entries and quotes
+  yq '.maven.installations |= sort_by(.name) | .maven.installations |= reverse | .. style="double"' -i "${maven_template}"
+  pushd "${JIRO_ROOT_FOLDER}"
+  git add "templates/jenkins/partials/tools-maven.hbs"
+  git commit -m "Add Maven version ${maven_version}"
+  popd
+  echo "TODO: push change in JIRO repo"
+  read -rsp $'Once you are done, press any key to continue...\n' -n1
+}
+
 eval "$(ssh-agent -s)"
 ssh-add ~/.ssh/id_rsa
 
-#download Maven
-wget -c "${download_url}"
-
-if [[ ! -f "${file_name}" ]]; then
-  echo "${file_name} does not exist! Error during download?"
-  exit 1
-fi
+download_maven
 
 #scp tar.gz to backend server
-#TODO: use expect
-scp "${file_name}" "${BACKEND_SERVER_USER}@${BACKEND_SERVER}:/tmp/"
+scp "${FILE_NAME}" "${BACKEND_SERVER_USER}@${BACKEND_SERVER}:/tmp/"
 
 update "${maven_version}"
 
+update_jiro_template "${maven_version}"
+
+# TODO: create HelpDesk issue response template
+
 # remove local tar.gz
-rm -f "${file_name}"
+rm -f "${FILE_NAME}"

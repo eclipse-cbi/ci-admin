@@ -97,7 +97,7 @@ update_projects_bot_api() {
 
 create_org_webhook() {
   echo "# Creating organization webhook..."
-  "${SCRIPT_FOLDER}/create_webhook.sh" "${PROJECT_NAME}" "eclipse-${SHORT_NAME}"
+  "${SCRIPT_FOLDER}/create_webhook.sh" "org" "${PROJECT_NAME}" "eclipse-${SHORT_NAME}"
 }
 
 instructions_template() {

@@ -17,6 +17,9 @@ IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
+#shellcheck disable=SC1091
+source "${SCRIPT_FOLDER}/../utils/common.sh"
+
 JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
 PROJECTS_BOTS_API_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "projects-bots-api-root-dir")"
 
@@ -35,7 +38,6 @@ fi
 #     * do not create github credentials if they already exist
 # * add confirmations/questions
 # * open websites
-# * create webhooks
 # * improve instructions
 
 create_github_credentials() {
@@ -76,22 +78,29 @@ add_jenkins_credentials() {
 }
 
 update_projects_bot_api() {
+#TODO: don't update if the bot has been added before
   printf "\n# Update projects-bots-api...\n"
 
-  echo "Connected to cluster?"
-  read -rp "Press enter to continue or CTRL-C to stop the script"
-
-  echo "Pulled latest version of projects-bots-api?"
-  read -rp "Press enter to continue or CTRL-C to stop the script"
-
-  "${PROJECTS_BOTS_API_ROOT_FOLDER}/regen_db.sh"
+  pushd "${PROJECTS_BOTS_API_ROOT_FOLDER}"
+  echo "* Pulling latest version of projects-bots-api..."
+  git pull
+  echo "* Regenerating projects-bots-api DB..."
+  regen_db.sh
 
   printf "\n\n"
 #TODO: Show error if files are equal
   read -rsp $'Once you are done with comparing the diff, press any key to continue...\n' -n1
-  "${PROJECTS_BOTS_API_ROOT_FOLDER}/deploy_db.sh"
 
-  printf "\n# TODO: Double check that bot account has been added to API (https://api.eclipse.org/bots)...\n"
+  echo "* Committing changes to projects-bots-api repo..."
+  git add bots.db.json
+  git commit -m "Update bots.db.json"
+  git push
+  popd
+
+  echo "* Commit should trigger a build of https://foundation.eclipse.org/ci/webdev/job/projects-bots-api/job/master..."
+  echo
+  echo "* TODO: Wait for the build to finish..."
+  printf "* TODO: Double check that bot account has been added to API (https://api.eclipse.org/bots)...\n"
   read -rsp $'Once you are done, press any key to continue...\n' -n1
 }
 
@@ -122,18 +131,6 @@ By default, all branches and PRs will be scanned and dedicated build jobs will b
 EOF
 }
 
-question() {
-  local message="${1:-}"
-  local action="${2:-}"
-  read -rp "Do you want to ${message}? (Y)es, (N)o, E(x)it: " yn
-  case $yn in
-    [Yy]* ) ${action};;
-    [Nn]* ) return ;;
-    [Xx]* ) exit 0;;
-        * ) echo "Please answer (Y)es, (N)o, E(x)it"; question "${message}" "${action}";
-  esac
-}
-
 #### MAIN
 
 create_github_credentials
@@ -142,9 +139,9 @@ set_up_github_account
 
 update_projects_bot_api
 
-question "add Jenkins credentials" add_jenkins_credentials
+_question_action "add Jenkins credentials" add_jenkins_credentials
 
-question "create an org webhook" create_org_webhook
+_question_action "create an org webhook" create_org_webhook
 
 printf "\n# TODO: Set up GitHub config in Jenkins (if applicable)...\n"
 printf "\n# TODO: Commit changes to pass...\n"

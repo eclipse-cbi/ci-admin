@@ -15,28 +15,13 @@ set -o pipefail
 
 IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
-LOCAL_CONFIG="${HOME}/.cbi/config"
+CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
-if [[ ! -f "${LOCAL_CONFIG}" ]]; then
-  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
-  echo "Create one to configure the location of the JIRO root dir and the projects-bots-api root dir. Example:"
-  echo '{"jiro-root-dir": "/path/to/jiro/rootdir"}'
-  echo '{"projects-bots-api-root-dir": "/path/to/projects-bots-api/rootdir"}'
-  exit 1
-fi
+#shellcheck disable=SC1091
+source "${SCRIPT_FOLDER}/../utils/common.sh"
 
-JIRO_ROOT_FOLDER="$(jq -r '."jiro-root-dir"' < "${LOCAL_CONFIG}")"
-PROJECTS_BOTS_API_ROOT_FOLDER="$(jq -r '."projects-bots-api-root-dir"' < "${LOCAL_CONFIG}")"
-
-if [[ -z "${JIRO_ROOT_FOLDER}" ]] || [[ "${JIRO_ROOT_FOLDER}" == "null" ]]; then
-  printf "ERROR: 'jiro-root-dir' must be set in %s.\n" "${LOCAL_CONFIG}"
-  exit 1
-fi
-
-if [[ -z "${PROJECTS_BOTS_API_ROOT_FOLDER}" ]] || [[ "${PROJECTS_BOTS_API_ROOT_FOLDER}" == "null" ]]; then
-  printf "ERROR: 'projects-bots-api-root-dir' must be set in %s.\n" "${LOCAL_CONFIG}"
-  exit 1
-fi
+JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
+PROJECTS_BOTS_API_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "projects-bots-api-root-dir")"
 
 PROJECT_NAME="${1:-}"
 SHORT_NAME="${PROJECT_NAME##*.}"
@@ -46,18 +31,6 @@ if [[ -z "${PROJECT_NAME}" ]]; then
   printf "ERROR: a project name must be given.\n"
   exit 1
 fi
-
-question() {
-  local message="${1:-}"
-  local action="${2:-}"
-  read -p "Do you want to ${message}? (Y)es, (N)o, E(x)it: " yn
-  case $yn in
-    [Yy]* ) ${action};;
-    [Nn]* ) return ;;
-    [Xx]* ) exit 0;;
-        * ) echo "Please answer (Y)es, (N)o, E(x)it"; question "${message}" "${action}";
-  esac
-}
 
 add_gitlab_jcasc_config() {
   printf "\n# Adding GitLab JCasC config to %s Jenkins instance...\n" "${PROJECT_NAME}"
@@ -93,14 +66,31 @@ EOF
   popd
 }
 
-add_bot_to_projects-bot-api() {
+update_projects_bot_api() {
 #TODO: don't update if the bot has been added before
   printf "\n# Update projects-bots-api...\n"
-  "${PROJECTS_BOTS_API_ROOT_FOLDER}/regen_db.sh"
+
+  pushd "${PROJECTS_BOTS_API_ROOT_FOLDER}"
+  echo "* Pulling latest version of projects-bots-api..."
+  git pull
+  echo "* Regenerating projects-bots-api DB..."
+  regen_db.sh
 
   printf "\n\n"
+#TODO: Show error if files are equal
   read -rsp $'Once you are done with comparing the diff, press any key to continue...\n' -n1
-  "${PROJECTS_BOTS_API_ROOT_FOLDER}/deploy_db.sh"
+
+  echo "* Committing changes to projects-bots-api repo..."
+  git add bots.db.json
+  git commit -m "Update bots.db.json"
+  git push
+  popd
+
+  echo "* Commit should trigger a build of https://foundation.eclipse.org/ci/webdev/job/projects-bots-api/job/master..."
+  echo
+  echo "* TODO: Wait for the build to finish..."
+  printf "* TODO: Double check that bot account has been added to API (https://api.eclipse.org/bots)...\n"
+  read -rsp $'Once you are done, press any key to continue...\n' -n1
 }
 
 add_bot_to_group() {
@@ -146,10 +136,7 @@ EOF
 echo "# Creating a GitLab bot user..."
 "${SCRIPT_FOLDER}/create_gitlab_bot_user.sh" "${PROJECT_NAME}"
 
-echo "Connected to cluster?"
-read -p "Press enter to continue or CTRL-C to stop the script"
-
-add_bot_to_projects-bot-api
+update_projects_bot_api
 
 add_bot_to_group
 
@@ -161,7 +148,7 @@ printf "\n# Adding GitLab bot credentials to Jenkins instance...\n"
 
 add_gitlab_jcasc_config
 
-question "create a group webhook" create_group_webhook
+_question_action "create a group webhook" create_group_webhook
 
 instructions_template
 

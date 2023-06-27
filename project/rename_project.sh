@@ -21,10 +21,13 @@ IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
-JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
-PROJECTS_BOTS_API_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "projects-bots-api-root-dir")"
+#shellcheck disable=SC1091
+source "${SCRIPT_FOLDER}/../utils/common.sh"
 #shellcheck disable=SC1091
 source "${CI_ADMIN_ROOT}/pass/pass_wrapper.sh"
+
+JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
+PROJECTS_BOTS_API_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "projects-bots-api-root-dir")"
 
 PROJECT_NAME="${1:-}"
 NEW_PROJECT_NAME="${2:-}"
@@ -127,54 +130,42 @@ fix_pass() {
   fi
 }
 
-question() {
-  local message="${1:-}"
-  local action="${2:-}"
-  read -rp "Do you want to ${message}? (Y)es, (N)o, E(x)it: " yn
-  case $yn in
-    [Yy]* ) ${action};;
-    [Nn]* ) return ;;
-    [Xx]* ) exit 0;;
-        * ) echo "Please answer (Y)es, (N)o, E(x)it"; question "${message}" "${action}";
-  esac
-}
-
 rename_jipp() {
   # call script in jiro folder to do the renaming in jiro
   "${JIRO_ROOT_FOLDER}/incubation/rename_jipp.sh" "${PROJECT_NAME}" "${NEW_PROJECT_NAME}"
 }
 
 update_projects_bot_api() {
-  printf "\n# Updating projects-bots-api...\n"
+#TODO: don't update if the bot has been added before
+  printf "\n# Update projects-bots-api...\n"
 
-#TODO: check automatically
-  echo "  Connected to cluster?"
-  read -rp "  Press enter to continue or CTRL-C to stop the script"
-  echo
-#TODO: check automatically
-  echo "  Pulled latest version of projects-bots-api?"
-  read -rp "  Press enter to continue or CTRL-C to stop the script"
-
-  sed -i "s/${PROJECT_NAME}/${NEW_PROJECT_NAME}/" "${PROJECTS_BOTS_API_ROOT_FOLDER}/src/main/jsonnet/extensions.jsonnet"
-  echo "  * [FIXED] Updated project name in extensions.jsonnet file (if it exists)..."
-
-  echo "  * Regenerating bot API DB..."
-  "${PROJECTS_BOTS_API_ROOT_FOLDER}/regen_db.sh" &>> "${RENAME_LOG}"
+  pushd "${PROJECTS_BOTS_API_ROOT_FOLDER}"
+  echo "* Pulling latest version of projects-bots-api..."
+  git pull
+  echo "* Regenerating projects-bots-api DB..."
+  regen_db.sh
 
   printf "\n\n"
 #TODO: Show error if files are equal
-  read -rsp $'  Once you are done with comparing the diff, press any key to continue...\n' -n1
-  echo "  * Deploying bot API DB..."
-  "${PROJECTS_BOTS_API_ROOT_FOLDER}/deploy_db.sh" &>> "${RENAME_LOG}"
+  read -rsp $'Once you are done with comparing the diff, press any key to continue...\n' -n1
 
-  printf "\n * [TODO] Double check that bot account has been added to API (https://api.eclipse.org/bots)...\n"
+  echo "* Committing changes to projects-bots-api repo..."
+  git add bots.db.json
+  git commit -m "Update bots.db.json"
+  git push
+  popd
+
+  echo "* Commit should trigger a build of https://foundation.eclipse.org/ci/webdev/job/projects-bots-api/job/master..."
+  echo
+  echo "* TODO: Wait for the build to finish..."
+  printf "* TODO: Double check that bot account has been added to API (https://api.eclipse.org/bots)...\n"
   read -rsp $'Once you are done, press any key to continue...\n' -n1
 }
 
 fix_pass
 echo
-question "rename the JIPP" "rename_jipp"
-question "update the projects bot API" "update_projects_bot_api"
+_question_action "rename the JIPP" "rename_jipp"
+_question_action "update the projects bot API" "update_projects_bot_api"
 
 echo
 echo "# Manual steps:"

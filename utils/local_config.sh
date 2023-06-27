@@ -19,12 +19,30 @@ IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 LOCAL_CONFIG="${HOME}/.cbi/config"
 
+cbi_config()
+{
+cat <<EOF
+
+{
+  "jiro-root-dir": "/path/to/jiro/rootdir"
+  "projects-bots-api-root-dir": "/path/to/projects-bots-api/rootdir"
+  "jenkins_login": {
+    "user": "my_user_name",
+    "pw": "password"
+  }
+  "github": {
+    "access_token": "my_access_token_with_right-admin:org_hook-admin:repo_hook-repo"
+  }
+  "password-store": {
+    "cbi-dir": "/path/to/password-store-cbi"
+  }
+}
+EOF
+}
+
 if [[ ! -f "${LOCAL_CONFIG}" ]]; then
-  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
-  echo "Create one to configure the location of the JIRO root dir and the projects-bots-api root dir. Example:"
-  echo '{"jiro-root-dir": "/path/to/jiro/rootdir"}'
-  echo '{"projects-bots-api-root-dir": "/path/to/projects-bots-api/rootdir"}'
-  echo '{"jenkins_login": {"user": "my_user_name", "pw": "password"}}' | jq -M
+  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists" > /dev/tty
+  echo "Create one to configure the location of the JIRO root dir and the projects-bots-api root dir. Example: $(cbi_config)" > /dev/tty
   exit 1
 fi
 
@@ -32,7 +50,7 @@ _check_if_var_exists() {
   local var="${1:-}"
   local name="${2:-}"
   if [[ -z "${var}" ]] || [[ "${var}" == "null" ]]; then
-    printf "ERROR: '${name}' must be set in %s.\n" "${LOCAL_CONFIG}"
+    printf "ERROR: '${name}' must be set in %s.\n" "${LOCAL_CONFIG}" > /dev/tty
     exit 1
   fi
 }
@@ -57,7 +75,7 @@ get_var() {
   local lcv
 
   if [[ -z "${name}" ]]; then
-    printf "ERROR: 'name' must be set\n"
+    printf "ERROR: 'name' must be set\n" > /dev/tty
     exit 1
   fi
   

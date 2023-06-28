@@ -15,21 +15,9 @@ set -o pipefail
 
 IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
-LOCAL_CONFIG="${HOME}/.cbi/config"
+CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
-if [[ ! -f "${LOCAL_CONFIG}" ]]; then
-  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
-  echo "Create one to configure the location of the projects-bots-api root dir. Example:"
-  echo '{"projects-bots-api-root-dir": "/path/to/projects-bots-api/rootdir"}'
-  exit 1
-fi
-
-PROJECTS_BOTS_API_ROOT_FOLDER="$(jq -r '."projects-bots-api-root-dir"' < "${LOCAL_CONFIG}")"
-
-if [[ -z "${PROJECTS_BOTS_API_ROOT_FOLDER}" ]] || [[ "${PROJECTS_BOTS_API_ROOT_FOLDER}" == "null" ]]; then
-  printf "ERROR: 'projects-bots-api-root-dir' must be set in %s.\n" "${LOCAL_CONFIG}"
-  exit 1
-fi
+PROJECTS_BOTS_API_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "projects-bots-api-root-dir")"
 
 PROJECT_NAME="${1:-}"
 SHORT_NAME="${PROJECT_NAME##*.}"

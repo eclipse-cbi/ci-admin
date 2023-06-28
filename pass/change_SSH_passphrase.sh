@@ -1,4 +1,4 @@
-#! /usr/bin/env bash
+#!/usr/bin/env bash
 #*******************************************************************************
 # Copyright (c) 2021 Eclipse Foundation and others.
 # This program and the accompanying materials are made available
@@ -7,13 +7,14 @@
 # SPDX-License-Identifier: EPL-2.0
 #*******************************************************************************
 
-
 # Bash strict-mode
 set -o errexit
 set -o nounset
 set -o pipefail
 
 IFS=$'\n\t'
+
+tmp_dir="temp"
 
 project_name="${1:-}"
 short_name=${project_name##*.}
@@ -23,9 +24,16 @@ if [ "${project_name}" == "" ]; then
   exit 1
 fi
 
+cleanup() {
+  popd
+  rm -rf "${tmp_dir}"
+}
+
 # Create temp dir
-mkdir -p temp
-pushd temp
+mkdir -p "${tmp_dir}"
+pushd "${tmp_dir}"
+
+trap cleanup EXIT
 
 question() {
   read -p "Which credentials should be changed? (P)rojects-storage, (G)it, Git(H)ub, E(x)it: " pghx
@@ -60,9 +68,18 @@ ssh-keygen -p -P "${old_pw}" -N "${new_pw}" -f id_rsa
 
 # update private key in pass
 cat id_rsa | pass insert -m "${pw_store_path}/id_rsa"
+
+# update public key in pass
+ssh-keygen -f id_rsa -y | pass insert -m "${pw_store_path}/id_rsa.pub"
+
 echo "Passphrase and private key have been updated in pass."
 
+# Show key stats
+ssh-keygen -l -f id_rsa
+
 echo "TODO:"
+
+#TODO: automate
 
 if [[ "${domain}" == "git" ]]; then
   echo "* Update Gerrit settings, if applicable"
@@ -72,8 +89,3 @@ fi
 
 echo "* Update Jenkins credentials. (in Jiro root dir, run: ./jenkins-create-credentials.sh ${project_name})"
 echo "* Commit changes to pass repo."
-
-
-# clean up
-popd
-rm -rf temp

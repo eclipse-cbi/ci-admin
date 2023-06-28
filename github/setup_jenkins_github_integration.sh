@@ -78,30 +78,8 @@ add_jenkins_credentials() {
 }
 
 update_projects_bot_api() {
-#TODO: don't update if the bot has been added before
-  printf "\n# Update projects-bots-api...\n"
-
-  pushd "${PROJECTS_BOTS_API_ROOT_FOLDER}"
-  echo "* Pulling latest version of projects-bots-api..."
-  git pull
-  echo "* Regenerating projects-bots-api DB..."
-  regen_db.sh
-
-  printf "\n\n"
-#TODO: Show error if files are equal
-  read -rsp $'Once you are done with comparing the diff, press any key to continue...\n' -n1
-
-  echo "* Committing changes to projects-bots-api repo..."
-  git add bots.db.json
-  git commit -m "Update bots.db.json"
-  git push
-  popd
-
-  echo "* Commit should trigger a build of https://foundation.eclipse.org/ci/webdev/job/projects-bots-api/job/master..."
-  echo
-  echo "* TODO: Wait for the build to finish..."
-  printf "* TODO: Double check that bot account has been added to API (https://api.eclipse.org/bots)...\n"
-  read -rsp $'Once you are done, press any key to continue...\n' -n1
+  printf "\n# Updating projects-bots-api...\n"
+  "${PROJECTS_BOTS_API_ROOT_FOLDER}"/regen_db.sh
 }
 
 create_org_webhook() {

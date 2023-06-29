@@ -35,25 +35,20 @@ fi
 add_gitlab_jcasc_config() {
   printf "\n# Adding GitLab JCasC config to %s Jenkins instance...\n" "${PROJECT_NAME}"
   mkdir -p "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}/jenkins"
-#TODO: deal with existing configuration.yml file
-  cat <<EOF > "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}/jenkins/configuration.yml"
-unclassified:
-  gitLabConnectionConfig:
-    connections:
-    - apiTokenId: "gitlab-api-token"
-      clientBuilderId: "autodetect"
-      connectionTimeout: 10
-      ignoreCertificateErrors: false
-      name: "gitlab.eclipse.org"
-      readTimeout: 10
-      url: "https://gitlab.eclipse.org"
-  gitLabServers:
-    Servers:
-    - credentialsId: "gitlab-personal-access-token"
-      name: "gitlab.eclipse.org"
-      serverUrl: "https://gitlab.eclipse.org"
-      webhookSecretCredentialsId: "gitlab-webhook-secret"
-EOF
+  JIRO_CONFIG_FILE="${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}/jenkins/configuration.yml"
+
+  yq -i '.unclassified.gitLabConnectionConfig.connections.apiTokenId = "gitlab-api-token"' "${JIRO_CONFIG_FILE}"
+  yq -i '.unclassified.gitLabConnectionConfig.connections.clientBuilderId = "autodetect"' "${JIRO_CONFIG_FILE}"
+  yq -i '.unclassified.gitLabConnectionConfig.connections.connectionTimeout = 10' "${JIRO_CONFIG_FILE}"
+  yq -i '.unclassified.gitLabConnectionConfig.connections.ignoreCertificateErrors = false' "${JIRO_CONFIG_FILE}"
+  yq -i '.unclassified.gitLabConnectionConfig.connections.name = "gitlab.eclipse.org"' "${JIRO_CONFIG_FILE}"
+  yq -i '.unclassified.gitLabConnectionConfig.connections.readTimeout = 10' "${JIRO_CONFIG_FILE}"
+  yq -i '.unclassified.gitLabConnectionConfig.connections.url = "https://gitlab.eclipse.org"' "${JIRO_CONFIG_FILE}"
+
+  yq -i '.unclassified.gitLabServers.Servers.credentialsId = "gitlab-personal-access-token"' "${JIRO_CONFIG_FILE}"
+  yq -i '.unclassified.gitLabServers.Servers.name = "gitlab.eclipse.org"' "${JIRO_CONFIG_FILE}"
+  yq -i '.unclassified.gitLabServers.Servers.serverUrl = "https://gitlab.eclipse.org"' "${JIRO_CONFIG_FILE}"
+  yq -i '.unclassified.gitLabServers.Servers.webhookSecretCredentialsId = "gitlab-webhook-secret"' "${JIRO_CONFIG_FILE}"
 
   printf "\n# Reloading configuration of the Jenkins instance...\n"
 

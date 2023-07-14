@@ -38,3 +38,12 @@ _question_true_false() {
         * ) echo "Please answer (Y)es, (N)o, E(x)it"; _question_true_false "${message}";
   esac
 }
+
+_open_url() {
+  local url="${1:-}"
+  if which xdg-open > /dev/null; then # most Linux
+    xdg-open "${url}"
+  elif which open > /dev/null; then # macOS
+    open "${url}"
+  fi
+}

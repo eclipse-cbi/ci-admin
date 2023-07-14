@@ -65,11 +65,11 @@ create_ossrh_credentials() {
   echo "  Username:   ${username}"
   echo "  Password:   ${pw}"
   echo "  => Sign up here: https://issues.sonatype.org/secure/Signup!default.jspa"
-  open_url "https://issues.sonatype.org/secure/Signup!default.jspa"
+  _open_url "https://issues.sonatype.org/secure/Signup!default.jspa"
   printf "\n* Login with new OSSRH account\n"
   read -rsp $'\nOnce you are done, press any key to continue...' -n1
   printf "\n* Create an issue here: https://issues.sonatype.org/secure/CreateIssue.jspa?issuetype=21&pid=10134\n"
-  open_url "https://issues.sonatype.org/secure/CreateIssue.jspa?issuetype=21&pid=10134"
+  _open_url "https://issues.sonatype.org/secure/CreateIssue.jspa?issuetype=21&pid=10134"
   echo "  * Template: https://issues.sonatype.org/browse/OSSRH-21895"
   echo "  * Summary: ${DISPLAY_NAME} Project"
   echo "  * Description: Please create the appropriate configuration for the ${DISPLAY_NAME} project. Thanks"
@@ -102,7 +102,7 @@ create_jenkins_credentials() {
   echo "  * Browse"
   echo "  * Open folder '${SCRIPT_FOLDER}/${PROJECT_NAME}'"
   echo "  * Select file 'secret-subkeys.asc'"
-  open_url "https://ci.eclipse.org/${SHORT_NAME}/credentials"
+  _open_url "https://ci.eclipse.org/${SHORT_NAME}/credentials"
   echo "* Push changes to pass"
   read -rsp $'\nOnce you are done, press any key to continue...' -n1
   echo

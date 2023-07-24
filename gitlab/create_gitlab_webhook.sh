@@ -50,7 +50,7 @@ _create_gitlab_webhook() {
 
   if ! passw cbi "${pw_store_path}/webhook-secret" &> /dev/null ; then
     echo "Creating webhook secret credentials in password store..."
-    pwgen -1 -s -r '&\!|%' -y 24 | passw cbi insert --echo "${pw_store_path}/webhook-secret"
+    pwgen -1 -s -r '&\!|%{' -y 24 | passw cbi insert --echo "${pw_store_path}/webhook-secret"
   else
     echo "Found ${GITLAB_PASS_DOMAIN} webhook-secret credentials for '${project_name}' in password store. Skipping creation..."
   fi

@@ -37,7 +37,6 @@ fi
 # * deal with multiple executions due to errors
 #     * do not create github credentials if they already exist
 # * add confirmations/questions
-# * open websites
 # * improve instructions
 
 create_github_credentials() {
@@ -64,6 +63,8 @@ set_up_github_account() {
   * Add token to pass (api-token)
 * Add GitHub bot to project’s GitHub org (invite via webmaster account)
 EOF
+#TODO: open private browser window
+  _open_url "https://github.com/signup"
   read -rsp $'Once you are done, press any key to continue...\n' -n1
 
 #TODO: read tokens from stdin and add them to pass
@@ -78,8 +79,13 @@ add_jenkins_credentials() {
 }
 
 update_projects_bot_api() {
-  printf "\n# Updating projects-bots-api...\n"
-  "${PROJECTS_BOTS_API_ROOT_FOLDER}"/regen_db.sh
+  # check if project bot api entry already exists:
+  if ! curl -sSL "https://api.eclipse.org/bots" | jq -e '.[] | select(.projectId=="'${PROJECT_NAME}'") | has("github.com")'; then
+    printf "\n# Updating projects-bots-api...\n"
+    "${PROJECTS_BOTS_API_ROOT_FOLDER}"/regen_db.sh
+  else
+    printf "\n# projects-bots-api entry for github.com already exists. Skipping...\n"
+  fi
 }
 
 create_org_webhook() {
@@ -101,7 +107,7 @@ The recommended way is to use a Multibranch Pipeline job instead (a Jenkinsfile 
 2. Branch Sources > Add source > GitHub
 3. Select credentials "GitHub bot (username/token)"
 4. Add the repository URL
-5. Configure behaviors 
+5. Configure behaviors
 6. Save
 
 By default, all branches and PRs will be scanned and dedicated build jobs will be created automatically (if a Jenkinsfile is found).
@@ -117,14 +123,15 @@ set_up_github_account
 
 update_projects_bot_api
 
-_question_action "add Jenkins credentials" add_jenkins_credentials
+#check if project has a Jenkins instance
+if [[ -d "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}" ]]; then
+  echo "Found Jenkins instance for ${PROJECT_NAME}..."
+  _question_action "add Jenkins credentials" add_jenkins_credentials
+  _question_action "create an org webhook" create_org_webhook
+  printf "\n# TODO: Set up GitHub config in Jenkins (if applicable)...\n"
+  instructions_template
+fi
 
-_question_action "create an org webhook" create_org_webhook
-
-printf "\n# TODO: Set up GitHub config in Jenkins (if applicable)...\n"
-printf "\n# TODO: Commit changes to pass...\n"
-
+printf "\n\n# TODO: Commit changes to pass...\n"
 read -rsp $'Once you are done, press any key to continue...\n' -n1
-
-instructions_template
 

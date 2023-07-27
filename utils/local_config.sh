@@ -80,10 +80,10 @@ get_var() {
   fi
   
   if [[ -z "${group}" ]] || [[ "${group}" == "" ]]; then
-    lcv="$(jq -r ".\"${name}\"" "${LOCAL_CONFIG}")"
+    lcv="$(sed -re 's#^(([^"\n]*"[^"\n]*")*[^"\n]*)\/\/.*$#\1#' -e '/^[[:blank:]]*#/d' "${LOCAL_CONFIG}"| jq -r ".\"${name}\"")"
     _check_if_var_exists "${lcv}" "${name}"
   else  
-    lcv="$(jq -r ".[\"${group}\"][\"${name}\"]" "${LOCAL_CONFIG}")"
+    lcv="$(sed -re 's#^(([^"\n]*"[^"\n]*")*[^"\n]*)\/\/.*$#\1#' -e '/^[[:blank:]]*#/d' "${LOCAL_CONFIG}"| jq -r ".[\"${group}\"][\"${name}\"]")"
     _check_if_var_exists "${lcv}" "${group}/${name}"
   fi
   echo "${lcv}"

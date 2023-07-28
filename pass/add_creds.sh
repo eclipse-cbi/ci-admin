@@ -107,6 +107,7 @@ help() {
   printf "gerrit\t\t\tCreate Gerrit credentials (SSH keypair).\n"
   printf "github\t\t\tCreate GitHub credentials (username/password).\n"
   printf "github_ssh\t\tCreate SSH credentials for GitHub (SSH keypair).\n"
+  printf "matrix\t\tCreate Matrix credentials for chat.eclipse.org (username/password).\n"
   printf "ossrh\t\t\tCreate credentials for OSSRH (username/password).\n"
   printf "projects_storage\tCreate SSH credentials for projects-storage.eclipse.org (SSH keypair).\n"
   exit 0
@@ -165,6 +166,16 @@ github_ssh() {
   local user="eclipse-${short_name}-bot"
 
   ssh_keys "${project_name}" "${site}" "${user}"
+}
+
+matrix() {
+  local project_name="${1:-}"
+  local site="matrix.eclipse.org"
+  local short_name="${project_name##*.}"
+  local email="${short_name}-bot@eclipse.org"
+  local user="eclipse-${short_name}-bot"
+
+  user_pw "${project_name}" "${site}" "${email}" "${user}"
 }
 
 ossrh() {

@@ -58,9 +58,15 @@ if [ -z "${PROJECT_NAME}" ]; then
 fi
 
 if [ -z "${DISPLAY_NAME}" ]; then
-  printf "ERROR: a display name must be given.\n"
-  usage
-  exit 1
+  echo "INFO: No display name was given. Trying to get display name from projects API..."
+  DISPLAY_NAME="$(curl -sSL "https://projects.eclipse.org/api/projects/${PROJECT_NAME}.json" | jq -r .[].name)"
+  if [ -z "${DISPLAY_NAME}" ]; then
+    printf "ERROR: found no display name for '${PROJECT_NAME}' in projects API. Please specify the display name as parameter.\n"
+    exit 1
+  else
+    echo "INFO: Found display name '${DISPLAY_NAME}' for '${PROJECT_NAME}'"
+    read -rsp $'If you confirm that the display name is correct, press any key to continue or CTRL+C to exit the script...\n' -n1
+  fi
 fi
 
 JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
@@ -76,7 +82,7 @@ check_genie_user() {
 
   local user="${FILE_SERVER_USER}"
   local server="${FILE_SERVER}"
-  
+
   local short_name="${project_name##*.}"
   local genie_user="genie.${short_name}"
 
@@ -145,13 +151,13 @@ fix_ldap() {
     }
   }
   expect -re \"$userPrompt\"
-  
+
   # su to root
   send \"su -\r\"
   interact -o -nobuffer -re \"$passwordPrompt\" return
   send \"[exec pass $pwRoot]\r\"
   expect -re \"$serverRootPrompt\"
-  
+
   # fix LDAP
   #TODO: fix expect: spawn id exp4 not open issues
   send \"./fix_ldap.sh $genieUser\r\"
@@ -161,7 +167,7 @@ fix_ldap() {
 
   # exit su and exit ssh
   send \"exit\rexit\r\"
-  
+
   expect eof
 "
 }
@@ -188,7 +194,7 @@ add_pub_key() {
   expect -c "
   #5 seconds timeout
   set timeout 5
-  
+
   # ssh to remote
   spawn ssh $user@$server
 
@@ -203,23 +209,23 @@ add_pub_key() {
     }
   }
   expect -re \"$userPrompt\"
-  
+
   # su to root
   send \"su -\r\"
   interact -o -nobuffer -re \"$passwordPrompt\" return
   send [exec pass $pwRoot]\r
   expect -re \"$serverRootPrompt\"
-  
+
   # su to genie.user
   send \"su - $genieUser\r\"
   expect -re \"$geniePrompt\"
-  
+
   # add SSH pub key to .ssh/authorized_keys
   #TODO: do not add key if it already exists
   #TODO: fix quoting
   send \"echo [exec pass $id_rsa_pub] >> .ssh/authorized_keys\r\"
   send \"cat .ssh/authorized_keys\r\"
-  
+
   # exit su, exit su and exit ssh
   send \"exit\rexit\rexit\r\"
   expect eof
@@ -229,7 +235,7 @@ add_pub_key() {
 setup_github() {
   printf "\n\n### Setting up GitHub bot credentials...\n"
   pushd "${CI_ADMIN_ROOT}/github" > /dev/null
-  ./setup_jenkins_github_integration.sh "${PROJECT_NAME}"
+  ./setup_github_bot.sh "${PROJECT_NAME}"
   popd > /dev/null
   printf "\n"
 }
@@ -295,7 +301,6 @@ fix_ldap "${PROJECT_NAME}"
 #FIXME: gerrit and projects_storage creds should not be created, if they already exist
 
 pushd "${CI_ADMIN_ROOT}/pass" > /dev/null
-./add_creds.sh gerrit "${PROJECT_NAME}" || : # if creds already exist, ignore exit code 1
 ./add_creds.sh projects_storage "${PROJECT_NAME}" || : # if creds already exist, ignore exit code 1
 popd > /dev/null
 

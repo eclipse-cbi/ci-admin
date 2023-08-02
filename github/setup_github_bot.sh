@@ -100,9 +100,7 @@ Post the following on the corresponding HelpDesk issue:
 -------------------------------------------------------
 A GitHub bot (ID: eclipse-${SHORT_NAME}-bot) has been created. Credentials have been added to the ${SHORT_NAME} JIPP.
 
-To set up a job that builds pull requests, you can use a Freestyle job and the GitHub Pull Request Builder (GHPRB) Plugin.
-
-The recommended way is to use a Multibranch Pipeline job instead (a Jenkinsfile in your repo is required):
+The recommended way to set up a job that builds pull requests is to use a Multibranch Pipeline job (a Jenkinsfile in your repo is required):
 1. New item > Multibranch Pipeline
 2. Branch Sources > Add source > GitHub
 3. Select credentials "GitHub bot (username/token)"

@@ -291,7 +291,7 @@ create_repo_webhook() {
   if  curl -sSL --header "${TOKEN_HEADER}" "${API_BASE_URL}/projects/${repo_id}/hooks" | jq -e '.|length > 0' > /dev/null; then
     echo "Webhook for repo '${repo_name}' already exists. Skipping creation..."
   else
-    _create_webhook_api "${repo_id}" "${hook_url}" "${hook_secret}" | jq .
+    _create_repo_webhook_api "${repo_id}" "${hook_url}" "${hook_secret}" | jq .
   fi
 }
 

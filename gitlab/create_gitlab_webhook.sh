@@ -34,7 +34,8 @@ _create_gitlab_webhook() {
   local repo_group_name="${2:-}"
   local repo_group="${3:-}"
   local short_name="${project_name##*.}"
-  local webhook_url="https://ci.eclipse.org/${short_name}/gitlab-webhook/post"
+  local default_webhook_url="https://ci.eclipse.org/${short_name}/gitlab-webhook/post"
+  local webhook_url="${4:-${default_webhook_url}}"
 
   # verify input
   if [ -z "${project_name}" ]; then

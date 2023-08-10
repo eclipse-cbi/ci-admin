@@ -116,7 +116,7 @@ _get_id_from_username() {
 _get_project_id() {
 #TODO: fail if no project id is found?
   local repo_name="${1:-}"
-  curl -s --header "${TOKEN_HEADER}" "${API_BASE_URL}/projects?search=${repo_name}" | jq '[.[] | select(.path_with_namespace | startswith("eclipse/")) | {id: .id, name: .name}]'
+  curl -s --header "${TOKEN_HEADER}" "${API_BASE_URL}/projects?search=${repo_name}" | jq '[.[] | select(.path_with_namespace | startswith("eclipse/")  or startswith("eclipsefdn/")) | {id: .id, name: .name}]'
 }
 
 _get_group_id() {

@@ -36,9 +36,16 @@ if [[ -z "${PROJECT_NAME}" ]]; then
 fi
 
 # check that display name is not empty
-if [[ -z "${DISPLAY_NAME}" ]]; then
-  printf "ERROR: a display name (e.g. 'Eclipse CBI Project') must be given.\n"
-  exit 1
+if [ -z "${DISPLAY_NAME}" ]; then
+  echo "INFO: No display name was given. Trying to get display name from projects API..."
+  DISPLAY_NAME="$(curl -sSL "https://projects.eclipse.org/api/projects/${PROJECT_NAME}.json" | jq -r .[].name)"
+  if [ -z "${DISPLAY_NAME}" ]; then
+    printf "ERROR: found no display name for '${PROJECT_NAME}' in projects API. Please specify the display name as parameter.\n"
+    exit 1
+  else
+    echo "INFO: Found display name '${DISPLAY_NAME}' for '${PROJECT_NAME}'"
+    read -rsp $'If you confirm that the display name is correct, press any key to continue or CTRL+C to exit the script...\n' -n1
+  fi
 fi
 
 open_url() {

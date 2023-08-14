@@ -39,6 +39,16 @@ _question_true_false() {
   esac
 }
 
+_check_parameter() {
+  local param_name="${1:-}"
+  local param="${2:-}"
+  # check that parameter is not empty
+  if [[ -z "${param}" ]]; then
+    printf "ERROR: a %s must be given.\n" "${param_name}"
+    exit 1
+  fi
+}
+
 _open_url() {
   local url="${1:-}"
   if which xdg-open > /dev/null; then # most Linux

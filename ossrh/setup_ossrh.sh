@@ -44,6 +44,11 @@ if [ -z "${DISPLAY_NAME}" ]; then
     exit 1
   else
     echo "INFO: Found display name '${DISPLAY_NAME}' for '${PROJECT_NAME}'"
+    if [[ "${DISPLAY_NAME}" =~ .*[p|P]roject ]]; then
+      echo "Found '[p/P]roject' post fix. Eliminating duplicate."
+      DISPLAY_NAME="$(echo ${DISPLAY_NAME} | sed 's/ [p|P]roject//')"
+      echo "Fixed display name is '${DISPLAY_NAME}'."
+    fi
     read -rsp $'If you confirm that the display name is correct, press any key to continue or CTRL+C to exit the script...\n' -n1
   fi
 fi
@@ -150,7 +155,7 @@ The GPG passphrase is also configured (encrypted) in the settings (as described 
 https://maven.apache.org/plugins/maven-gpg-plugin/usage.html#Configure_passphrase_in_settings.xml). It's recommended to use the maven-gpg-plugin.
 See also https://wiki.eclipse.org/Jenkins#How_can_artifacts_be_deployed_to_OSSRH_.2F_Maven_Central.3F
 
-Let us know when you promoted your first release so we can comment on
+Let us know when you promoted your first release, so we can comment on
 https://issues.sonatype.org/browse/OSSRH-XXXX. Or you can do this yourself.
 
 EOF
@@ -163,7 +168,7 @@ create_ossrh_credentials
 create_gpg_credentials
 
 _question_action "create Jenkins credentials" create_jenkins_credentials
-
+echo
 _question_action "regenerate Maven settings for Jenkins" regen_maven_settings
 
 ossrh_comment_template

@@ -62,7 +62,7 @@ nexus_curl() {
     fi
 
     if [[ "${response}" == *"errors"* ]]; then
-        error_msg=$(echo "${response}" | jq -M '."errors"[0].msg') 
+        error_msg=$(echo "${response}" | jq -M '."errors"[0].msg')
         echo "ERROR: ${error_msg}" >&2
         exit 1
     fi
@@ -75,8 +75,12 @@ nexus_curl() {
 createRepo () {
     local repo_id="${1:-}"
     local repo_policy="${2:-}"
+    local write_policy="ALLOW_WRITE_ONCE"
+    if [[ "${repo_policy}" == "SNAPSHOT" ]]; then
+      write_policy="ALLOW_WRITE"
+    fi
     echo "Creating Nexus repo '${repo_id}'..."
-    local json="{\"data\":{\"repoType\": \"hosted\", \"id\": \"${repo_id}\", \"name\": \"${repo_id}\", \"writePolicy\": \"ALLOW_WRITE_ONCE\", \"browseable\": true, \"indexable\": true, \"exposed\": true, \"notFoundCacheTTL\": 1440, \"repoPolicy\": \"${repo_policy}\", \"provider\": \"maven2\", \"providerRole\": \"org.sonatype.nexus.proxy.repository.Repository\", \"downloadRemoteIndexes\": false, \"checksumPolicy\": \"IGNORE\" }}"
+    local json="{\"data\":{\"repoType\": \"hosted\", \"id\": \"${repo_id}\", \"name\": \"${repo_id}\", \"writePolicy\": \"${write_policy}\", \"browseable\": true, \"indexable\": true, \"exposed\": true, \"notFoundCacheTTL\": 1440, \"repoPolicy\": \"${repo_policy}\", \"provider\": \"maven2\", \"providerRole\": \"org.sonatype.nexus.proxy.repository.Repository\", \"downloadRemoteIndexes\": false, \"checksumPolicy\": \"IGNORE\" }}"
     nexus_curl "${json}" "${rest_api_base_url}/repositories" "POST"
 }
 
@@ -94,7 +98,7 @@ addRepoToGroupRepo() {
     local group_id="${2:-}"
     echo "Adding repo '${repo_id}' to group repo '${group_id}'..."
 
-    # get existing repos 
+    # get existing repos
     json_old=$(nexus_curl "" "${rest_api_base_url}/repo_groups/${group_id}" "GET")
     # add new repo
     json=$(echo "${json_old}" | jq ".data.repositories += [{\"id\": \"${repo_id}\", \"name\": \"${repo_id}\", \"resourceURI\": \"https://repo.eclipse.org/service/local/repo_groups/releases/${repo_id}\"}]")

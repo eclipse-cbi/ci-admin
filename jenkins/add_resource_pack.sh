@@ -116,6 +116,8 @@ update_cbi_sponsorship_api() {
   if [[ -f "${JSON_TEMP_FILE}" ]]; then
     mv "${JSON_TEMP_FILE}" "${JSON_FILE}"
   fi
+  #Run build to create /cbi-sponsorships-api/cbiSponsorships.json
+  "${CBI_SPONSORSHIPS_API_ROOT_DIR}/build.sh"
 }
 
 update_jiro_config() {

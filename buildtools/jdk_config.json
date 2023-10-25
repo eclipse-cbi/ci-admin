@@ -1,0 +1,22 @@
+{
+  "temurin": [
+    {
+      "display_name": "Temurin",
+      "url": "https://api.adoptium.net/v3/assets/latest/<version>/hotspot?architecture=x64&image_type=jdk&os=linux&vendor=eclipse",
+      "versions": [8, 11, 17, 20, 21]
+    }
+  ],
+  "semeru": [
+    {
+      "display_name": "IBM Semeru",
+      "url": "https://api.github.com/repos/ibmruntimes/semeru<version>-binaries/releases/latest",
+      "versions": [8, 11, 17, 18]
+    }
+  ],
+  "openjdk": [
+    {
+      "display_name": "OpenJDK",
+      "versions": [11, 17, 18, 19, 20, 21]
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+/openjdk_jdk_versions.json
+/semeru_jdk_versions.json
+/temurin_jdk_versions.json
+/*.tar.gz
+/*.html

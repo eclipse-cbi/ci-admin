@@ -123,7 +123,7 @@ _get_group_id() {
   local groupname="${1:-}"
   #curl -s --header "${TOKEN_HEADER}" "${API_BASE_URL}/groups?search=${groupname}" | jq -r '.[].id'
   # filter for path
-  #local jq_query=".[] | select(.path == \"${groupname}\") | .id" 
+  #local jq_query=".[] | select(.path == \"${groupname}\") | .id"
   #curl -s --header "${TOKEN_HEADER}" "${API_BASE_URL}/groups?search=${groupname}" | jq -r "${jq_query}"
   curl -s --header "${TOKEN_HEADER}" "${API_BASE_URL}/groups?search=${groupname}"
 }
@@ -184,7 +184,7 @@ add_ssh_key() {
   local id_rsa_pub="${2:-}"
   _check_parameter "username" "${username}"
   _check_parameter "SSH public key" "${id_rsa_pub}"
-  
+
   local user_id
   user_id="$(_get_id_from_username "${username}")"
 
@@ -221,8 +221,9 @@ create_api_token() {
   local user_id
   user_id="$(_get_id_from_username "${username}")"
   local name="CI token"
+  local expiry_date="$(date --date="+365 days" +%Y-%m-%d)"
 
-  curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/users/${user_id}/impersonation_tokens" --data-urlencode "name=${name}" --data "scopes[]=api" | jq -r '.token'
+  curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/users/${user_id}/impersonation_tokens" --data-urlencode "name=${name}" --data "scopes[]=api"  --data "expires_at=${expiry_date}" | jq -r '.token'
 }
 
 create_bot_user() {
@@ -232,7 +233,7 @@ create_bot_user() {
   _check_parameter "project name" "${project_name}"
   _check_parameter "username" "${username}"
   _check_parameter "password" "${pw}"
-  
+
   local email="${username}@eclipse.org"
   local short_name="${project_name##*.}"
   local name="${short_name} bot user"

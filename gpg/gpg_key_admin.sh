@@ -25,8 +25,8 @@ source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 #KEYSERVER="pgp.mit.edu"                      # unreliable!
 KEYSERVER="keyserver.ubuntu.com"
 
-TMP_GPG="/tmp/temp_gpg_test"
-  
+TMP_GPG="/tmp/temp_gpg_test4"
+
 rm -rf "${TMP_GPG}"
 mkdir -p "${TMP_GPG}"
 chmod 700 "${TMP_GPG}"
@@ -42,7 +42,7 @@ _expire_sub_key() {
   #works as well
   #printf "key ${key_no}\nexpire\n5y\nsave\n" | _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback --command-fd 0 --edit-key "${key_id}" 3<<< "${PASSPHRASE}"
 
-  _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback --command-fd 0 --edit-key "${key_id}" 3<<< "${PASSPHRASE}" << EOF 
+  _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback --command-fd 0 --edit-key "${key_id}" 3<<< "${PASSPHRASE}" << EOF
 key ${key_no}
 expire
 5y
@@ -164,7 +164,7 @@ revoke() {
 
   echo
   _upload_question "${project_name}"
-  
+
   rm -rf "${revoke_file}"
 }
 
@@ -184,7 +184,7 @@ sign() {
   passphrase_wm="$(passw cbi "${pw_store_path_wm}/passphrase")"
 
   _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback --import <<< "$(passw cbi "${pw_store_path_wm}/secret-key.asc")" 3<<< "${passphrase_wm}"
-  
+
 
   # import public key
   local pw_store_path="bots/${project_name}/gpg"

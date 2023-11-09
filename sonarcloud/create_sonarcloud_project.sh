@@ -26,23 +26,13 @@ SONAR_ORG="${4:-eclipse}"
 SHORT_NAME="${PROJECT_NAME##*.}"
 
 SONAR_API_BASE_URL="https://sonarcloud.io/api"
+DRY_RUN=false
 
 #shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 
-LOCAL_CONFIG="${HOME}/.cbi/config"
-if [[ ! -f "${LOCAL_CONFIG}" ]]; then
-  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
-  echo "Create one to configure the sonar token and the JIRO root dir. Example:"
-  echo '{'
-  echo '  "sonar-token": "abcdefgh1234567890",'
-  echo '  "jiro-root-dir": "/path/to/jiro-root-dir"'
-  echo '}'
-  exit 1
-fi
-
-SONAR_TOKEN="$(jq -r '."sonar-token"' < "${LOCAL_CONFIG}")"
-JIRO_ROOT_DIR="$(jq -r '."jiro-root-dir"' < "${LOCAL_CONFIG}")"
+SONAR_TOKEN="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "sonar-token")"
+JIRO_ROOT_DIR="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "jiro-root-dir")"
 
 usage() {
   printf "Usage: %s project_name sonar_name sonar_project_id [sonar_org]\n" "${SCRIPT_NAME}"
@@ -92,13 +82,18 @@ curl_post() {
   local data="$1"
   local api_path="$2"
 
+  if ! ${DRY_RUN}; then
      #--include \
-  curl -sSL \
-     --request POST \
-     --header "Content-Type: application/x-www-form-urlencoded" \
-     -u "${SONAR_TOKEN}": \
-     -d "${data}" \
-    "${SONAR_API_BASE_URL}/${api_path}"
+    curl -sSL \
+      --request POST \
+      --header "Content-Type: application/x-www-form-urlencoded" \
+      -u "${SONAR_TOKEN}": \
+      -d "${data}" \
+     "${SONAR_API_BASE_URL}/${api_path}"
+  else
+    echo "DRY-RUN: curl -sSL --request POST --header \"Content-Type: application/x-www-form-urlencoded\" -u \"${SONAR_TOKEN}\": -d \"${data}\" \"${SONAR_API_BASE_URL}/${api_path}\"" >&2
+    echo "{}"
+  fi
 }
 
 create_project() {
@@ -122,10 +117,14 @@ create_token() {
   if echo "${reply}" | jq -e 'has("errors")' > /dev/null ; then
     echo "${reply}" | jq -r '.errors[].msg'
   else
-    token=$(echo "${reply}" | jq -r '.token')
+    token="$(echo "${reply}" | jq -r '.token')"
     echo "${token}"
     # Add token to pass
-    echo "${token}" | passw cbi insert --echo "bots/${PROJECT_NAME}/sonarcloud.io/token${suffix}"
+    if ! ${DRY_RUN}; then
+      echo "${token}" | passw cbi insert --echo "bots/${PROJECT_NAME}/sonarcloud.io/token${suffix}"
+    else
+      echo "DRY-RUN: passw cbi insert --echo \"bots/${PROJECT_NAME}/sonarcloud.io/token${suffix}\""
+    fi
   fi
 }
 
@@ -137,7 +136,7 @@ create_issue_template() {
   echo "========================"
   echo
   echo "https://sonarcloud.io/dashboard?id=${SONAR_PROJECT} is set up now."
-  
+
   if "${ci}"; then
   cat <<EOF
 https://sonarcloud.io/dashboard?id=${SONAR_PROJECT} is set up now.

@@ -15,15 +15,9 @@ set -o nounset
 set -o pipefail
 
 IFS=$'\n\t'
-LOCAL_CONFIG="${HOME}/.cbi/config"
+SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 
-if [[ ! -f "${LOCAL_CONFIG}" ]]; then
-  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
-  echo "Create one to configure the location of the GitLab token. Example:"
-  echo '{"gitlab-token": "SUPER_SECRET_TOKEN"}'
-fi
-
-PERSONAL_ACCESS_TOKEN="$(jq -r '."gitlab-token"' < "${LOCAL_CONFIG}")"
+PERSONAL_ACCESS_TOKEN="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "gitlab-token")"
 TOKEN_HEADER="PRIVATE-TOKEN: ${PERSONAL_ACCESS_TOKEN}"
 API_BASE_URL="${API_BASE_URL:-"https://gitlab.eclipse.org/api/v4"}"
 
@@ -221,7 +215,8 @@ create_api_token() {
   local user_id
   user_id="$(_get_id_from_username "${username}")"
   local name="CI token"
-  local expiry_date="$(date --date="+365 days" +%Y-%m-%d)"
+  local expiry_date
+  expiry_date="$(date --date="+365 days" +%Y-%m-%d)"
 
   curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/users/${user_id}/impersonation_tokens" --data-urlencode "name=${name}" --data "scopes[]=api"  --data "expires_at=${expiry_date}" | jq -r '.token'
 }

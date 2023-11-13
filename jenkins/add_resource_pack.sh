@@ -63,16 +63,18 @@ fi
 JIRO_ROOT_FOLDER="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "jiro-root-dir")"
 CBI_SPONSORSHIPS_API_ROOT_DIR="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "cbi-sponsorships-api-root-dir")"
 
-check_avail_rp() {
-  # check whether resource packs are available => cbi-sponsorships-api
-  avail="$("${CBI_SPONSORSHIPS_API_ROOT_DIR}/checkStats.sh" "${SPONSOR_NAME}" "resourcePacks")"
+check_avail() {
+  local resource="${1:-}"
+  local resource_text="${2:-}"
+  # check whether dedicated agents are available => cbi-sponsorships-api
+  avail="$("${CBI_SPONSORSHIPS_API_ROOT_DIR}/checkStats.sh" "${SPONSOR_NAME}" "${resource}")"
   rp="$((avail - RESOURCE_PACKS))"
   echo
   if [[ "${rp}" -lt 0 ]]; then
-    echo "ERROR: Sponsor '${SPONSOR_NAME}' does not have enough resource packs left!"
+    echo "ERROR: Sponsor '${SPONSOR_NAME}' does not have enough ${resource_text} left!"
     exit 1
   else
-    echo "Sponsor '${SPONSOR_NAME}' has enough resource packs available! (${avail} left before assignment)"
+    echo "Sponsor '${SPONSOR_NAME}' has enough ${resource_text} available! (${avail} left before assignment)"
   fi
 }
 
@@ -143,8 +145,18 @@ update_jiro_config() {
 }
 
 "${CBI_SPONSORSHIPS_API_ROOT_DIR}/memberOrganizationsBenefits.sh"
-check_avail_rp
+if [[ "${RESOURCE_PACKS}" -gt 0 ]]; then
+  check_avail "resourcePacks" "resource packs"
+fi
+if [[ "${DEDICATED_AGENTS}" -gt 0 ]]; then
+  check_avail "dedicatedAgents" "dedicated agents"
+fi
 update_cbi_sponsorship_api
-update_jiro_config
+if [[ "${RESOURCE_PACKS}" -gt 0 ]]; then
+  update_jiro_config
+else
+  echo "INFO: Number of resource packs is lower than 1, skipping update of jiro config."
+fi
+
 echo
 echo "TODO: commit changes in cbi-sponsoring-api and jiro repos!"

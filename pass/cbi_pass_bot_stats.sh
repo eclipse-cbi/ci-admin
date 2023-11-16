@@ -15,20 +15,15 @@ set -o pipefail
 IFS=$'\n\t'
 
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
-#shellcheck disable=SC1091
-source "${SCRIPT_FOLDER}/pass_wrapper.sh"
-
 PASSWORD_STORE_DIR="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "cbi-dir" "password-store")"
 
-bots="$(find "${PASSWORD_STORE_DIR}/bots/" -maxdepth 1 -type d  | sort)"
-echo "${bots}" > bots_list.txt
-
+bot_counter=0
 gh_counter=0
 gl_counter=0
 twofa_gh_counter=0
 ssh_gh_counter=0
 # print only file name: -printf "%f\n"
-for folder in $(echo "${bots}"); do
+for folder in $(find "${PASSWORD_STORE_DIR}/bots/" -maxdepth 1 -type d  | sort); do
   b="$(basename "${folder}")"
   if [[ -d "${folder}/github.com" ]]; then
     gh_counter="$((gh_counter+1))"
@@ -43,11 +38,12 @@ for folder in $(echo "${bots}"); do
   elif [[ -d "${folder}/gitlab.eclipse.org" ]]; then
     gl_counter="$((gl_counter+1))"
   fi
+  bot_counter="$((bot_counter+1))"
 done
 
 echo
 echo
-echo "Number of projects $(echo "${bots}" | wc -l)"
+echo "Number of projects ${bot_counter}"
 echo "Number of projects with GitHub bot account ${gh_counter}"
 echo "  Number of projects without GitHub bot 2FA: ${twofa_gh_counter}"
 echo "  Number of projects without GitHub bot SSH: ${ssh_gh_counter}"

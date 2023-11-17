@@ -13,15 +13,7 @@ set -o nounset
 set -o pipefail
 
 IFS=$'\n\t'
-LOCAL_CONFIG="${HOME}/.cbi/config"
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
-
-if [[ ! -f "${LOCAL_CONFIG}" ]]; then
-  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
-  echo "Create one to configure the location of the matrix token. Example:"
-  echo '{"matrix-token": "SUPER_SECRET_TOKEN"}'
-fi
-
 CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
 MATRIX_ENV=${MATRIX_ENV:-""}
@@ -36,7 +28,7 @@ MATRIX_DOMAIN=${MATRIX_URL##*://}
 help() {
   printf "Available commands:\n"
   printf "Command\t\tDescription\n\n"
-  printf "test_connexion\t\tTest Admin API access.\n"
+  printf "test_connection\t\tTest Admin API access.\n"
   printf "test_login\t\tTest Admin API login.\n"
   printf "create_user\t\tCreate matrix bot user.\n"
   printf "get_access_token\t\tGet Access matrix token.\n"
@@ -56,7 +48,7 @@ _check_parameter() {
   fi
 }
 
-test_connexion() {
+test_connection() {
   local response http_code content
   response=$(curl -sSL -w "\n%{http_code}" \
     --header "${TOKEN_HEADER}" \
@@ -88,13 +80,13 @@ test_login() {
 _create_user_api() {
   local username="${1:-}"
   local pw="${2:-}"
-  local email="${3:-}" 
-  local displayName="${4:-}" 
+  local email="${3:-}"
+  local displayName="${4:-}"
 
   curl -sSL \
     --header "${TOKEN_HEADER}" \
     --request PUT "${MATRIX_URL}/_synapse/admin/v2/users/@${username}:${MATRIX_DOMAIN}" \
-    -d "{\"displayname\": \"${displayName}\", \"password\": \"${pw}\", \"threepids\":[{\"medium\":\"email\",\"address\":\"${email}\"}]}" 
+    -d "{\"displayname\": \"${displayName}\", \"password\": \"${pw}\", \"threepids\":[{\"medium\":\"email\",\"address\":\"${email}\"}]}"
 }
 
 create_user() {
@@ -108,7 +100,7 @@ create_user() {
   _check_parameter "project name" "${project_name}"
   _check_parameter "username" "${username}"
   _check_parameter "password" "${pw}"
-  
+
   local email="${username}@eclipse.org"
   local short_name="${project_name##*.}"
   local displayName="Eclipse ${short_name} bot user"
@@ -132,7 +124,7 @@ create_user() {
     fi
   else
     echo "Request create failed. HTTP code: ${http_code}, content: ${content}" > /dev/tty
-    exit 1  
+    exit 1
   fi
 
 }
@@ -145,7 +137,7 @@ get_access_token() {
 
   _check_parameter "username" "${username}"
   _check_parameter "password" "${pw}"
-  
+
   response=$(curl -sSL --header "${TOKEN_HEADER}" -w "\n%{http_code}" \
     "${MATRIX_URL}/_matrix/client/r0/login" \
     -d '{"type":"m.login.password", "user":"'"${username}"'", "password":"'"${pw}"'"}'
@@ -155,17 +147,17 @@ get_access_token() {
   content=$(echo "${response}" | head -n -1)
 
   if [[ "${http_code}" -eq 200 ]]; then
-    echo "${content}"| jq -r '.access_token'    
+    echo "${content}"| jq -r '.access_token'
   else
     echo "Request create bot failed. HTTP code: ${http_code}, content: ${content}" > /dev/tty
-    exit 1  
+    exit 1
   fi
 }
 
 join_room() {
   local token="${1:-}"
   local room_alias="${2:-}"
-  
+
   local response http_code content
 
   # URL encode # and :"
@@ -228,7 +220,7 @@ get_room_id() {
     echo "$content" | jq -r '.room_id'
   else
     echo "Error get room id for alias ${room_alias}. HTTP code: ${http_code}, content: ${content}" > /dev/tty
-    exit 1  
+    exit 1
   fi
 }
 

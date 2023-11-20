@@ -16,7 +16,6 @@ set -o nounset
 set -o pipefail
 
 IFS=$'\n\t'
-SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 LOCAL_CONFIG="${HOME}/.cbi/config"
 
 cbi_config()
@@ -50,7 +49,7 @@ _check_if_var_exists() {
   local var="${1:-}"
   local name="${2:-}"
   if [[ -z "${var}" ]] || [[ "${var}" == "null" ]]; then
-    printf "ERROR: '${name}' must be set in %s.\n" "${LOCAL_CONFIG}" > /dev/tty
+    printf "ERROR: '%s' must be set in %s.\n" "${name}" "${LOCAL_CONFIG}" > /dev/tty
     exit 1
   fi
 }
@@ -78,11 +77,11 @@ get_var() {
     printf "ERROR: 'name' must be set\n" > /dev/tty
     exit 1
   fi
-  
+
   if [[ -z "${group}" ]] || [[ "${group}" == "" ]]; then
     lcv="$(jq -r ".\"${name}\"" "${LOCAL_CONFIG}")"
     _check_if_var_exists "${lcv}" "${name}"
-  else  
+  else
     lcv="$(jq -r ".[\"${group}\"][\"${name}\"]" "${LOCAL_CONFIG}")"
     _check_if_var_exists "${lcv}" "${group}/${name}"
   fi

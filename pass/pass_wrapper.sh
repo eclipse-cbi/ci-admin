@@ -7,12 +7,15 @@
 # SPDX-License-Identifier: EPL-2.0
 #*******************************************************************************
 
+#TODO: use trap
+
 # Bash strict-mode
 set -o errexit
 set -o nounset
 set -o pipefail
 
 IFS=$'\n\t'
+SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 
 # Need pass
 if ! command -v pass > /dev/null; then
@@ -24,15 +27,6 @@ fi
 if ! command -v readlink > /dev/null; then
   >&2 echo "ERROR: this program requires 'readlink'"
   exit 1
-fi
-
-LOCAL_CONFIG="${HOME}/.cbi/config"
-
-if [[ ! -f "${LOCAL_CONFIG}" ]]; then
-  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
-  echo "Create one to configure the location of the password store. Example:"
-  echo '{"password-store": {"cbi-dir": "~/.password-store/cbi",'
-  echo '                    "it-dir": "~/.password-store/it"}}'
 fi
 
 passw() {
@@ -48,13 +42,7 @@ passw() {
   fi
 
   local PASSWORD_STORE_DIR
-  PASSWORD_STORE_DIR="$(jq -r '.["password-store"]["'"${store}"'-dir"]' "${LOCAL_CONFIG}")"
-
-  if [[ -z "${PASSWORD_STORE_DIR}" ]] || [[ "${PASSWORD_STORE_DIR}" == "null" ]]; then
-    printf "ERROR: '${store}-dir' must be set in %s.\n" "$(readlink -f "${LOCAL_CONFIG}")"
-    exit 1
-  fi
-
+  PASSWORD_STORE_DIR="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "${store}-dir" "password-store")"
   PASSWORD_STORE_DIR="$(readlink -f "${PASSWORD_STORE_DIR/#~\//${HOME}/}")"
   export PASSWORD_STORE_DIR
 

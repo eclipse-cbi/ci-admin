@@ -19,9 +19,10 @@ SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 PROJECT_NAME="${1:-}"
 RESOURCE_PACKS="${2:-}"
 DEDICATED_AGENTS="${3:-}"
-SPONSOR_NAME="${4:-}"
-TICKET_URL="${5:-}"
-COMMENT="${6:-}"
+RUNNERS="${4:-}"
+SPONSOR_NAME="${5:-}"
+TICKET_URL="${6:-}"
+COMMENT="${7:-}"
 
 if [ -z "${PROJECT_NAME}" ]; then
   printf "ERROR: a project name must be given.\n"
@@ -45,6 +46,16 @@ fi
 
 if [[ "${DEDICATED_AGENTS}" -lt 0 ]]; then
   echo "Number of dedicated agents must be 0 or greater..."
+  exit 1
+fi
+
+if [ -z "${RUNNERS}" ]; then
+  printf "ERROR: Number of dedicated runners must be given.\n"
+  exit 1
+fi
+
+if [[ "${RUNNERS}" -lt 0 ]]; then
+  echo "Number of dedicated runners must be 0 or greater..."
   exit 1
 fi
 
@@ -94,6 +105,7 @@ update_cbi_sponsorship_api() {
       "name": "'${SPONSOR_NAME}'",
       "resourcePacks": '${RESOURCE_PACKS}',
       "dedicated": '${DEDICATED_AGENTS}',
+      "runners": '${RUNNERS}',
       "tickets": [
         "'${TICKET_URL}'"
       ],
@@ -108,6 +120,7 @@ update_cbi_sponsorship_api() {
         "name": "'${SPONSOR_NAME}'",
         "resourcePacks": '${RESOURCE_PACKS}',
         "dedicated": '${DEDICATED_AGENTS}',
+        "runners": '${RUNNERS}',
         "tickets": [
           "'${TICKET_URL}'"
         ],
@@ -140,6 +153,7 @@ update_jiro_config() {
     new_value="$((1 + RESOURCE_PACKS))"
     new_line="   resourcePacks: ${new_value},"
     #TODO: simplify?
+    #FIXME does not work if diplayName is not ended with a comma
     sed -i "/displayName/a \ ${new_line}" "${config_file}"
   fi
 }
@@ -150,6 +164,9 @@ if [[ "${RESOURCE_PACKS}" -gt 0 ]]; then
 fi
 if [[ "${DEDICATED_AGENTS}" -gt 0 ]]; then
   check_avail "dedicatedAgents" "dedicated agents"
+fi
+if [[ "${RUNNERS}" -gt 0 ]]; then
+  check_avail "ghLargeRunners" "dedicated runner"
 fi
 update_cbi_sponsorship_api
 if [[ "${RESOURCE_PACKS}" -gt 0 ]]; then

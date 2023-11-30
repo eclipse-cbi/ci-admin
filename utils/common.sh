@@ -57,3 +57,15 @@ _open_url() {
     open "${url}"
   fi
 }
+
+# Generates a password that can be safely used in shells by excluding
+# certain special characters that are treated specially by a shell.
+#   param 1: the requested length of the password, by default 64
+_generate_shell_safe_password() {
+  local length="${1:-64}"
+  # exclude the following special chars:
+  # ', ", !, `, ~, \ are filtered out as they are treated specially by shells
+  # '<', '>' and '&' need to be filtered out, since jenkins credentials have issues with those characters
+  local pwgen_special="'"'"&!$`~\<>'
+  pwgen -1 -s -r $pwgen_special -y $length
+}

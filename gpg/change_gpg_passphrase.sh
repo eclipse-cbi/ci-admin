@@ -17,6 +17,8 @@ IFS=$'\n\t'
 
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 #shellcheck disable=SC1091
+source "${SCRIPT_FOLDER}/../utils/common.sh"
+#shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 
 TMP_GPG="/tmp/temp_gpg_test"
@@ -79,9 +81,14 @@ key_id="$(_get_key_id "${project_name}")"
 
 echo "old passphrase: ${PASSPHRASE}"
 
-#TODO: suggest new passphrase
-
-read -rp "Enter new passphrase: " NEW_PASSPHRASE
+generate_new_passphrase=$(_question_true_false "generate password")
+if [ "$generate_new_passphrase" = false ]
+then
+  read -rp "Enter new passphrase: " NEW_PASSPHRASE
+else
+  NEW_PASSPHRASE=$(_generate_shell_safe_password)
+  echo "new passphrase: ${NEW_PASSPHRASE}"
+fi
 
 # TODO automate
 #_gpg_sb --edit-key "${key_id}"

@@ -153,7 +153,10 @@ update_jiro_config() {
     new_value="$((1 + RESOURCE_PACKS))"
     new_line="   resourcePacks: ${new_value},"
     #TODO: simplify?
-    #FIXME does not work if diplayName is not ended with a comma
+    #Adds missing comma if required
+    if [[ $(grep "displayName" "${config_file}" | grep -o '.$') != "," ]]; then
+      sed -i -r "s/(displayName.*$)/\1,/g" "${config_file}"
+    fi
     sed -i "/displayName/a \ ${new_line}" "${config_file}"
   fi
 }

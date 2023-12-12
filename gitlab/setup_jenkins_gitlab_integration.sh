@@ -99,7 +99,7 @@ instructions_template() {
 Post the following on the corresponding HelpDesk issue:
 -------------------------------------------------------
 
-A GitLab bot user for ${PROJECT_NAME} has been created, along with credentials that have been added to the CI instance (SSH credentials ID: `gitlab-bot-ssh`).
+A GitLab bot user for ${PROJECT_NAME} has been created, along with credentials that have been added to the CI instance (SSH credentials ID: \`gitlab-bot-ssh\`).
 A webhook that will trigger CI jobs has been added as well.
 
 The recommended way of creating a GitLab triggered job and handle merge request is as follows:

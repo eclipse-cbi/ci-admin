@@ -140,7 +140,7 @@ update_projects_bot_api() {
   "${PROJECTS_BOTS_API_ROOT_FOLDER}"/regen_db.sh
 }
 
-fix_pass
+_question_action "update credentials in pass" "fix_pass"
 echo
 _question_action "rename the JIPP" "rename_jipp"
 _question_action "update the projects bot API" "update_projects_bot_api"

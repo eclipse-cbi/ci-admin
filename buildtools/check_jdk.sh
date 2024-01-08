@@ -397,7 +397,13 @@ wiki_text() {
   for version in "${version_array[@]}"; do
     local build_number
     build_number="$(jq -r ".${JDK_NAME}[] | select(.jdk_version==\"$version\") | .build_number" "${OUTPUT_FILE}" | sed -E 's/jdk-?//')"
-    echo "* ${JDK_NAME}-jdk${version}-latest <code>/opt/tools/java/${JDK_NAME}/jdk-${version}/latest</code> = '''${build_number}'''"
+    early_access=""
+    
+    if [[ ${build_number} = *-ea* ]]; then
+      early_access="('''Early Access''')"
+      echo "* ${JDK_NAME}-ea-latest ${early_access} <code>/opt/tools/java/${JDK_NAME}/jdk-${version}/latest</code> = '''${build_number}'''"
+    fi
+    echo "* ${JDK_NAME}-jdk${version}-latest ${early_access} <code>/opt/tools/java/${JDK_NAME}/jdk-${version}/latest</code> = '''${build_number}'''"
   done
   echo
 }

@@ -411,7 +411,7 @@ wiki_text() {
   echo "Wiki text for ${JDK_DISPLAY_NAME} JDKs:"
   echo "==========================="
   echo
-  highest_version=$(jq -r '.openjdk[].jdk_version' "${OUTPUT_FILE}" | sort -V | tail -n 1)
+  highest_version=$(jq -r ".${JDK_NAME}[] | select(.build_number | contains(\"-ea\") | not) | .jdk_version" "${OUTPUT_FILE}" | sort -V | tail -n 1)
   latest_version="$(jq -r ".${JDK_NAME}[] | select(.jdk_version==\"${highest_version}\") | .build_number" "${OUTPUT_FILE}" | sed -E 's/jdk-?//')"
   echo "* ${JDK_NAME}-latest <code>/opt/tools/java/${JDK_NAME}/latest</code> = '''${latest_version}'''"
 

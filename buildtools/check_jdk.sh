@@ -423,10 +423,10 @@ wiki_text() {
     early_access=""
     
     if [[ ${build_number} = *-ea* ]]; then
-      early_access="('''Early Access''')"
-      echo "* ${JDK_NAME}-ea-latest ${early_access} <code>/opt/tools/java/${JDK_NAME}/jdk-${version}/latest</code> = '''${build_number}'''"
+      early_access="('''Early Access''') "
+      echo "* ${JDK_NAME}-ea-latest ${early_access}<code>/opt/tools/java/${JDK_NAME}/jdk-${version}/latest</code> = '''${build_number}'''"
     fi
-    echo "* ${JDK_NAME}-jdk${version}-latest ${early_access} <code>/opt/tools/java/${JDK_NAME}/jdk-${version}/latest</code> = '''${build_number}'''"
+    echo "* ${JDK_NAME}-jdk${version}-latest ${early_access}<code>/opt/tools/java/${JDK_NAME}/jdk-${version}/latest</code> = '''${build_number}'''"
   done
   echo
 }

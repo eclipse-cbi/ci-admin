@@ -48,7 +48,7 @@ add_gitlab_jcasc_config() {
   output+='"readTimeout": 10,'
   output+='"url": "https://gitlab.eclipse.org"}]},'
   output+='"gitLabServers": { "Servers": [ {'
-  output+='"credentialsId": "gitlab-personal-access-token",'
+  output+='"credentialsId": "gitlab-api-token",'
   output+='"name": "gitlab.eclipse.org",'
   output+='"serverUrl": "https://gitlab.eclipse.org",'
   output+='"webhookSecretCredentialsId": "gitlab-webhook-secret"}]}}'

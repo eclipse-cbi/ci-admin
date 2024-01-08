@@ -137,6 +137,21 @@ send_key() {
   gpg_sb --keyserver "${keyserver}" --send-keys "${key_id}"
 }
 
+sign_key() {
+  local key_id="${1:-}"
+
+  # import webmaster's key
+  local pw_store_path_wm="gpg/webmaster"
+  local passphrase_wm
+  passphrase_wm="$(passw cbi "${pw_store_path_wm}/passphrase")"
+  local key_id_wm
+  key_id_wm="$(passw cbi "${pw_store_path_wm}/key_id")"
+
+  gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback --import <<< "$(passw cbi "${pw_store_path_wm}/secret-key.asc")" 3<<< "${passphrase_wm}"
+  # sign key
+  gpg_sb --local-user "${key_id_wm}" --batch --yes --passphrase-fd 3 --pinentry-mode=loopback --sign-key "${key_id}" 3<<< "${passphrase_wm}"
+}
+
 export_keys(){
   local key_id="${1:-}"
   local pass_phrase="${2:-}"
@@ -183,6 +198,8 @@ printf "Found key: %s\n" "${key_id}"
 check_prefs "${key_id}"
 
 yes_skip_exit "generate a signing (sub-)keypair" generate_sub_keypair "${key_id}" "${pass_phrase}"
+
+yes_skip_exit "sign key with webmaster key" sign_key "${key_id}"
 
 yes_skip_exit "export the keys" export_keys "${key_id}" "${pass_phrase}"
 

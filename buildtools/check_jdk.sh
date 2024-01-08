@@ -388,14 +388,12 @@ wiki_text() {
   echo "Wiki text for ${JDK_DISPLAY_NAME} JDKs:"
   echo "==========================="
   echo
-#TODO: find latest version automatically
-  local latest_version
-  latest_version="$(jq -r ".${JDK_NAME}[] | select(.jdk_version==\"17\") | .build_number" "${OUTPUT_FILE}" | sed -E 's/jdk-?//')"
+  highest_version=$(jq -r '.openjdk[].jdk_version' "${OUTPUT_FILE}" | sort -V | tail -n 1)
+  latest_version="$(jq -r ".${JDK_NAME}[] | select(.jdk_version==\"${highest_version}\") | .build_number" "${OUTPUT_FILE}" | sed -E 's/jdk-?//')"
   echo "* ${JDK_NAME}-latest <code>/opt/tools/java/${JDK_NAME}/latest</code> = '''${latest_version}'''"
 
-  local version_array=($(jq -r ".${JDK_NAME}[].versions" "${JDK_CONFIG}" | tr -d '[]," '))
+  local version_array=($(jq -r ".${JDK_NAME}[].versions | reverse" "${JDK_CONFIG}" | tr -d '[]," '))
 
-#TODO: reverse order
   for version in "${version_array[@]}"; do
     local build_number
     build_number="$(jq -r ".${JDK_NAME}[] | select(.jdk_version==\"$version\") | .build_number" "${OUTPUT_FILE}" | sed -E 's/jdk-?//')"

@@ -10,7 +10,7 @@
     {
       "display_name": "IBM Semeru",
       "url": "https://api.github.com/repos/ibmruntimes/semeru<version>-binaries/releases/latest",
-      "versions": [8, 11, 17, 18, 19, 20]
+      "versions": [8, 11, 17, 18, 19, 20, 21]
     }
   ],
   "openjdk": [

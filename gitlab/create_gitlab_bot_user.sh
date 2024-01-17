@@ -39,7 +39,7 @@ create_credentials_in_pass() {
 #TODO: simplify
   if ! passw cbi "${PW_STORE_PATH}/id_rsa" &> /dev/null ; then
     echo "Creating GitLab SSH credentials in password store..."
-    "${SCRIPT_FOLDER}/../pass/add_creds.sh" "ssh_keys" "${project_name}" "${GITLAB_PASS_DOMAIN}" "${short_name}-bot"
+    "${SCRIPT_FOLDER}/../pass/add_creds.sh" "ssh_keys" "${project_name}" "${GITLAB_PASS_DOMAIN}" "eclipse-${short_name}-bot"
     # create password (password parameter is required by GitLab API), could be replaced with "force_random_password" API option
     pwgen -1 -s -r "%&\'\"" -y 24 | passw cbi insert --echo "${PW_STORE_PATH}/password"
   else

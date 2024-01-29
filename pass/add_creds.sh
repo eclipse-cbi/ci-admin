@@ -118,6 +118,7 @@ help() {
   printf "projects_storage\tCreate SSH credentials for projects-storage.eclipse.org (SSH keypair).\n"
   printf "docker\t\t\tCreate credentials for docker.com (username/password).\n"
   printf "quay\t\t\tCreate credentials for quay.io (username/password).\n"
+  printf "npm\t\t\tCreate credentials for npmjs.com (username/password).\n"
   exit 0
 }
 
@@ -226,6 +227,13 @@ quay() {
   local site="quay.io"
 
   generic_container "${project_name}" "${site}"
+}
+
+npm() {
+  local project_name="${1:-}"
+  local site="npmjs.com"
+
+  generic "${project_name}" "${site}"
 }
 
 projects_storage() {

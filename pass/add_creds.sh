@@ -106,6 +106,7 @@ help() {
   printf "Command\t\t\tDescription\n\n"
   printf "user_pw\t\t\tCreate any credentials (username/password).\n"
   printf "user_pw_prompt\t\tCreate any credentials (username/password).\n"
+  printf "generic\t\t\tCreate any credentials for a site (username/password) e.g: ./pass/add_creds.sh \""generic\"" \""iot.4diac\"" \""quay.io\"".\n"
   printf "ssh_keys\t\tCreate any SSH credentials (SSH keypair).\n"
   printf "gerrit\t\t\tCreate Gerrit credentials (SSH keypair).\n"
   printf "github\t\t\tCreate GitHub credentials (username/password).\n"
@@ -152,52 +153,58 @@ gerrit() {
   fi
 }
 
-github() {
+generic() {
   local project_name="${1:-}"
-  local site="github.com"
+  local site="${2:-}"
   local short_name="${project_name##*.}"
   local email="${short_name}-bot@eclipse.org"
   local user="eclipse-${short_name}-bot"
 
   user_pw "${project_name}" "${site}" "${email}" "${user}"
+}
+
+generic_ssh() {
+  local project_name="${1:-}"
+  local site="${2:-}"
+  local short_name="${project_name##*.}"
+  local user="eclipse-${short_name}-bot"
+
+  ssh_keys "${project_name}" "${site}"
+}
+
+github() {
+  local project_name="${1:-}"
+  local site="github.com"
+
+  generic "${project_name}" "${site}" 
 }
 
 github_ssh() {
   local project_name="${1:-}"
   local site="github.com"
-  local short_name="${project_name##*.}"
-  local user="eclipse-${short_name}-bot"
 
-  ssh_keys "${project_name}" "${site}" "${user}"
+  generic_ssh "${project_name}" "${site}"
 }
 
 matrix() {
   local project_name="${1:-}"
   local site="matrix.eclipse.org"
-  local short_name="${project_name##*.}"
-  local email="${short_name}-bot@eclipse.org"
-  local user="eclipse-${short_name}-bot"
 
-  user_pw "${project_name}" "${site}" "${email}" "${user}"
+  generic "${project_name}" "${site}"
 }
 
 ossrh() {
   local project_name="${1:-}"
   local site="oss.sonatype.org"
-  local short_name="${project_name##*.}"
-  local email="${short_name}-bot@eclipse.org"
-  local user="eclipse-${short_name}-bot"
 
-  user_pw "${project_name}" "${site}" "${email}" "${user}"
+  generic "${project_name}" "${site}"
 }
 
 projects_storage() {
   local project_name="${1:-}"
   local site="projects-storage.eclipse.org"
-  local short_name="${project_name##*.}"
-  local user="eclipse-${short_name}-bot"
 
-  ssh_keys "${project_name}" "${site}" "${user}"
+  generic_ssh "${project_name}" "${site}"
 }
 
 ssh_keys() {

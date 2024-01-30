@@ -107,7 +107,7 @@ help() {
   printf "user_pw\t\t\tCreate any credentials (username/password).\n"
   printf "user_pw_prompt\t\tCreate any credentials (username/password).\n"
   printf "generic\t\t\tCreate any credentials for a site (username/password) e.g: ./pass/add_creds.sh \""generic\"" \""iot.4diac\"" \""npmjs.com\"".\n"
-  printf "generic_container\t\t\tCreate any credentials for a container site (docker, quay.io, ...) (username/password) e.g: ./pass/add_creds.sh \""generic_container\"" \""iot.4diac\"" \""quay.io\"".\n"
+  printf "generic_container\t\t\tCreate any credentials for a container site (docker, ...) (username/password) e.g: ./pass/add_creds.sh \""generic_container\"" \""iot.4diac\"" \""quay.io\"".\n"
   printf "generic_ssh\t\t\tCreate any SSH credentials for a site (SSH keypair) e.g: ./pass/add_creds.sh \""generic_ssh\"" \""iot.4diac\"" \""quay.io\"".\n"
   printf "ssh_keys\t\tCreate any SSH credentials (SSH keypair).\n"
   printf "gerrit\t\t\tCreate Gerrit credentials (SSH keypair).\n"
@@ -226,7 +226,7 @@ quay() {
   local project_name="${1:-}"
   local site="quay.io"
 
-  generic_container "${project_name}" "${site}"
+  generic "${project_name}" "${site}"
 }
 
 npm() {

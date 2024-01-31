@@ -165,9 +165,9 @@ EOE
     # DEBUG
     #echo "${json}" | jq .
 
-    local release_name
-    local build_number
-    local download_url
+    local release_name=""
+    local build_number=""
+    local download_url=""
 
 #TODO: try to avoid if condition (use jdk_config.json instead
     if [[ "${JDK_NAME}" == "temurin" ]]; then
@@ -186,18 +186,39 @@ EOE
         #shellcheck disable=SC2046
         readarray -t array <<< $(create_openjdk_ea_array "${version}")
       else
+        # #shellcheck disable=SC2046
+        # readarray -t array <<< $(create_openjdk_archive_array "${version}")
+        # if [[ -z "${array[0]}" ]]; then
+        #   echo "Version ${version} not found on archive page, trying release page..."
+        #   create_openjdk_array "${version}"
+        #   #shellcheck disable=SC2046
+        #   readarray -t array <<< $(create_openjdk_array "${version}")
+        # fi
         #shellcheck disable=SC2046
-        readarray -t array <<< $(create_openjdk_archive_array "${version}")
-        if [[ -z "${array[0]}" ]]; then
-          echo "Version ${version} not found on archive page, trying release page..."
-          create_openjdk_array "${version}"
+        readarray -t array <<< $(create_openjdk_array "${version}")
+        if [[ ${#array[@]} != 2 ]] || [[ -z "${array[0]}" ]] || [[ -z "${array[1]}" ]]; then
+          echo "Openjdk version ${version} not found on release page, trying archive page..."
           #shellcheck disable=SC2046
-          readarray -t array <<< $(create_openjdk_array "${version}")
+          readarray -t array <<< $(create_openjdk_archive_array "${version}")
+          if [[ ${#array[@]} != 2 ]] ||  [[ -z "${array[0]}" ]] || [[ -z "${array[1]}" ]]; then
+            echo "Openjdk version ${version} not found on archive page"
+          else
+            echo "Openjdk Version ${version} found on archive page"
+          fi
+        else
+          echo "Openjdk Version ${version} found on release page"
         fi
       fi
-      release_name="${array[0]}"
-      build_number="${array[0]}"
-      download_url="${array[1]}"
+      if [[ ${#array[@]} == 2 ]] && [[ -n "${array[0]}" ]] && [[ -n "${array[1]}" ]]; then
+        release_name="${array[0]}"
+        build_number="${array[0]}"
+        download_url="${array[1]}"
+      fi
+    fi
+
+    if [[ -z "${release_name}" ]] || [[ -z "${build_number}" ]] || [[ -z "${download_url}" ]]; then
+      echo "ERROR: could not find all required information for JDK ${version}"
+      return
     fi
 
     echo "  Release name: ${release_name}"

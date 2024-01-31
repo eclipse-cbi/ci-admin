@@ -27,6 +27,8 @@ SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 JDK_CONFIG="jdk_config.json"
 
+USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.3"
+
 JDK_NAME="${1:-}"
 
 # check that jdk name is not empty
@@ -61,7 +63,7 @@ is_ea_build() {
   local base_url="https://jdk.java.net/${version}"
 
   local temp_html="ea.html"
-  wget -q -O - "${base_url}" | tail -n+2 | xmlstarlet format --omit-decl --dropdtd 2>/dev/null > "${temp_html}" || true
+  wget -q -O - "${base_url}" --user-agent="${USER_AGENT}" | tail -n+2 | xmlstarlet format --omit-decl --dropdtd 2>/dev/null > "${temp_html}" || true
   sed -i "s/<html .*>/<html>/" "${temp_html}"
 
   # if headline includes "Early-Access" consider the version to be an EA
@@ -96,7 +98,7 @@ create_openjdk_archive_array() {
   local os="linux-x64_bin"
   local temp_html="archive.html"
 #TODO: why is return code != 0?
-  wget -q -O - "${base_url}" | tail -n+2 | xmlstarlet format --omit-decl --dropdtd 2>/dev/null > "${temp_html}" || true
+  wget -q -O - "${base_url}" --user-agent="${USER_AGENT}" | tail -n+2 | xmlstarlet format --omit-decl --dropdtd 2>/dev/null > "${temp_html}" || true
   sed -i "s/<html .*>/<html>/" "${temp_html}"
 
   # get build number
@@ -120,7 +122,7 @@ create_openjdk_array() {
   local os="linux-x64_bin"
   local temp_html="release.html"
 #TODO: why is return code != 0?
-  wget -q -O - "${base_url}" | tail -n+2 | xmlstarlet format --omit-decl --dropdtd 2>/dev/null > "${temp_html}" || true
+  wget -q -O - "${base_url}" --user-agent="${USER_AGENT}" | tail -n+2 | xmlstarlet format --omit-decl --dropdtd 2>/dev/null > "${temp_html}" || true
   sed -i "s/<html .*>/<html>/" "${temp_html}"
 
   # get build number
@@ -253,7 +255,7 @@ update() {
 #TODO: check if dir already exists
 
   #wget on bambam does not work
-  wget -c "${url}"
+  wget -c "${url}" --user-agent="${USER_AGENT}"
   rsync -P -e ssh "${name}" "${CONNECTION}":/tmp/
 
   #TODO: fails when assigning separately?

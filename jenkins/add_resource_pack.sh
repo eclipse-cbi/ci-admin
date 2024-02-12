@@ -50,12 +50,12 @@ if [[ "${DEDICATED_AGENTS}" -lt 0 ]]; then
 fi
 
 if [ -z "${RUNNERS}" ]; then
-  printf "ERROR: Number of dedicated runners must be given.\n"
+  printf "ERROR: Number of GitHub large runners must be given.\n"
   exit 1
 fi
 
 if [[ "${RUNNERS}" -lt 0 ]]; then
-  echo "Number of dedicated runners must be 0 or greater..."
+  echo "Number of GitHub large runners must be 0 or greater..."
   exit 1
 fi
 
@@ -169,7 +169,7 @@ if [[ "${DEDICATED_AGENTS}" -gt 0 ]]; then
   check_avail "dedicatedAgents" "dedicated agents"
 fi
 if [[ "${RUNNERS}" -gt 0 ]]; then
-  check_avail "ghLargeRunners" "dedicated runner"
+  check_avail "ghLargeRunners" "GitHub large runners"
 fi
 update_cbi_sponsorship_api
 if [[ "${RESOURCE_PACKS}" -gt 0 ]]; then

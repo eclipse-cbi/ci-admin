@@ -94,7 +94,12 @@ create_ossrh_credentials() {
 
 create_gpg_credentials() {
   printf "Creating GPG credentials...\n"
-#TODO: skip if GPG creds already exist
+  local pw_store_path="bots/${PROJECT_NAME}/gpg"
+  # check that the entries do not exist yet
+  if passw cbi "${pw_store_path}" &> /dev/null ; then
+    printf "GPG credentials for %s already exist. Skipping creation...\n" "${PROJECT_NAME}"
+    return
+  fi
   "${CI_ADMIN_ROOT}/pass/add_creds_gpg.sh" "${PROJECT_NAME}" "${DISPLAY_NAME} Project"
 }
 

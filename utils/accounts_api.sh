@@ -47,7 +47,7 @@ get_profile_by_user_id() {
   local user_id="$1"
   curl -sLf --request GET \
     --retry 8 \
-    --url "${PROFILE_URL}/${user_id}.json" \
+    --url "${PROFILE_URL}/${user_id}" \
     --header "Authorization: Bearer ${ACCESS_TOKEN}" | jq '.'
 }
 

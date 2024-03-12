@@ -141,8 +141,13 @@ update_projects_bot_api() {
 }
 
 _question_action "update credentials in pass" "fix_pass"
-echo
-_question_action "rename the JIPP" "rename_jipp"
+
+printf "\n# Updating Jenkins instance...\n"
+if [[ -d "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}" ]]; then
+  _question_action "rename the JIPP" "rename_jipp"
+else
+  echo " * [SKIP] No Jenkins instance found for ${PROJECT_NAME}."
+fi
 _question_action "update the projects bot API" "update_projects_bot_api"
 
 echo

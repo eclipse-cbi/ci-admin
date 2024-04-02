@@ -63,7 +63,7 @@ is_ea_build() {
   local base_url="https://jdk.java.net/${version}"
 
   local temp_html="ea.html"
-  wget -q -O - "${base_url}" --user-agent="${USER_AGENT}" | tail -n+2 | xmlstarlet format --omit-decl --dropdtd 2>/dev/null > "${temp_html}" || true
+  curl -sSL "${base_url}" | tail -n+2 | xmlstarlet format --omit-decl --dropdtd 2>/dev/null > "${temp_html}" || true
   sed -i "s/<html .*>/<html>/" "${temp_html}"
 
   # if headline includes "Early-Access" consider the version to be an EA
@@ -98,7 +98,7 @@ create_openjdk_archive_array() {
   local os="linux-x64_bin"
   local temp_html="archive.html"
 #TODO: why is return code != 0?
-  wget -q -O - "${base_url}" --user-agent="${USER_AGENT}" | tail -n+2 | xmlstarlet format --omit-decl --dropdtd 2>/dev/null > "${temp_html}" || true
+  curl -sSL "${base_url}" | tail -n+2 | xmlstarlet format --omit-decl --dropdtd 2>/dev/null > "${temp_html}" || true
   sed -i "s/<html .*>/<html>/" "${temp_html}"
 
   # get build number
@@ -122,7 +122,7 @@ create_openjdk_array() {
   local os="linux-x64_bin"
   local temp_html="release.html"
 #TODO: why is return code != 0?
-  wget -q -O - "${base_url}" --user-agent="${USER_AGENT}" | tail -n+2 | xmlstarlet format --omit-decl --dropdtd 2>/dev/null > "${temp_html}" || true
+  curl -sSL "${base_url}" | tail -n+2 | xmlstarlet format --omit-decl --dropdtd 2>/dev/null > "${temp_html}" || true
   sed -i "s/<html .*>/<html>/" "${temp_html}"
 
   # get build number

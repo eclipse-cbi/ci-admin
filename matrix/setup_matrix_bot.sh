@@ -122,7 +122,7 @@ read -rsp $'Press any key to continue...\n' -n1
 
 echo "Working on matrix instance : ${MATRIX_URL}"
 
-"${SCRIPT_FOLDER}/matrix_admin.sh" "test_connexion"
+"${SCRIPT_FOLDER}/matrix_admin.sh" "test_connection"
 "${SCRIPT_FOLDER}/matrix_admin.sh" "test_login"
 
 echo "##############################################################################"

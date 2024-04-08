@@ -86,7 +86,7 @@ _create_user_api() {
   curl -sSL \
     --header "${TOKEN_HEADER}" \
     --request PUT "${MATRIX_URL}/_synapse/admin/v2/users/@${username}:${MATRIX_DOMAIN}" \
-    -d "{\"displayname\": \"${displayName}\", \"password\": \"${pw}\", \"threepids\":[{\"medium\":\"email\",\"address\":\"${email}\"}]}"
+    -d "{\"displayname\": \"${displayName}\", \"password\": \"${pw//\"/\\\"}\", \"threepids\":[{\"medium\":\"email\",\"address\":\"${email}\"}]}"
 }
 
 create_user() {
@@ -140,7 +140,7 @@ get_access_token() {
 
   response=$(curl -sSL --header "${TOKEN_HEADER}" -w "\n%{http_code}" \
     "${MATRIX_URL}/_matrix/client/r0/login" \
-    -d '{"type":"m.login.password", "user":"'"${username}"'", "password":"'"${pw}"'"}'
+    -d '{"type":"m.login.password", "user":"'"${username}"'", "password":"'"${pw//\"/\\\"}"'"}'
     )
 
   http_code=$(echo "${response}" | tail -n 1)

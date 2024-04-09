@@ -90,9 +90,12 @@ _generate_ssh_keys() {
   cat "${temp_path}" | passw cbi insert -m "${pw_store_path}/id_rsa"
   cat "${temp_path}.pub" | passw cbi insert -m "${pw_store_path}/id_rsa.pub"
   rm "${temp_path}"*
-  # Add user (if it does not exist yet)
+  # Add user/email (if it does not exist yet)
   if _check_pw_does_not_exist "${project_name}" "${site}/username"; then
     echo "${user}" | passw cbi insert --echo "${pw_store_path}/username"
+  fi
+  if _check_pw_does_not_exist "${project_name}" "${site}/email"; then
+    echo "${email}" | passw cbi insert --echo "${pw_store_path}/email"
   fi
 }
 

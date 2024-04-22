@@ -71,165 +71,13 @@ fi
 
 JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
 
-FILE_SERVER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "server" "file_server")"
-FILE_SERVER_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "user" "file_server")"
-FILE_SERVER_PW="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "pw" "file_server")"
-FILE_SERVER_PW_ROOT="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "pw_root" "file_server")"
-FILE_SERVER_PW_LDAP="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "pw_ldap" "file_server")"
 
-check_genie_user() {
-  local project_name="${1:-}"
-
-  local user="${FILE_SERVER_USER}"
-  local server="${FILE_SERVER}"
-
-  local short_name="${project_name##*.}"
-  local genie_user="genie.${short_name}"
-
-  echo
-  echo "Checks for ${genie_user}:"
-
-  #shellcheck disable=SC2087
-  ssh "${user}"@"${server}" /bin/bash << EOF
-  if [[ -d "/opt/public/hipp/homes/${genie_user}" ]]; then
-    printf "Genie homedir:\t\texists\n"
-  else
-    printf "Genie homedir:\t\tmissing!\n"
-  fi
-  if [[ -d "/home/data/httpd/download.eclipse.org/${short_name}" ]]; then
-    printf "Download directory:\texists\n"
-  else
-    printf "Download directory:\tmissing!\n"
-  fi
-  if id "${genie_user}" | grep "${project_name}" &>/dev/null; then
-    printf "Member of group:\texists\n"
-  else
-    printf "Member of group:\tmissing!\n"
-  fi
-EOF
-}
-
-fix_ldap() {
-  local project_name="${1:-}"
-
-  local user="${FILE_SERVER_USER}"
-  local server="${FILE_SERVER}"
-  local pw="${FILE_SERVER_PW}"
-  local pwRoot="${FILE_SERVER_PW_ROOT}"
-  local pwLdap="${FILE_SERVER_PW_LDAP}"
-
-  local short_name="${project_name##*.}"
-  local genieUser="genie.${short_name}"
-
-  local userPrompt="$user@projects-storage:~$*"
-  local passwordPrompt="\[Pp\]assword: *"
-  local serverRootPrompt="$server:~ # *"
-  local ldapPasswordPrompt="LDAP \[Pp\]assword: *"
-
-  echo
-  echo "Fix LDAP ${genieUser}:"
-
-  # /usr/bin/env expect<<EOF can not be used
-  # "The problem is in expect << EOF. With expect << EOF, expect's stdin is the here-doc rather than a tty.
-  # But the interact command only works when expect's stdin is a tty."
-
-  expect -c "
-  #5 seconds timeout
-  set timeout 5
-
-  # ssh to remote
-  spawn ssh $user@$server
-
-  expect {
-    -re \"$passwordPrompt\" {
-      #interact -o -nobuffer -re \"$passwordPrompt\" return
-      send [exec pass $pw]\r
-    }
-    #TODO: only works one time
-    -re \"passphrase\" {
-      interact -o \"\r\" return
-    }
-  }
-  expect -re \"$userPrompt\"
-
-  # su to root
-  send \"su -\r\"
-  interact -o -nobuffer -re \"$passwordPrompt\" return
-  send \"[exec pass $pwRoot]\r\"
-  expect -re \"$serverRootPrompt\"
-
-  # fix LDAP
-  #TODO: fix expect: spawn id exp4 not open issues
-  send \"./fix_ldap.sh $genieUser\r\"
-  interact -o -nobuffer -re \"$ldapPasswordPrompt\" return
-  send_user \"\n\"
-  send \"[exec pass $pwLdap]\r\"
-
-  # exit su and exit ssh
-  send \"exit\rexit\r\"
-
-  expect eof
-"
-}
-
-add_pub_key() {
-  #add public key to genie's .ssh/authorized_keys
-  local project_name="${1:-}"
-
-  local user="${FILE_SERVER_USER}"
-  local server="${FILE_SERVER}"
-  local pw="${FILE_SERVER_PW}"
-  local pwRoot="${FILE_SERVER_PW_ROOT}"
-
-  local short_name="${project_name##*.}"
-  local genieUser="genie.${short_name}"
-
-  local userPrompt="${user}@${server}~$*"
-  local passwordPrompt="\[Pp\]assword: *"
-  local serverRootPrompt="$server:~ # *"
-  local geniePrompt="${genieUser}@${server}:~*"
-
-  local id_rsa_pub="cbi-pass/bots/${project_name}/projects-storage.eclipse.org/id_rsa.pub"
-
-  expect -c "
-  #5 seconds timeout
-  set timeout 5
-
-  # ssh to remote
-  spawn ssh $user@$server
-
-  expect {
-    -re \"$passwordPrompt\" {
-      #interact -o -nobuffer -re \"$passwordPrompt\" return
-      send [exec pass $pw]\r
-    }
-    #TODO: only works one time
-    -re \"passphrase\" {
-      interact -o \"\r\" return
-    }
-  }
-  expect -re \"$userPrompt\"
-
-  # su to root
-  send \"su -\r\"
-  interact -o -nobuffer -re \"$passwordPrompt\" return
-  send [exec pass $pwRoot]\r
-  expect -re \"$serverRootPrompt\"
-
-  # su to genie.user
-  send \"su - $genieUser\r\"
-  expect -re \"$geniePrompt\"
-
-  # add SSH pub key to .ssh/authorized_keys
-  #TODO: do not add key if it already exists
-  #TODO: fix quoting
-  send \"echo [exec pass $id_rsa_pub] >> .ssh/authorized_keys\r\"
-  send \"cat .ssh/authorized_keys\r\"
-
-  # exit su, exit su and exit ssh
-  send \"exit\rexit\rexit\r\"
-  expect eof
-"
+setup_projects_storage() {
+  printf "\n\n### Setting up projects storage credentials...\n"
+  pushd "${CI_ADMIN_ROOT}/projects-storage" > /dev/null
+  ./setup_projects_storage.sh "${PROJECT_NAME}"
+  popd > /dev/null
+  printf "\n"
 }
 
 setup_github() {
@@ -245,6 +93,10 @@ setup_ossrh() {
   ./setup_ossrh.sh "${PROJECT_NAME}" "${DISPLAY_NAME}"
   popd > /dev/null
   printf "\n"
+}
+
+setup_jipp() {
+  "${JIRO_ROOT_FOLDER}/incubation/create_new_jiro_jipp.sh" "${PROJECT_NAME}" "${DISPLAY_NAME}"
 }
 
 question() {
@@ -290,23 +142,11 @@ read -rsp $'Once you are done, press any key to continue...\n' -n1
 echo "Connected to cluster?"
 read -rp "Press enter to continue or CTRL-C to stop the script"
 
-#TODO: can this be done differently?
-eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/id_rsa
+# ask if projects storage credentials should be created
+question "setup Projects storage credentials" "setup_projects_storage"
 
-#TODO: assume that check_genie_user and fix_ldap are no longer required
-check_genie_user "${PROJECT_NAME}"
-fix_ldap "${PROJECT_NAME}"
-
-#FIXME: gerrit and projects_storage creds should not be created, if they already exist
-
-pushd "${CI_ADMIN_ROOT}/pass" > /dev/null
-./add_creds.sh projects_storage "${PROJECT_NAME}" || : # if creds already exist, ignore exit code 1
-popd > /dev/null
-
-add_pub_key "${PROJECT_NAME}"
-
-"${JIRO_ROOT_FOLDER}/incubation/create_new_jiro_jipp.sh" "${PROJECT_NAME}" "${DISPLAY_NAME}"
+# ask if the jipp should be created
+question "setup new JIPP instance" "setup_jipp"
 
 # ask if GitHub bot credentials should be created
 question "setup GitHub bot credentials" "setup_github"

@@ -19,6 +19,9 @@ SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 #shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 
+#shellcheck disable=SC1091
+source "${SCRIPT_FOLDER}/../utils/common.sh"
+
 GITLAB_PASS_DOMAIN="gitlab.eclipse.org"
 
 PROJECT_NAME="${1:-}"
@@ -47,6 +50,12 @@ create_credentials_in_pass() {
   fi
 }
 
+create_token() {
+  token="$("${SCRIPT_FOLDER}/gitlab_admin.sh" "create_api_token" "${username}")"
+  echo "Adding API token to pass..."
+  echo "${token}" | passw cbi insert --echo "${PW_STORE_PATH}/api-token"
+}
+
 # MAIN
 
 create_credentials_in_pass "${PROJECT_NAME}"
@@ -60,11 +69,10 @@ id_rsa_pub="$(passw cbi "${PW_STORE_PATH}/id_rsa.pub")"
 "${SCRIPT_FOLDER}/gitlab_admin.sh" "add_ssh_key" "${username}" "${id_rsa_pub}"
 
 if ! passw cbi "${PW_STORE_PATH}/api-token" &> /dev/null ; then
-  token="$("${SCRIPT_FOLDER}/gitlab_admin.sh" "create_api_token" "${username}")"
-  echo "Adding API token to pass..."
-  echo "${token}" | passw cbi insert --echo "${PW_STORE_PATH}/api-token"
+  create_token
 else
-  echo "Found ${GITLAB_PASS_DOMAIN} api-token in password store. Skipping creation..."
+  echo "Found ${GITLAB_PASS_DOMAIN} api-token in password store."
+  _question_action "Would you like to renew token?" create_token 
 fi
 
 echo "Done."

@@ -53,15 +53,6 @@ if [ -z "${DISPLAY_NAME}" ]; then
   fi
 fi
 
-open_url() {
-  local url="${1:-}"
-  if which xdg-open > /dev/null; then # most Linux
-    xdg-open "${url}"
-  elif which open > /dev/null; then # macOS
-    open "${url}"
-  fi
-}
-
 create_ossrh_credentials() {
   printf "\nCreating OSSRH credentials...\n"
   "${CI_ADMIN_ROOT}/pass/add_creds.sh" "ossrh" "${PROJECT_NAME}" || true
@@ -94,13 +85,9 @@ create_ossrh_credentials() {
 
 create_gpg_credentials() {
   printf "Creating GPG credentials...\n"
-  local pw_store_path="bots/${PROJECT_NAME}/gpg"
-  # check that the entries do not exist yet
-  if passw cbi "${pw_store_path}" &> /dev/null ; then
-    printf "GPG credentials for %s already exist. Skipping creation...\n" "${PROJECT_NAME}"
-    return
+  if _check_pw_does_not_exist "${PROJECT_NAME}" "gpg"; then
+    "${CI_ADMIN_ROOT}/pass/add_creds_gpg.sh" "${PROJECT_NAME}" "${DISPLAY_NAME} Project"
   fi
-  "${CI_ADMIN_ROOT}/pass/add_creds_gpg.sh" "${PROJECT_NAME}" "${DISPLAY_NAME} Project"
 }
 
 create_jenkins_credentials() {

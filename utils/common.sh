@@ -15,6 +15,8 @@ set -o pipefail
 
 IFS=$'\n\t'
 
+source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
+
 #TODO: can actions be called that are defined in the script that is sourcing the common.sh script? => YES
 _question_action() {
   local message="${1:-}"
@@ -47,6 +49,19 @@ _check_parameter() {
     printf "ERROR: a %s must be given.\n" "${param_name}"
     exit 1
   fi
+}
+
+_check_pw_does_not_exist() {
+  local project_name="${1:-}"
+  local path="${2:-}"
+  local pw_store_path="bots/${project_name}/${path}"
+
+  # check that the entries do not exist yet
+  if passw cbi "${pw_store_path}" &> /dev/null ; then
+    printf "%s credentials for %s already exist. Skipping creation...\n" "${path}" "${project_name}"
+    return 1
+  fi
+  return 0
 }
 
 _open_url() {

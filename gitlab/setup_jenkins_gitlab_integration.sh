@@ -102,6 +102,10 @@ Post the following on the corresponding HelpDesk issue:
 A GitLab bot user for ${PROJECT_NAME} has been created, along with credentials that have been added to the CI instance (SSH credentials ID: \`gitlab-bot-ssh\`).
 A webhook that will trigger CI jobs has been added as well.
 
+As part of our [jenkins pipeline best practice](https://github.com/eclipse-cbi/jiro/wiki/Jenkins#jenkins-pipeline-best-practices), we encourage following recommendations:
+* Utilize \`Jenkinsfile\`: it allows to define an entire pipeline as code by managing build process declaratively or with scripted syntax, making pipeline configuration version-controlled and therefore reproducible. Learn more about Jenkinsfile [here](https://www.jenkins.io/doc/book/pipeline/jenkinsfile/).
+* In addition \`Multibranch Pipeline\`: automatically creates a pipeline for each branch/merge request of a repository. This approach simplifies branch management and enables automated branch-based builds and testing. More about Multibranch Pipeline [here](https://www.jenkins.io/doc/book/pipeline/multibranch/).
+
 The recommended way of creating a GitLab triggered job and handle merge request is as follows:
 * create a Multi-branch pipeline job
 * in your job config under "Branch Sources > Add source" select "GitLab project"

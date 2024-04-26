@@ -21,6 +21,9 @@ SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}")"
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
+#shellcheck disable=SC1091
+source "${SCRIPT_FOLDER}/../utils/common.sh"
+
 PROJECT_NAME="${1:-}"
 DISPLAY_NAME="${2:-}"
 
@@ -81,18 +84,6 @@ setup_grac() {
   popd > /dev/null
 }
 
-question() {
-  local message="${1:-}"
-  local action="${2:-}"
-  read -rp "Do you want to ${message}? (Y)es, (N)o, E(x)it: " yn
-  case $yn in
-    [Yy]* ) ${action};;
-    [Nn]* ) return ;;
-    [Xx]* ) exit 0;;
-        * ) echo "Please answer (Y)es, (N)o, E(x)it"; question "${message}" "${action}";
-  esac
-}
-
 issue_template() {
   cat <<EOF
 
@@ -116,12 +107,12 @@ read -rsp $'Once you are done, press any key to continue...\n' -n1
 echo "Connected to cluster?"
 read -rp "Press enter to continue or CTRL-C to stop the script"
 
-question "setup GitLab bot" "setup_gitlab_bot"
+_question_action "setup GitLab bot" "setup_gitlab_bot"
 
-question "setup Projects storage credentials" "setup_projects_storage"
-question "setup OSSRH credentials" "setup_ossrh"
+_question_action "setup Projects storage credentials" "setup_projects_storage"
+_question_action "setup OSSRH credentials" "setup_ossrh"
 
-question "setup new Grac instance" "setup_grac"
+_question_action "setup new Grac instance" "setup_grac"
 
 echo "WARN: secretsmanager configuration must be done manually"
 

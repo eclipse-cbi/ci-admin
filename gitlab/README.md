@@ -19,7 +19,11 @@
     * Add bot user to projects bot API
     * Add bot to GitLab group
     * Create webhook
+* [setup_gitlab_runner_integration.sh](setup_gitlab_runner_integration.sh) - Setup GitLab bot integration for gitlab runner
+  * does the following:
+    * Create bot user in GitLab
+    * Add bot user to projects bot API
+    * Add bot to GitLab group
   * calls:
     * [create_gitlab_bot_user.sh](create_gitlab_bot_user.sh)
     * [gitlab_admin.sh](gitlab_admin.sh)
-    * [create_gitlab_webhook.sh](create_gitlab_webhook.sh)

@@ -107,8 +107,6 @@ help() {
   printf "user_pw\t\t\tCreate any credentials (username/password).\n"
   printf "user_pw_prompt\t\tCreate any credentials (username/password).\n"
   printf "generic\t\t\tCreate any credentials for a site (username/password) e.g: ./pass/add_creds.sh \""generic\"" \""iot.4diac\"" \""npmjs.com\"".\n"
-  printf "generic_container\t\t\tCreate any credentials for a container site (docker, ...) (username/password) e.g: ./pass/add_creds.sh \""generic_container\"" \""iot.4diac\"" \""quay.io\"".\n"
-  printf "generic_ssh\t\t\tCreate any SSH credentials for a site (SSH keypair) e.g: ./pass/add_creds.sh \""generic_ssh\"" \""iot.4diac\"" \""quay.io\"".\n"
   printf "ssh_keys\t\tCreate any SSH credentials (SSH keypair).\n"
   printf "gerrit\t\t\tCreate Gerrit credentials (SSH keypair).\n"
   printf "github\t\t\tCreate GitHub credentials (username/password).\n"
@@ -168,25 +166,6 @@ generic() {
   user_pw "${project_name}" "${site}" "${email}" "${user}"
 }
 
-generic_container() {
-  local project_name="${1:-}"
-  local site="${2:-}"
-  local short_name="${project_name##*.}"
-  local email="${short_name}-bot@eclipse.org"
-  local user="eclipse${short_name}"
-
-  user_pw "${project_name}" "${site}" "${email}" "${user}"
-}
-
-generic_ssh() {
-  local project_name="${1:-}"
-  local site="${2:-}"
-  local short_name="${project_name##*.}"
-  local user="eclipse-${short_name}-bot"
-
-  ssh_keys "${project_name}" "${site}"
-}
-
 github() {
   local project_name="${1:-}"
   local site="github.com"
@@ -197,8 +176,10 @@ github() {
 github_ssh() {
   local project_name="${1:-}"
   local site="github.com"
+  local short_name="${project_name##*.}"
+  local user="eclipse-${short_name}-bot"
 
-  generic_ssh "${project_name}" "${site}"
+  ssh_keys "${project_name}" "${site}" "${user}"
 }
 
 matrix() {
@@ -218,8 +199,11 @@ ossrh() {
 docker() {
   local project_name="${1:-}"
   local site="docker.com"
+  local short_name="${project_name##*.}"
+  local email="${short_name}-bot@eclipse.org"
+  local user="eclipse${short_name}" # dockerhub does not allow hyphenated usernames!
 
-  generic_container "${project_name}" "${site}"
+  user_pw "${project_name}" "${site}" "${email}" "${user}"
 }
 
 quay() {
@@ -239,8 +223,10 @@ npm() {
 projects_storage() {
   local project_name="${1:-}"
   local site="projects-storage.eclipse.org"
+  local short_name="${project_name##*.}"
+  local user="genie.${short_name}"
 
-  generic_ssh "${project_name}" "${site}"
+  ssh_keys "${project_name}" "${site}" "${user}"
 }
 
 ssh_keys() {

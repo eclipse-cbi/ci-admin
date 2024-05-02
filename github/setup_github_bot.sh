@@ -24,7 +24,6 @@ JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-roo
 PROJECTS_BOTS_API_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "projects-bots-api-root-dir")"
 
 PROJECT_NAME="${1:-}"
-SHORT_NAME="${PROJECT_NAME##*.}"
 
 # check that project name is not empty
 if [[ -z "${PROJECT_NAME}" ]]; then
@@ -32,6 +31,7 @@ if [[ -z "${PROJECT_NAME}" ]]; then
   exit 1
 fi
 
+SHORT_NAME="${PROJECT_NAME##*.}"
 
 # TODO:
 # * deal with multiple executions due to errors

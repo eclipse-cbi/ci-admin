@@ -1,4 +1,4 @@
-import common
+import sys, common
 from playwright.sync_api import sync_playwright, Page, Error, expect
 
 ### MAIN

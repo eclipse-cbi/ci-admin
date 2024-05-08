@@ -12,7 +12,7 @@ def get_pass_creds(project_name, item):
 def add_to_pass(project_name, item, item_name):
     subprocess.check_output("echo \"" + item +"\" | pass insert -m cbi-pass/bots/"+ project_name + "/github.com/" + item_name, shell=True)
 
-def get_project_shortname(projet_name):
+def get_project_shortname(project_name):
   # TODO: can this be simplified?
   if project_name.find("."):
     short_name = "".join(project_name.split(".")[-1:])

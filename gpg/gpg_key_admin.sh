@@ -170,12 +170,7 @@ revoke() {
 
 sign() {
   local project_name="${1:-}"
-
-  # check that project name is not empty
-  if [[ -z "${project_name}" ]]; then
-    printf "ERROR: a project name must be given (e.g. technology.cbi for CBI project).\n"
-    exit 1
-  fi
+  _check_parameter "project name" "project_name"
 
   echo "allow-loopback-pinentry" > "${TMP_GPG}/gpg-agent.conf"
   # import webmaster's key

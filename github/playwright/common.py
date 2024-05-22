@@ -88,7 +88,5 @@ def login(page, project_name, username, password):
     page.get_by_placeholder("XXXXXX").click()
     page.get_by_placeholder("XXXXXX").fill(twofa_token_pass)
 
-    # On next page click on "Done button"
-    #TODO: wait for new page
-    page.wait_for_timeout(2000)
+  if (page.get_by_role("heading", name="2FA verification successful!").is_visible()):
     page.get_by_role("button", name="Done").click()

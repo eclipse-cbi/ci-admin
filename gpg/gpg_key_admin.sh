@@ -17,6 +17,7 @@ IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 #shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
+source "${SCRIPT_FOLDER}/../utils/common.sh"
 
 # TODO:
 # help menu generated from function names

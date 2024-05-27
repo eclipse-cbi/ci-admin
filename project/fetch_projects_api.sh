@@ -19,7 +19,7 @@ set -o pipefail
 CACHE_FILE="projects.eclipse.org-api-cache.json"
 PAGE_SIZE=100
 CACHE_TIMEOUT=14400 # 4 hours
-LAST_PAGE="$(curl -sSI "https://projects.eclipse.org/api/projects?pagesize=${PAGE_SIZE}" | grep "Link:" | cut -d',' -f2 | sed 's/.*page=//' | sed 's/>;.*//')"
+LAST_PAGE="$(curl -sSI "https://projects.eclipse.org/api/projects?pagesize=${PAGE_SIZE}" | grep "link:" | cut -d',' -f4 | sed 's/.*page=//' | sed 's/&.*//')"
 
 # only query API if cache file is older than 1 hour
 if [[ ! -f ${CACHE_FILE} ]] || [ "$(stat --format=%Y ${CACHE_FILE})" -le $(( $(date +%s) - CACHE_TIMEOUT )) ]; then

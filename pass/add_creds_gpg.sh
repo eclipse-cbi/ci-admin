@@ -67,6 +67,11 @@ ML_NAME="${short_name}-dev"                # Mailing list name (e.g. cbi-dev)
 TMP_GPG="/tmp/temp_gpg"
 TMP_GPG_DOCKER="/run/gnupg"
 
+cleanup() {
+  rm -rf "${TMP_GPG}"
+}
+trap cleanup EXIT
+
 gpg_sb() {
   docker run -i --rm -u "$(id -u)" -v "${TMP_GPG}:${TMP_GPG_DOCKER}" "eclipsecbi/gnupg:2.2.8-r0" "${@}"
 }
@@ -142,14 +147,15 @@ sign_key() {
 
   # import webmaster's key
   local pw_store_path_wm="gpg/webmaster"
-  local passphrase_wm
-  passphrase_wm="$(passw cbi "${pw_store_path_wm}/passphrase")"
+  # store passphrase in file
+  passw cbi "${pw_store_path_wm}/passphrase" > "${TMP_GPG}/passphrase_wm"
+  local passphrase_wm_file_in_container="${TMP_GPG_DOCKER}/passphrase_wm"
   local key_id_wm
   key_id_wm="$(passw cbi "${pw_store_path_wm}/key_id")"
 
-  gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback --import <<< "$(passw cbi "${pw_store_path_wm}/secret-key.asc")" 3<<< "${passphrase_wm}"
+  gpg_sb --batch --passphrase-file "${passphrase_wm_file_in_container}" --pinentry-mode=loopback --import <<< "$(passw cbi "${pw_store_path_wm}/secret-key.asc")"
   # sign key
-  gpg_sb --local-user "${key_id_wm}" --batch --yes --passphrase-fd 3 --pinentry-mode=loopback --sign-key "${key_id}" 3<<< "${passphrase_wm}"
+  gpg_sb --local-user "${key_id_wm}" --batch --yes --passphrase-file "${passphrase_wm_file_in_container}" --pinentry-mode=loopback --sign-key "${key_id}"
 }
 
 export_keys(){

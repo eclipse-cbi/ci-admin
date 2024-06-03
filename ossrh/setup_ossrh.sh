@@ -29,6 +29,11 @@ PROJECT_NAME="${1:-}"
 DISPLAY_NAME="${2:-}"
 SHORT_NAME="${PROJECT_NAME##*.}"
 
+cleanup() {
+  rm -rf "${PROJECT_NAME}"
+}
+trap cleanup EXIT
+
 # check that project name is not empty
 if [[ -z "${PROJECT_NAME}" ]]; then
   printf "ERROR: a project name must be given.\n"
@@ -54,67 +59,138 @@ if [ -z "${DISPLAY_NAME}" ]; then
 fi
 
 create_ossrh_credentials() {
-  printf "\nCreating OSSRH credentials...\n"
+  printf "\n\nCreating OSSRH credentials...\n"
   "${CI_ADMIN_ROOT}/pass/add_creds.sh" "ossrh" "${PROJECT_NAME}" || true
 
-  local username
-  local pw
-  username="$(passw "cbi" "bots/${PROJECT_NAME}/oss.sonatype.org/username")"
-  pw="$(passw "cbi" "bots/${PROJECT_NAME}/oss.sonatype.org/password")"
-  printf "\n# TODO (manually!):\n"
-  echo "* Sign-up at OSSRH (use credentials from pass)"
-  echo "  Email:      ${SHORT_NAME}-bot@eclipse.org"
-  echo "  Full name:  ${DISPLAY_NAME} Project"
-  echo "  Username:   ${username}"
-  echo "  Password:   ${pw}"
-  echo "  => Sign up here: https://issues.sonatype.org/secure/Signup!default.jspa"
-  _open_url "https://issues.sonatype.org/secure/Signup!default.jspa"
-  printf "\n* Login with new OSSRH account\n"
-  read -rsp $'\nOnce you are done, press any key to continue...' -n1
-  printf "\n* Create an issue here: https://issues.sonatype.org/secure/CreateIssue.jspa?issuetype=21&pid=10134\n"
-  _open_url "https://issues.sonatype.org/secure/CreateIssue.jspa?issuetype=21&pid=10134"
-  echo "  * Template: https://issues.sonatype.org/browse/OSSRH-21895"
-  echo "  * Summary: ${DISPLAY_NAME} Project"
-  echo "  * Description: Please create the appropriate configuration for the ${DISPLAY_NAME} project. Thanks"
-  echo "  * Group ID: org.eclipse.${SHORT_NAME}"
-  echo
-  echo "  * IMPORTANT: if it’s an ee4j project, mention that the permissions need to be set for https://jakarta.oss.sonatype.org not https://oss.sonatype.org"
-  read -rsp $'\nOnce you are done, press any key to continue...' -n1
-  echo
+  local ossrh_username
+  local ossrh_password
+  ossrh_username="$(passw "cbi" "bots/${PROJECT_NAME}/oss.sonatype.org/username")"
+  ossrh_password="$(passw "cbi" "bots/${PROJECT_NAME}/oss.sonatype.org/password")"
+  ossrh_email="$(passw "cbi" "bots/${PROJECT_NAME}/oss.sonatype.org/email")"
+
+  cat <<EOF
+
+  # Create OSSRH Account
+
+  * Sign-up at OSSRH (use credentials from pass)
+    Username:   ${ossrh_username}
+    Email:      ${ossrh_email}
+    Password:   ${ossrh_password}
+
+    => Sign up here: https://central.sonatype.com/api/auth/login
+
+  * Signup with new OSSRH account
+  * Validate account email
+
+EOF
+
+  _open_url "https://central.sonatype.com/api/auth/login"  
+  read -rsp $'\nOnce you are done, Press any key to continue...\n' -n1
+  
+  cat <<EOF
+
+  # Request OSSRH Account to sonatype support via email
+
+  * Create an email to central-support@sonatype.com
+  
+  * Subject: OSSRH Account creation for ${DISPLAY_NAME} Project
+
+  * Body: 
+    Please create a new OSSRH Account at oss.sonatype.org for the ${DISPLAY_NAME} project.
+    Group ID: org.eclipse.${SHORT_NAME}
+    Project URL: https://projects.eclipse.org/projects/${PROJECT_NAME}
+    Usernames: ${ossrh_username} (registered at central.sonatype.com)
+    SCM URL: https://github.com/eclipse-${SHORT_NAME}
+
+  * NOTE: Adjust SCM URL if needed
+  * IMPORTANT: if it’s an ee4j project, mention that the permissions need to be set for https://jakarta.oss.sonatype.org not https://oss.sonatype.org
+
+EOF
+  
+  read -rsp $'\nOnce you are done, Press any key to continue...\n' -n1
+
+}
+
+register_user_token() {
+
+  printf "\n\nRegister User Token...\n"
+
+  local nexusProUrl
+  local ossrh_username
+  local ossrh_password
+  nexusProUrl="https://oss.sonatype.org"
+  ossrh_username="$(passw "cbi" "bots/${PROJECT_NAME}/oss.sonatype.org/username")"
+  ossrh_password="$(passw "cbi" "bots/${PROJECT_NAME}/oss.sonatype.org/password")"
+
+  local ossrh_token
+  ossrh_token="$("${JIRO_ROOT_FOLDER}/build/nexus-pro-token.sh" get_or_create "${nexusProUrl}" "${ossrh_username}" "${ossrh_password}")"
+  ossrh_token_username="$(jq -r '.nameCode' <<< "${ossrh_token}")"
+  ossrh_token_password="$(jq -r '.passCode' <<< "${ossrh_token}")"
+
+  echo "${ossrh_token_username}" | passw cbi insert -m "bots/${PROJECT_NAME}/oss.sonatype.org/gh-token-username"
+  echo "${ossrh_token_password}" | passw cbi insert -m "bots/${PROJECT_NAME}/oss.sonatype.org/gh-token-password"
+
+  cat <<EOF
+
+  # Check User Token 
+
+  * Login with bot account to https://oss.sonatype.org
+    Username:   ${ossrh_username}
+    Password:   ${ossrh_password}
+    Username Token:   ${ossrh_token_username}
+    Password Token:   ${ossrh_token_password}
+
+  * Go to user profil, and select in the dropdown 'User Token' panel: https://oss.sonatype.org/#profile;User%20Token
+  * Click 'Access User Token'
+  
+EOF
+  _open_url "https://oss.sonatype.org"  
+  read -rsp $'\nOnce you are done, Press any key to continue...\n' -n1
 }
 
 create_gpg_credentials() {
-  printf "Creating GPG credentials...\n"
+  printf "\n\nCreating GPG credentials...\n"
   if _check_pw_does_not_exist "${PROJECT_NAME}" "gpg"; then
     "${CI_ADMIN_ROOT}/pass/add_creds_gpg.sh" "${PROJECT_NAME}" "${DISPLAY_NAME} Project"
   fi
 }
 
 create_jenkins_credentials() {
+
   printf "\n\nCreating Jenkins credentials...\n"
   "${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${PROJECT_NAME}"
 
-  #dump secret-subkeys.asc to temp folder
   mkdir -p "${PROJECT_NAME}"
   passw "cbi" "bots/${PROJECT_NAME}/gpg/secret-subkeys.asc" > "${PROJECT_NAME}/secret-subkeys.asc"
 
-  printf "\n# TODO (manually!):\n"
-  echo "* Add secret-subkeys.asc to Jenkins credentials"
-  echo "  * Click on name 'secret-subkeys.asc'"
-  echo "  * Update"
-  echo "  * Select 'Replace' checkbox"
-  echo "  * Browse"
-  echo "  * Open folder '${SCRIPT_FOLDER}/${PROJECT_NAME}'"
-  echo "  * Select file 'secret-subkeys.asc'"
+  cat << EOF
+
+  # Add secret-subkeys.asc to Jenkins credentials
+
+    * Click on name 'secret-subkeys.asc'
+    * Update
+    * Select 'Replace' checkbox
+    * Browse
+    * Open folder '${PWD}/${PROJECT_NAME}'
+    * Select file 'secret-subkeys.asc'
+
+EOF
+
   _open_url "https://ci.eclipse.org/${SHORT_NAME}/credentials"
+
   echo "* Push changes to pass"
-  read -rsp $'\nOnce you are done, press any key to continue...' -n1
-  echo
-  echo "* Add reply to ticket:"
-  echo "The following credentials have been added to the ${DISPLAY_NAME} CI instance:"
-  echo "  * OSSRH"
-  echo "  * GPG"
-  read -rsp $'\nOnce you are done, press any key to continue...' -n1
+  read -rsp $'\nPress any key to continue...\n' -n1
+
+  cat << EOF
+
+  # Reply to ticket:
+  
+  The following credentials have been added to the ${DISPLAY_NAME} CI instance:
+    * OSSRH
+    * GPG
+
+EOF
+  read -rsp $'\nPress any key to continue...\n' -n1
 }
 
 regen_maven_settings() {
@@ -126,46 +202,40 @@ regen_maven_settings() {
 }
 
 ossrh_comment_template() {
-    cat << EOF
+  cat << EOF
 
-Issue comment template for HelpDesk issue after the OSSRH ticket has been created but is not resolved yet:
-----------------------------------------------------------------------------------------------------------
+  Issue comment template for HelpDesk issue after the OSSRH support has been reached:
+  ----------------------------------------------------------------------------------------------------------
 
-The process for allowing deployments to OSSRH has been started. We are currently waiting for https://issues.sonatype.org/browse/OSSRH-XXXX to be resolved.
+  The process for allowing deployments to OSSRH has been started. We are currently waiting sonatype support to be done.
 
 
+  Issue comment template for HelpDesk issue once the OSSRH support is resolved (usually takes a few hours):
+  --------------------------------------------------------------------------------------------------------
 
-Issue comment template for HelpDesk issue once the OSSRH ticket is resolved (usually takes a few hours):
---------------------------------------------------------------------------------------------------------
-
-https://issues.sonatype.org/browse/OSSRH-XXXX is resolved now.
-
-The default Maven settings contain a server definition named 'ossrh' to let you upload things to Sonatype's server.
-This server id should be used in a distributionManagement repository somewhere specifying the URL.
-See http://central.sonatype.org/pages/ossrh-guide.html#releasing-to-central and http://central.sonatype.org/pages/ossrh-guide.html#ossrh-usage-notes for details.
-The GPG passphrase is also configured (encrypted) in the settings (as described at
-https://maven.apache.org/plugins/maven-gpg-plugin/usage.html#Configure_passphrase_in_settings.xml). It's recommended to use the maven-gpg-plugin.
-See also https://wiki.eclipse.org/Jenkins#How_can_artifacts_be_deployed_to_OSSRH_.2F_Maven_Central.3F
-
-Let us know when you promoted your first release, so we can comment on
-https://issues.sonatype.org/browse/OSSRH-XXXX. Or you can do this yourself.
+  The default Maven settings contain a server definition named 'ossrh' to let you upload things to Sonatype's server.
+  This server id should be used in a distributionManagement repository somewhere specifying the URL.
+  See http://central.sonatype.org/pages/ossrh-guide.html#releasing-to-central and http://central.sonatype.org/pages/ossrh-guide.html#ossrh-usage-notes for details.
+  The GPG passphrase is also configured (encrypted) in the settings (as described at
+  https://maven.apache.org/plugins/maven-gpg-plugin/usage.html#Configure_passphrase_in_settings.xml). It's recommended to use the maven-gpg-plugin.
+  See also https://wiki.eclipse.org/Jenkins#How_can_artifacts_be_deployed_to_OSSRH_.2F_Maven_Central.3F
 
 EOF
-
 }
 
 # Main
-create_ossrh_credentials
+_question_action "create ossrh credentials" create_ossrh_credentials
 
-create_gpg_credentials
+_question_action "register User Token in secrets manager (not necessary for jenkins integration)" register_user_token
+
+_question_action "create gpg credentials" create_gpg_credentials
 
 _question_action "create Jenkins credentials" create_jenkins_credentials
-echo
+
 _question_action "regenerate Maven settings for Jenkins" regen_maven_settings
 
 ossrh_comment_template
-read -rsp $'\nOnce you are done, press any key to continue...' -n1
 
-rm -rf "${PROJECT_NAME}"
+read -rsp $'\nOnce you are done, Press any key to continue...\n' -n1
 
 printf "\nDone.\n"

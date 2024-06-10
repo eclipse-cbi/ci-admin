@@ -105,6 +105,10 @@ EOF
   * NOTE: Adjust SCM URL if needed
   * IMPORTANT: if it’s an ee4j project, mention that the permissions need to be set for https://jakarta.oss.sonatype.org not https://oss.sonatype.org
 
+  Issue comment template for HelpDesk issue after the OSSRH support has been reached:
+  ----------------------------------------------------------------------------------------------------------
+
+  The process for allowing deployments to OSSRH has been started. We are currently waiting sonatype support to be done.
 EOF
   
   read -rsp $'\nOnce you are done, Press any key to continue...\n' -n1
@@ -142,6 +146,11 @@ register_user_token() {
 
   * Go to user profil, and select in the dropdown 'User Token' panel: https://oss.sonatype.org/#profile;User%20Token
   * Click 'Access User Token'
+
+  # Add OSSRH Token to Repository Organization (if project doesn't use Jenkins)
+
+  * ORG_OSSRH_USERNAME: ${ossrh_token_username}
+  * ORG_OSSRH_PASSWORD: ${ossrh_token_password}
   
 EOF
   _open_url "https://oss.sonatype.org"  
@@ -153,6 +162,20 @@ create_gpg_credentials() {
   if _check_pw_does_not_exist "${PROJECT_NAME}" "gpg"; then
     "${CI_ADMIN_ROOT}/pass/add_creds_gpg.sh" "${PROJECT_NAME}" "${DISPLAY_NAME} Project"
   fi
+
+  gpg_passphrase="$(passw "cbi" "bots/${PROJECT_NAME}/gpg/passphrase")"
+  gpg_secret="$(passw "cbi" "bots/${PROJECT_NAME}/gpg/secret-subkeys.asc")"
+  cat <<EOF
+
+  # Add GPG to Repository Organization (if project doesn't use Jenkins)
+
+  * ORG_GPG_PASSPHRASE: ${gpg_passphrase}
+  * ORG_GPG_PRIVATE_KEY: 
+  ${gpg_secret}
+
+  Add those credentials to the repository organization secrets.
+ 
+EOF
 }
 
 create_jenkins_credentials() {
@@ -204,12 +227,6 @@ regen_maven_settings() {
 ossrh_comment_template() {
   cat << EOF
 
-  Issue comment template for HelpDesk issue after the OSSRH support has been reached:
-  ----------------------------------------------------------------------------------------------------------
-
-  The process for allowing deployments to OSSRH has been started. We are currently waiting sonatype support to be done.
-
-
   Issue comment template for HelpDesk issue once the OSSRH support is resolved (usually takes a few hours):
   --------------------------------------------------------------------------------------------------------
 
@@ -218,7 +235,18 @@ ossrh_comment_template() {
   See http://central.sonatype.org/pages/ossrh-guide.html#releasing-to-central and http://central.sonatype.org/pages/ossrh-guide.html#ossrh-usage-notes for details.
   The GPG passphrase is also configured (encrypted) in the settings (as described at
   https://maven.apache.org/plugins/maven-gpg-plugin/usage.html#Configure_passphrase_in_settings.xml). It's recommended to use the maven-gpg-plugin.
-  See also https://wiki.eclipse.org/Jenkins#How_can_artifacts_be_deployed_to_OSSRH_.2F_Maven_Central.3F
+  See also https://github.com/eclipse-cbi/jiro/wiki/Jenkins#how-can-artifacts-be-deployed-to-ossrh--maven-central
+
+
+  Issue comment for project that does not use jenkins: 
+  ----------------------------------------------------
+
+  The following organization secrets have been added:
+  * ORG_GPG_PASSPHRASE
+  * ORG_GPG_PRIVATE_KEY
+  * ORG_OSSRH_PASSWORD
+  * ORG_OSSRH_USERNAME
+  See https://central.sonatype.org/publish/publish-maven/ on how to publish artifacts to maven central via Sonatype.
 
 EOF
 }

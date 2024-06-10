@@ -1,4 +1,4 @@
-/secret-subkeys.asc
-/secret-subkeys*.asc
+/*.asc
+*.asc
 /.project
 /.localconfig

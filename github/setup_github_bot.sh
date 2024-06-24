@@ -59,7 +59,7 @@ set_up_github_account() {
   * API token
     * Name:       Jenkins GitHub Plugin token https://ci.eclipse.org/${SHORT_NAME}
     * Expiration: No expiration
-    * Scopes:     repo:status, public_repo, admin:repo_hook
+    * Scopes:     repo:status, public_repo, admin:repo_hook, admin:org_hook
   * Add token to pass (api-token)
 * Add GitHub bot to project’s GitHub org (invite via webmaster account)
 EOF

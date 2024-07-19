@@ -80,7 +80,7 @@ add_bot_to_group() {
   # TODO: read botname from pass?
   bot_name="${SHORT_NAME}-bot"
   group_name="${SHORT_NAME}"
-  access_level=40 # 40 = Maintainer
+  access_level=50 # 50 = Owner
   "${SCRIPT_FOLDER}/gitlab_admin.sh" "add_user_to_group" "${group_name}" "${bot_name}" "${access_level}"
 }
 

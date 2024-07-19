@@ -126,6 +126,10 @@ register_user_token() {
   ossrh_username="$(passw "cbi" "bots/${PROJECT_NAME}/oss.sonatype.org/username")"
   ossrh_password="$(passw "cbi" "bots/${PROJECT_NAME}/oss.sonatype.org/password")"
 
+  if passw cbi "bots/${PROJECT_NAME}/oss.sonatype.org/gh-token-username" &> /dev/null ; then
+    _question_action "Reset User Token in secrets manager" "$("${JIRO_ROOT_FOLDER}/build/nexus-pro-token.sh" delete "${nexusProUrl}" "${ossrh_username}" "${ossrh_password}")"
+  fi
+
   local ossrh_token
   ossrh_token="$("${JIRO_ROOT_FOLDER}/build/nexus-pro-token.sh" get_or_create "${nexusProUrl}" "${ossrh_username}" "${ossrh_password}")"
   ossrh_token_username="$(jq -r '.nameCode' <<< "${ossrh_token}")"

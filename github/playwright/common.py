@@ -22,12 +22,15 @@ def get_project_shortname(project_name):
 
 ## Playwright commons
 
+def open_nav_menu(page):
+  page.get_by_label("Open user navigation menu").click()
+
 def open_settings(page):
   #FIXME this is not perfect since it seems to be true even on the Settings/Developer Settings page
   #if not page.get_by_role("link", name="Settings", exact=True).is_visible():
-  if not page.get_by_role("link", name="Go to your personal profile").is_visible():
-    page.get_by_label("Open user account menu").click()
-    page.get_by_label("User navigation").get_by_role("link", name="Settings").click()
+  if not page.get_by_text("Your personal account").is_visible():
+    open_nav_menu(page)
+    page.get_by_label("Settings", exact=True).click()
 
 def nav_to_token_settings(page):
   open_settings(page)
@@ -37,7 +40,7 @@ def nav_to_token_settings(page):
   page.get_by_role("link", name="Tokens (classic)").click()
 
 def signout(page):
-  page.get_by_role("button", name="Open user account menu").click()
+  open_nav_menu(page)
   page.get_by_role("link", name="Sign out").click()
   page.get_by_role("button", name="Sign out", exact=True).click()
 
@@ -89,4 +92,5 @@ def login(page, project_name, username, password):
     page.get_by_placeholder("XXXXXX").fill(twofa_token_pass)
 
   if (page.get_by_role("heading", name="2FA verification successful!").is_visible()):
-    page.get_by_role("button", name="Done").click()
+    page.get_by_role("link", name="Done").click()
+

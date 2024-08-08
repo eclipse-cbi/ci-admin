@@ -112,6 +112,7 @@ help() {
   printf "github\t\t\tCreate GitHub credentials (username/password).\n"
   printf "github_ssh\t\tCreate SSH credentials for GitHub (SSH keypair).\n"
   printf "matrix\t\tCreate Matrix credentials for chat.eclipse.org (username/password).\n"
+  printf "develocity\t\tCreate Develocity credentials for develocity.eclipse.org (username/password).\n"
   printf "ossrh\t\t\tCreate credentials for OSSRH (username/password).\n"
   printf "projects_storage\tCreate SSH credentials for projects-storage.eclipse.org (SSH keypair).\n"
   printf "docker\t\t\tCreate credentials for docker.com (username/password).\n"
@@ -185,6 +186,13 @@ github_ssh() {
 matrix() {
   local project_name="${1:-}"
   local site="matrix.eclipse.org"
+
+  generic "${project_name}" "${site}"
+}
+
+develocity() {
+  local project_name="${1:-}"
+  local site="develocity.eclipse.org"
 
   generic "${project_name}" "${site}"
 }

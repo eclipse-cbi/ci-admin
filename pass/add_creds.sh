@@ -82,6 +82,10 @@ _generate_ssh_keys() {
   local short_name="${project_name##*.}"
   local temp_path="/tmp/${short_name}_id_rsa"
 
+  local pw_store_path="bots/${project_name}/${site}"
+  #debug
+  #echo "pw_store_path: ${pw_store_path}";
+
   # shellcheck disable=SC1003
   pwgen -1 -s -r '\\"-' -y 64 | passw cbi insert -m "${pw_store_path}/id_rsa.passphrase"
   passw cbi "${pw_store_path}/id_rsa.passphrase" | "${SCRIPT_FOLDER}"/../ssh-keygen-ni.sh -C "${email}" -f "${temp_path}"
@@ -250,10 +254,6 @@ ssh_keys() {
     printf "ERROR: a site (e.g. 'gitlab.eclipse.org') must be given.\n"
     exit 1
   fi
-
-  local pw_store_path="bots/${project_name}/${site}"
-  #debug
-  #echo "pw_store_path: ${pw_store_path}";
 
   if [ -z "${username}" ]; then
     echo "Username not given, using default: genie.${short_name}"

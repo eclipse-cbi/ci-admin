@@ -46,29 +46,8 @@ create_github_credentials() {
 }
 
 set_up_github_account() {
-  # automate?
-  cat <<EOF
-
-# Setting up GitHub bot account...
-==================================
-* Set up GitHub bot account (https://github.com/signup)
-  * Take credentials from pass
-* Verify email
-* Add SSH public key to GitHub bot account (Settings -> SSh and GPG keys -> New SSH key)
-* Create API token (Settings -> Developer Settings -> Personal access tokens)
-  * API token
-    * Name:       Jenkins GitHub Plugin token https://ci.eclipse.org/${SHORT_NAME}
-    * Expiration: No expiration
-    * Scopes:     repo:status, public_repo, admin:repo_hook
-  * Add token to pass (api-token)
-* Add GitHub bot to project’s GitHub org (invite via webmaster account)
-EOF
-#TODO: open private browser window
-  _open_url "https://github.com/signup"
-  read -rsp $'Once you are done, press any key to continue...\n' -n1
-
-#TODO: read tokens from stdin and add them to pass
-
+  echo "# Setting up GitHub bot account..."
+  python "playwright/gh_signup.py" "${PROJECT_NAME}"
 }
 
 add_jenkins_credentials() {
@@ -119,7 +98,7 @@ create_github_credentials
 
 set_up_github_account
 
-update_projects_bot_api
+_question_action "update the projects bot API" update_projects_bot_api
 
 #check if project has a Jenkins instance
 if [[ -d "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}" ]]; then

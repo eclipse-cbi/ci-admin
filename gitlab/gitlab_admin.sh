@@ -218,7 +218,13 @@ create_api_token() {
   local expiry_date
   expiry_date="$(date --date="+365 days" +%Y-%m-%d)"
 
-  curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/users/${user_id}/impersonation_tokens" --data-urlencode "name=${name}" --data "scopes[]=api,create_runner,manage_runner"  --data "expires_at=${expiry_date}" | jq -r '.token'
+  res=$(curl -sSL --header "${TOKEN_HEADER}" --request POST "${API_BASE_URL}/users/${user_id}/impersonation_tokens" --data-urlencode "name=${name}" --data "scopes[]=api,create_runner,manage_runner"  --data "expires_at=${expiry_date}")
+  token=$(echo "${res}" | jq -r '.token')
+  if [[ "${token}" == "null" ]]; then
+    echo "Token creation failed: ${res}" >&2
+    exit 1
+  fi
+  echo "${token}"
 }
 
 create_bot_user() {

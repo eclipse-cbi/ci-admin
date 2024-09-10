@@ -227,6 +227,81 @@ create_api_token() {
   echo "${token}"
 }
 
+check_api_token_validity() {
+  local username="${1:-}"
+  _check_parameter "username" "${username}"
+  local user_id
+  user_id="$(_get_id_from_username "${username}")"
+  local name="CI token"
+
+  impersonation_tokens=$(curl -sSL --header "${TOKEN_HEADER}" \
+      "${API_BASE_URL}/users/${user_id}/impersonation_tokens?per_page=100")
+
+  check_error=$(echo "$impersonation_tokens" | jq -c '.error' 2>/dev/null) || true
+  if [[ -n "${check_error}" ]]; then
+      echo "Error: ${check_error}" >&2
+      exit 1
+  fi
+
+  expired=true
+  expires_at=""
+  for token in $(echo "$impersonation_tokens" | jq -c '.[]'); do
+      name=$(echo "$token" | jq -r '.name')
+      if [ "$name" == "CI token" ]; then
+          revoked=$(echo "$token" | jq -r '.revoked')
+          active=$(echo "$token" | jq -r '.active')
+          expires_at=$(echo "$token" | jq -r '.expires_at')
+
+          # echo "Revoked: $revoked - Active: $active - Expires at: $expires_at"
+
+          if [[ "$active" == "true" ]] && [[ "$revoked" == "false" ]]; then
+              expired=false
+          fi
+      fi
+  done
+  if [ "$expired" == "true" ]; then
+      echo "CI Token ${username}(${user_id}) expired or revoked: $expires_at"
+      exit 1
+  else
+      echo "CI Token ${username}(${user_id}) is still valid, expired: $expires_at"
+  fi
+}
+
+revoke_api_token() {
+  local username="${1:-}"
+  _check_parameter "username" "${username}"
+  local user_id
+  user_id="$(_get_id_from_username "${username}")"
+  local name="CI token"
+
+  impersonation_tokens=$(curl -sSL --header "${TOKEN_HEADER}" \
+      "${API_BASE_URL}/users/${user_id}/impersonation_tokens?state=active&per_page=100")
+
+  check_error=$(echo "$impersonation_tokens" | jq -c '.error' 2>/dev/null) || true
+  if [[ -n "${check_error}" ]]; then
+      echo "Error: ${check_error}" >&2
+      exit 1
+  fi
+
+  for token in $(echo "$impersonation_tokens" | jq -c '.[]'); do
+      name=$(echo "$token" | jq -r '.name')
+      if [ "$name" == "CI token" ]; then
+          id=$(echo "$token" | jq -r '.id')
+          revoked=$(echo "$token" | jq -r '.revoked')
+          active=$(echo "$token" | jq -r '.active')
+          expires_at=$(echo "$token" | jq -r '.expires_at')
+
+          # echo "Revoked: $revoked - Active: $active - Expires at: $expires_at"
+
+          if [[ "$active" == "true" ]] && [[ "$revoked" == "false" ]]; then
+            echo "Revoking token ${name}(${id}): $expires_at" >&2
+            curl -sSL --request DELETE --header "${TOKEN_HEADER}" \
+                "${API_BASE_URL}/users/${user_id}/impersonation_tokens/${id}"
+          fi
+      fi
+  done
+}
+
 create_bot_user() {
   local project_name="${1:-}"
   local username="${2:-}"

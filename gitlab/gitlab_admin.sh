@@ -263,7 +263,7 @@ check_api_token_validity() {
       echo "CI Token ${username}(${user_id}) expired or revoked: $expires_at"
       exit 1
   else
-      echo "CI Token ${username}(${user_id}) is still valid, expired on: $expires_at"
+      echo "CI Token ${username}(${user_id}) is still valid, will expire on: $expires_at"
   fi
 }
 

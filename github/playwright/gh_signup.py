@@ -102,7 +102,7 @@ def setup_2fa(page, project_name):
     subprocess.check_output("echo \"" + twofa_seed + "\" | pass insert -m bots/" + project_name + "/github.com/2FA-seed", shell=True)
 
     # get OTP from pass
-    twofa_token = os.popen("pass otp bots/" + project_name + "/github.com/2FA-seed").read()
+    twofa_token = os.popen("oathtool --totp -b $(bots/" + project_name + "/github.com/2FA-seed)").read()
     print("2FA token: " + twofa_token)
 
     # enter OTP

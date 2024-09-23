@@ -12,8 +12,7 @@ if password_store_dir:
 
 
 def get_pass_2fa_otp(project_name):
-    # this method requires the pass otp extension to be installed
-    return os.popen("pass otp bots/" + project_name + "/github.com/2FA-seed").read()
+    return os.popen("oathtool --totp -b $(" + project_name + "/github.com/2FA-seed)").read()
 
 
 def get_pass_creds(project_name, item):

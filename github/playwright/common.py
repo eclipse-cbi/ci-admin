@@ -60,6 +60,12 @@ def login(page, project_name, username, password):
     if not response.ok:
         raise RuntimeError(f"unable to load GitHub login page: {response.status}")
 
+    print("Login page loaded.")
+    print("Username: " + username)
+
+    if username is None or password is None or username == "" or password == "":
+        raise RuntimeError("Username or password not set.")
+
     # login
     page.get_by_label("Username or email address").click()
     page.get_by_label("Username or email address").fill(username)

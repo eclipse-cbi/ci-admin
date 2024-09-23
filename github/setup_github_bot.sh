@@ -47,7 +47,7 @@ create_github_credentials() {
 
 set_up_github_account() {
   echo "# Setting up GitHub bot account..."
-  python "playwright/gh_signup.py" "${PROJECT_NAME}"
+  python "${SCRIPT_FOLDER}/playwright/gh_signup.py" "${PROJECT_NAME}"
 }
 
 add_jenkins_credentials() {

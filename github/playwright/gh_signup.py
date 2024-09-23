@@ -97,12 +97,12 @@ def setup_2fa(page, project_name):
     # input('Press any key to continue\n')
 
     # add 2FA seed to pass
-    # os.popen("echo " + twofa_seed +" | pass insert cbi-pass/bots/"+ project_name + "/github.com/2FA-seed").read()
+    # os.popen("echo " + twofa_seed +" | pass insert bots/"+ project_name + "/github.com/2FA-seed").read()
     # os.popen("echo \"hello" + twofa_seed +"\"").read()
-    subprocess.check_output("echo \"" + twofa_seed + "\" | pass insert -m cbi-pass/bots/" + project_name + "/github.com/2FA-seed", shell=True)
+    subprocess.check_output("echo \"" + twofa_seed + "\" | pass insert -m bots/" + project_name + "/github.com/2FA-seed", shell=True)
 
     # get OTP from pass
-    twofa_token = os.popen("pass otp cbi-pass/bots/" + project_name + "/github.com/2FA-seed").read()
+    twofa_token = os.popen("pass otp bots/" + project_name + "/github.com/2FA-seed").read()
     print("2FA token: " + twofa_token)
 
     # enter OTP
@@ -120,7 +120,7 @@ def setup_2fa(page, project_name):
     # input('Press any key to continue\n')
 
     # add 2FA codes to pass
-    subprocess.check_output("echo \"" + twofa_codes +"\" | pass insert -m cbi-pass/bots/"+ project_name + "/github.com/2FA-recovery-codes", shell=True)
+    subprocess.check_output("echo \"" + twofa_codes +"\" | pass insert -m bots/"+ project_name + "/github.com/2FA-recovery-codes", shell=True)
 
     # download recovery codes
     # FIXME

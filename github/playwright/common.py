@@ -1,19 +1,27 @@
 import os
 import subprocess
+import json
+
+config_path = os.path.expanduser('~/.cbi/config')
+with open(config_path, 'r') as config_file:
+    config = json.load(config_file)
+
+password_store_dir = config.get('password-store', {}).get('cbi-dir')
+if password_store_dir:
+    os.environ['PASSWORD_STORE_DIR'] = password_store_dir
 
 
 def get_pass_2fa_otp(project_name):
-    # TODO: extract pass path to properties file
     # this method requires the pass otp extension to be installed
-    return os.popen("pass otp cbi-pass/bots/" + project_name + "/github.com/2FA-seed").read()
+    return os.popen("pass otp bots/" + project_name + "/github.com/2FA-seed").read()
 
 
 def get_pass_creds(project_name, item):
-    return os.popen("pass cbi-pass/bots/" + project_name + "/github.com/" + item).read()
+    return os.popen("pass bots/" + project_name + "/github.com/" + item).read()
 
 
 def add_to_pass(project_name, item, item_name):
-    subprocess.check_output("echo \"" + item + "\" | pass insert -m cbi-pass/bots/"+ project_name + "/github.com/" + item_name, shell=True)
+    subprocess.check_output("echo \"" + item + "\" | pass insert -m bots/" + project_name + "/github.com/" + item_name, shell=True)
 
 
 def get_project_shortname(project_name):

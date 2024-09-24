@@ -12,7 +12,7 @@ if password_store_dir:
 
 
 def get_pass_2fa_otp(project_name):
-    return os.popen("oathtool --totp -b $(" + project_name + "/github.com/2FA-seed)").read()
+    return os.popen("oathtool --totp -b $(pass bots/" + project_name + "/github.com/2FA-seed)").read()
 
 
 def get_pass_creds(project_name, item):
@@ -30,6 +30,19 @@ def get_project_shortname(project_name):
     else:
         short_name = "".join(project_name)
     return short_name
+
+
+def ask_to_continue(message="Do you want to continue? (yes/no): "):
+    while True:
+        user_input = input(message).strip().lower()
+        if user_input in ['yes', 'y']:
+            print("Continuing...")
+            return True
+        elif user_input in ['no', 'n']:
+            print("Exiting...")
+            return False
+        else:
+            print("Please enter 'yes' or 'no'.")
 
 # Playwright commons
 
@@ -99,11 +112,14 @@ def login(page, project_name, username, password):
     if (page.get_by_role("heading", name="Verify your two-factor authentication (2FA) settings").is_visible()):
         print("Found Verify 2FA page.")
         page.get_by_role("button", name="Verify 2FA now").click()
-
+    
     # deal with confirm account settings page
     if (page.get_by_text("Confirm your account recovery settings").is_visible()):
         print("Found account confirmation page.")
         page.get_by_role("button", name="Confirm").click()
+
+    # add wait before continuing for secondary 2FA
+    page.wait_for_timeout(2000)
 
     if (page.get_by_role("heading", name="Two-factor authentication").is_visible()):
         print("Found 2nd token verification page.")

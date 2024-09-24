@@ -4,7 +4,7 @@ import subprocess
 import requests
 import common
 import pyperclip
-from playwright.sync_api import sync_playwright, expect
+from playwright.sync_api import sync_playwright, Error, expect
 
 
 def signup(page, project_name, username, password, email):
@@ -65,7 +65,9 @@ def signup(page, project_name, username, password, email):
 
 
 def setup_2fa(page, project_name):
-    _DOWNLOAD_DIR = "/home/fr3d/Downloads/"
+    home_dir = os.path.expanduser("~")
+    downloads_dir = os.path.join(home_dir, "Downloads")
+
     # Navigate to 2FA settings
     common.open_settings(page)
     page.get_by_role("link", name="Password and authentication").click()
@@ -102,7 +104,7 @@ def setup_2fa(page, project_name):
     subprocess.check_output("echo \"" + twofa_seed + "\" | pass insert -m bots/" + project_name + "/github.com/2FA-seed", shell=True)
 
     # get OTP from pass
-    twofa_token = os.popen("oathtool --totp -b $(bots/" + project_name + "/github.com/2FA-seed)").read()
+    twofa_token = os.popen("oathtool --totp -b " + twofa_seed).read()
     print("2FA token: " + twofa_token)
 
     # enter OTP
@@ -120,14 +122,16 @@ def setup_2fa(page, project_name):
     # input('Press any key to continue\n')
 
     # add 2FA codes to pass
-    subprocess.check_output("echo \"" + twofa_codes +"\" | pass insert -m bots/"+ project_name + "/github.com/2FA-recovery-codes", shell=True)
+    subprocess.check_output("echo \"" + twofa_codes + "\" | pass insert -m bots/" + project_name + "/github.com/2FA-recovery-codes", shell=True)
 
     # download recovery codes
     # FIXME
     with page.expect_download() as download_info:
         page.get_by_role("button", name="Download").click()
     download = download_info.value
-    download.save_as(_DOWNLOAD_DIR + download.suggested_filename)
+    twofa_codes_files = os.path.join(downloads_dir, download.suggested_filename)
+    print("Downloaded recovery codes to: " + twofa_codes_files)
+    download.save_as(twofa_codes_files)
 
     # input('Press any key to continue\n')
     page.get_by_role("button", name="I have saved my recovery codes").click()
@@ -160,26 +164,42 @@ def setup_token(page, project_name):
 
     # Check if token has already been added
     page.get_by_role("heading", name="Personal access tokens (classic)").click() # This click is required, otherwise the next elements are not found!?
-    if page.get_by_role("link", name="Jenkins GitHub Plugin token https://ci.eclipse.org/" + short_name).is_visible():
-        print("Token has already been added. Skipping.")
-        return
+    token_name = "Jenkins GitHub Plugin token https://ci.eclipse.org/" + short_name
+    if page.get_by_role("link", name=token_name).is_visible():
+        if common.ask_to_continue("Do you want to regenerate it? (yes/no):"):
+            print("Regenerate jenkins token")
 
-    page.get_by_role("button", name="Generate new token").click()
-    page.get_by_role("menuitem", name="Generate new token (classic) For general use").click()
-    page.get_by_label("Note").fill("Jenkins GitHub Plugin token https://ci.eclipse.org/" + short_name)
-    # page.get_by_role("combobox", name="Expiration*").select_option("none")
-    page.get_by_label("repo:status\n        \n\n        \n          \n            Access commit status").check()
-    page.get_by_label("public_repo\n        \n\n        \n          \n            Access public repositories").check()
-    page.get_by_label("admin:repo_hook\n        \n\n        \n          \n            Full control of repository hooks").check()
-    page.get_by_label("admin:org_hook\n        \n\n        \n          \n            Full control of organization hooks").check()
-    page.get_by_role("button", name="Generate token").click()
-    page.get_by_role("button", name="Copy token").click()
+            # token list page
+            page.get_by_role("link", name=token_name).click()
+            page.get_by_role("link", name="Regenerate token").click()
 
-    # get token from clipboard
+            # Regenerate personal access token page
+            page.get_by_role("button", name="30 days").click()
+            page.get_by_role("menuitemradio", name="No expiration").click()
+            page.get_by_role("button", name="Regenerate token").click()
+
+        else:
+            return
+    else:
+        print("Create jenkins token")
+
+        page.get_by_role("button", name="Generate new token").click()
+        page.get_by_role("menuitem", name="Generate new token (classic) For general use").click()
+        page.get_by_label("Note").fill(token_name)
+        page.get_by_role("button", name="30 days").click()
+        page.get_by_role("menuitemradio", name="No expiration").click()
+        page.get_by_label("repo:status\n        \n\n        \n          \n            Access commit status").check()
+        page.get_by_label("public_repo\n        \n\n        \n          \n            Access public repositories").check()
+        page.get_by_label("admin:repo_hook\n        \n\n        \n          \n            Full control of repository hooks").check()
+        page.get_by_label("admin:org_hook\n        \n\n        \n          \n            Full control of organization hooks").check()
+        page.get_by_role("button", name="Generate token").click()
+        page.get_by_role("button", name="Copy token").click()
+
+    print("Register jenkins token")
     api_token = pyperclip.paste()
-    print("api_token: " + api_token)
+    print("API token: " + api_token)
     if not api_token:
-        print("ERROR: api_token is empty")
+        print("ERROR: jenkins token is empty")
         sys.exit(1)
 
     # add token to pass

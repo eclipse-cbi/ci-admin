@@ -126,8 +126,9 @@ def login(page, project_name, username, password):
         print("Waiting for next 2FA token for 35 seconds...")
         page.wait_for_timeout(35000)
         twofa_token_pass = get_pass_2fa_otp(project_name)
-        page.get_by_placeholder("XXXXXX").click()
+        page.get_by_role("button", name="Verify 2FA now").click()
         page.get_by_placeholder("XXXXXX").fill(twofa_token_pass)
+        page.get_by_role("button", name="Done").click()
 
     if (page.get_by_role("heading", name="2FA verification successful!").is_visible()):
         page.get_by_role("link", name="Done").click()

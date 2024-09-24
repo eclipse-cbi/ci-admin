@@ -52,7 +52,7 @@ make_bot_owner() {
 create_otterdog_token() {
   printf "\n# Create Otterdog token...\n"
   if _check_pw_does_not_exist "${PROJECT_NAME}" "github.com/otterdog-token"; then
-    python "playwright/gh_create_otterdog_token.py" "${PROJECT_NAME}"
+    python "${SCRIPT_FOLDER}/playwright/gh_create_otterdog_token.py" "${PROJECT_NAME}"
   fi
 }
 

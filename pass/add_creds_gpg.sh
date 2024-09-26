@@ -211,6 +211,13 @@ yes_skip_exit "export the keys" export_keys "${key_id}" "${pass_phrase}"
 
 yes_skip_exit "add the keys, passphrase and metadata to the password store" add_to_pw_store "${key_id}" "${pass_phrase}" "${pw_store_path}"
 
+echo
+echo "####################################################"
+echo "Keys details:"
+echo "$(gpg_sb --list-sigs --keyid-format long "<${ML_NAME}@${FORGE}>")"
+echo "####################################################"
+echo
+
 yes_skip_exit "send the new key to the keyserver" send_key "${key_id}" "${keyserver}"
 
 if [ -d ${TMP_GPG} ]; then

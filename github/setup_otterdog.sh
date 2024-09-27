@@ -95,7 +95,7 @@ otterdog_config() {
 }
 
 install_otterdog_gh_app() {
-  local otterdog_app_url="https://github.com/organizations/EclipseFdn/settings/apps/eclipse-otterdog-app/installations"
+  local otterdog_app_url="https://github.com/organizations/EclipseFdn/settings/apps/eclipse-otterdog/installations"
   printf "\n# Install Otterdog app...\n"
   echo "* Go to ${otterdog_app_url} (should open browser automatically)"
   echo "* Select GitHub org and 'Install'"

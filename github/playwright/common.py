@@ -2,6 +2,9 @@ import os
 import subprocess
 import json
 
+SITE = "github.com"
+LOGIN_PAGE = "https://" + SITE + "/login"
+
 config_path = os.path.expanduser('~/.cbi/config')
 with open(config_path, 'r') as config_file:
     config = json.load(config_file)
@@ -12,15 +15,15 @@ if password_store_dir:
 
 
 def get_pass_2fa_otp(project_name):
-    return os.popen("oathtool --totp -b $(pass bots/" + project_name + "/github.com/2FA-seed)").read()
+    return os.popen("oathtool --totp -b $(pass bots/" + project_name + "/" + SITE + "/2FA-seed)").read()
 
 
 def get_pass_creds(project_name, item):
-    return os.popen("pass bots/" + project_name + "/github.com/" + item).read()
+    return os.popen("pass bots/" + project_name + "/" + SITE + "/" + item).read()
 
 
 def add_to_pass(project_name, item, item_name):
-    subprocess.check_output("echo \"" + item + "\" | pass insert -m bots/" + project_name + "/github.com/" + item_name, shell=True)
+    subprocess.check_output("echo \"" + item + "\" | pass insert -m bots/" + project_name + "/" + SITE + "/" + item_name, shell=True)
 
 
 def get_project_shortname(project_name):
@@ -43,8 +46,6 @@ def ask_to_continue(message="Do you want to continue? (yes/no): "):
             return False
         else:
             print("Please enter 'yes' or 'no'.")
-
-# Playwright commons
 
 
 def open_nav_menu(page):
@@ -74,11 +75,11 @@ def signout(page):
 
 
 def login(page, project_name, username, password):
-    response = page.goto("https://github.com/login")
+    response = page.goto(LOGIN_PAGE)
 
     assert response is not None
     if not response.ok:
-        raise RuntimeError(f"unable to load GitHub login page: {response.status}")
+        raise RuntimeError(f"unable to load " + SITE + " login page: {response.status}")
 
     print("Login page loaded.")
     print("Username: " + username)

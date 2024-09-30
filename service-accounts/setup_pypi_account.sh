@@ -34,7 +34,7 @@ SHORT_NAME="${PROJECT_NAME##*.}"
 
 create_pass_credentials() {
   printf "# Creating pass credentials...\n"
-  "${CI_ADMIN_ROOT}/pass/add_creds.sh" "user_pw" "${PROJECT_NAME}" "pypi.org" "${SHORT_NAME}-bot@eclipse.org" "eclipse-${SHORT_NAME}-bot"
+  "${CI_ADMIN_ROOT}/pass/add_creds.sh" "user_pw" "${PROJECT_NAME}" "pypi.org" "${SHORT_NAME}-bot@eclipse.org" "eclipse-${SHORT_NAME}-bot" || true
 }
 
 sign_up() {

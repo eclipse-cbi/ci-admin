@@ -177,6 +177,7 @@ def setup_token(page, project_name):
             page.get_by_role("button", name="30 days").click()
             page.get_by_role("menuitemradio", name="No expiration").click()
             page.get_by_role("button", name="Regenerate token").click()
+            page.get_by_role("button", name="Copy token").click()
 
         else:
             return

@@ -228,6 +228,31 @@ regen_maven_settings() {
   popd > /dev/null
 }
 
+otterdog_org_secrets() {
+  echo "Add the following organization secrets at org level to the repository: git clone git@github.com/eclipse-${SHORT_NAME}/.eclipsefdn"
+  cat <<EOF
+  secrets+: [
+    orgs.newOrgSecret('ORG_GPG_KEY_ID') {
+      value: "pass:bots/${PROJECT_NAME}/gpg/key_id",
+    },
+    orgs.newOrgSecret('ORG_GPG_PASSPHRASE') {
+      value: "pass:bots/${PROJECT_NAME}/gpg/passphrase",
+    },
+    orgs.newOrgSecret('ORG_GPG_PRIVATE_KEY') {
+      value: "pass:bots/${PROJECT_NAME}/gpg/secret-subkeys.asc",
+    },
+    orgs.newOrgSecret('ORG_OSSRH_PASSWORD') {
+      value: "pass:bots/${PROJECT_NAME}/oss.sonatype.org/gh-token-password",
+    },
+    orgs.newOrgSecret('ORG_OSSRH_USERNAME') {
+      value: "pass:bots/${PROJECT_NAME}/oss.sonatype.org/gh-token-username",
+    },
+  ],
+EOF
+}
+
+
+
 ossrh_comment_template() {
   cat << EOF
 
@@ -246,6 +271,7 @@ ossrh_comment_template() {
   ----------------------------------------------------
 
   The following organization secrets have been added:
+  * ORG_GPG_KEY_ID
   * ORG_GPG_PASSPHRASE
   * ORG_GPG_PRIVATE_KEY
   * ORG_OSSRH_PASSWORD
@@ -266,7 +292,9 @@ _question_action "create Jenkins credentials" create_jenkins_credentials
 
 _question_action "regenerate Maven settings for Jenkins" regen_maven_settings
 
-ossrh_comment_template
+_question_action "add otterdog secrets" otterdog_org_secrets
+
+_question_action "comment on issue with template" ossrh_comment_template
 
 read -rsp $'\nOnce you are done, Press any key to continue...\n' -n1
 

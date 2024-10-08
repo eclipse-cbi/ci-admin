@@ -100,8 +100,8 @@ create_user() {
   _check_parameter "project name" "${project_name}"
   _check_parameter "username" "${username}"
   _check_parameter "password" "${pw}"
+  _check_parameter "email" "${email}"
 
-  local email="${username}@eclipse.org"
   local short_name="${project_name##*.}"
   local displayName="Eclipse ${short_name} bot user"
 

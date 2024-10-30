@@ -413,7 +413,7 @@ wiki_text() {
   echo
   highest_version=$(jq -r ".${JDK_NAME}[] | select(.build_number | contains(\"-ea\") | not) | .jdk_version" "${OUTPUT_FILE}" | sort -V | tail -n 1)
   latest_version="$(jq -r ".${JDK_NAME}[] | select(.jdk_version==\"${highest_version}\") | .build_number" "${OUTPUT_FILE}" | sed -E 's/jdk-?//')"
-  echo "* ${JDK_NAME}-latest `/opt/tools/java/${JDK_NAME}/latest` = **${latest_version}**"
+  echo "* ${JDK_NAME}-latest \`/opt/tools/java/${JDK_NAME}/latest\` = **${latest_version}**"
 
   local version_array=($(jq -r ".${JDK_NAME}[].versions | reverse" "${JDK_CONFIG}" | tr -d '[]," '))
 
@@ -424,9 +424,9 @@ wiki_text() {
     
     if [[ ${build_number} = *-ea* ]]; then
       early_access="(**Early Access**) "
-      echo "* ${JDK_NAME}-ea-latest ${early_access}`/opt/tools/java/${JDK_NAME}/jdk-${version}/latest` = **${build_number}**"
+      echo "* ${JDK_NAME}-ea-latest ${early_access}\`/opt/tools/java/${JDK_NAME}/jdk-${version}/latest\` = **${build_number}**"
     fi
-    echo "* ${JDK_NAME}-jdk${version}-latest ${early_access}`/opt/tools/java/${JDK_NAME}/jdk-${version}/latest`> = **${build_number}**"
+    echo "* ${JDK_NAME}-jdk${version}-latest ${early_access}\`/opt/tools/java/${JDK_NAME}/jdk-${version}/latest\` = **${build_number}**"
   done
   echo
 }

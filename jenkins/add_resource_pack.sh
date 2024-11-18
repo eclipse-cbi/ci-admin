@@ -15,6 +15,7 @@ set -o pipefail
 IFS=$'\n\t'
 
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
+SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}")"
 
 PROJECT_NAME="${1:-}"
 RESOURCE_PACKS="${2:-}"
@@ -24,48 +25,68 @@ SPONSOR_NAME="${5:-}"
 TICKET_URL="${6:-}"
 COMMENT="${7:-}"
 
+usage() {
+  printf "Usage: %s project_name resource_packs dedicated_agents gh_runners sponsor_name ticket_url [comment]\n" "${SCRIPT_NAME}"
+  printf "\t%-16s project name (e.g. technology.cbi for CBI project).\n" "project_name"
+  printf "\t%-16s resource packs (number of packs that should be added).\n" "resource_packs"
+  printf "\t%-16s dedicated agents (number of dedicated agents that should be added).\n" "dedicated_agents"
+  printf "\t%-16s GitHub large runners (number of GitHub large runners that should be added).\n" "gh_runners"
+  printf "\t%-16s sponsor name (name of the sponsoring organization).\n" "sponsor_name"
+  printf "\t%-16s ticket URL (URL of the related HelpDesk ticket).\n" "ticket_url"
+  printf "\t%-16s comment (optional comment).\n" "comment"
+}
+
 if [ -z "${PROJECT_NAME}" ]; then
   printf "ERROR: a project name must be given.\n"
+  usage
   exit 1
 fi
 
 if [ -z "${RESOURCE_PACKS}" ]; then
   printf "ERROR: Number of resource packs must be given.\n"
+  usage
   exit 1
 fi
 
 if [[ "${RESOURCE_PACKS}" -lt 0 ]]; then
   echo "Number of resource packs must be 0 or greater..."
+  usage
   exit 1
 fi
 
 if [ -z "${DEDICATED_AGENTS}" ]; then
   printf "ERROR: Number of dedicated agents must be given.\n"
+  usage
   exit 1
 fi
 
 if [[ "${DEDICATED_AGENTS}" -lt 0 ]]; then
   echo "Number of dedicated agents must be 0 or greater..."
+  usage
   exit 1
 fi
 
 if [ -z "${RUNNERS}" ]; then
   printf "ERROR: Number of GitHub large runners must be given.\n"
+  usage
   exit 1
 fi
 
 if [[ "${RUNNERS}" -lt 0 ]]; then
   echo "Number of GitHub large runners must be 0 or greater..."
+  usage
   exit 1
 fi
 
 if [ -z "${SPONSOR_NAME}" ]; then
   printf "ERROR: a sponsor name must be given.\n"
+  usage
   exit 1
 fi
 
 if [ -z "${TICKET_URL}" ]; then
   printf "ERROR: a ticket url must be given.\n"
+  usage
   exit 1
 fi
 
@@ -142,6 +163,7 @@ update_jiro_config() {
     echo "  ERROR: JIRO ${config_file} cannot be found."
     exit 1
   fi
+  #TODO: check if number of resource packs is already set correctly
   if grep 'resourcePacks' < "${config_file}" > /dev/null; then
     #TODO: simplify?
     original_value="$(grep 'resourcePacks' < "${config_file}" | sed 's/^.*resourcePacks://' | tr -d ' ,')"
@@ -159,8 +181,11 @@ update_jiro_config() {
     fi
     sed -i "/displayName/a \ ${new_line}" "${config_file}"
   fi
+  echo "  New value: ${new_value}"
 }
 
+#MAIN
+echo "Regenerating benefits for member organizations..."
 "${CBI_SPONSORSHIPS_API_ROOT_DIR}/memberOrganizationsBenefits.sh"
 if [[ "${RESOURCE_PACKS}" -gt 0 ]]; then
   check_avail "resourcePacks" "resource packs"
@@ -179,4 +204,5 @@ else
 fi
 
 echo
+echo "TODO: deploy changes for CI instance!"
 echo "TODO: commit changes in cbi-sponsoring-api and jiro repos!"

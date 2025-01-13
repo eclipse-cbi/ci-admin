@@ -64,8 +64,11 @@ fi
 short_name="${PROJECT_NAME##*.}"
 ML_NAME="${short_name}-dev"                # Mailing list name (e.g. cbi-dev)
 
+# Init gpg client
 TMP_GPG="/tmp/temp_gpg"
 TMP_GPG_DOCKER="/run/gnupg"
+mkdir -p "${TMP_GPG}"
+chmod 700 "${TMP_GPG}"
 
 cleanup() {
   rm -rf "${TMP_GPG}"
@@ -73,8 +76,6 @@ cleanup() {
 trap cleanup EXIT
 
 gpg_sb() {
-  mkdir -p "${TMP_GPG}"
-  chmod 700 "${TMP_GPG}"
   docker run -i --rm -u "$(id -u)" -v "${TMP_GPG}:${TMP_GPG_DOCKER}" "eclipsecbi/gnupg:2.2.8-r0" "${@}"
 }
 

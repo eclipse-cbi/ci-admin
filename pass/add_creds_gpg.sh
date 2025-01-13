@@ -73,14 +73,14 @@ cleanup() {
 trap cleanup EXIT
 
 gpg_sb() {
+  mkdir -p "${TMP_GPG}"
+  chmod 700 "${TMP_GPG}"
   docker run -i --rm -u "$(id -u)" -v "${TMP_GPG}:${TMP_GPG_DOCKER}" "eclipsecbi/gnupg:2.2.8-r0" "${@}"
 }
 
 generate_key() {
   local pass_phrase="${1:-}"
   local gen_key_config_file="gen_key_config"
-  mkdir -p "${TMP_GPG}"
-  chmod 700 "${TMP_GPG}"
   ## generate key config file
   cat <<EOF > ${TMP_GPG}/${gen_key_config_file}
 %echo Generating keypair for ${DISPLAY_NAME} ...
@@ -158,6 +158,17 @@ sign_key() {
   gpg_sb --local-user "${key_id_wm}" --batch --yes --passphrase-file "${passphrase_wm_file_in_container}" --pinentry-mode=loopback --sign-key "${key_id}"
 }
 
+import_existing_keys(){
+  local pw_store_path="${1:-}"
+
+  passw cbi "${pw_store_path}/passphrase" > "${TMP_GPG}/passphrase"
+  local passphrase_file_in_container="${TMP_GPG_DOCKER}/passphrase"
+  echo "Importing ${pw_store_path}/secret-keys.asc"
+  gpg_sb --batch --passphrase-file "${passphrase_file_in_container}" --pinentry-mode=loopback --import <<< "$(passw cbi "${pw_store_path}/secret-keys.asc")"
+  echo "Importing ${pw_store_path}/secret-subkeys.asc"
+  gpg_sb --batch --passphrase-file "${passphrase_file_in_container}" --pinentry-mode=loopback --import <<< "$(passw cbi "${pw_store_path}/secret-subkeys.asc")"
+}
+
 export_keys(){
   local key_id="${1:-}"
   local pass_phrase="${2:-}"
@@ -191,16 +202,41 @@ add_to_pw_store() {
   passw cbi insert -m "${pw_store_path}/secret-subkeys.asc" < secret-subkeys.asc
 }
 
+get_key_id(){
+  local email="${1:-}"
+  list_key_id="$(gpg_sb --list-keys --with-colons "<${email}>" || true)"
+  echo "${list_key_id}" | awk -F: '/^pub:/ { print $5 }'
+}
+
+check_key_id(){
+  local email="${1:-}"
+  printf "Looking for key with email: %s\n" "${email}"
+  key_id="$(get_key_id "${email}")"
+  if [ -z "${key_id}" ]; then
+    printf "ERROR: Key not found for email: %s\n" "${email}"
+    yes_skip_exit "import existing keys from the secrets manager" import_existing_keys "${pw_store_path}"
+    key_id="$(get_key_id "${email}")"
+    if [ -n "${key_id}" ]; then
+      printf "Key successfully found after import: %s\n" "${key_id}"
+    else
+      printf "ERROR: Key still not found after import attempt.\n"
+      return 1
+    fi
+  else
+    printf "Found key: %s\n" "${key_id}"
+  fi
+}
+
 ## Main
 pass_phrase=$(_generate_shell_safe_password)
 keyserver="keyserver.ubuntu.com"           # PGP keyserver
 pw_store_path="bots/${PROJECT_NAME}/gpg"
+email="${ML_NAME}@${FORGE}"
 
 yes_skip_exit "generate the main key" generate_key "${pass_phrase}"
 
-key_id="$(gpg_sb --list-keys --with-colons "<${ML_NAME}@${FORGE}>" | awk -F: '/^pub:/ { print $5 }')"
-printf "Found key: %s\n" "${key_id}"
-
+check_key_id "${email}"
+gpg_sb --list-keys --with-colons "<${email}>"
 check_prefs "${key_id}"
 
 yes_skip_exit "generate a signing (sub-)keypair" generate_sub_keypair "${key_id}" "${pass_phrase}"
@@ -214,7 +250,7 @@ yes_skip_exit "add the keys, passphrase and metadata to the password store" add_
 echo
 echo "####################################################"
 echo "Keys details:"
-echo "$(gpg_sb --list-sigs --keyid-format long "<${ML_NAME}@${FORGE}>")"
+echo "$(gpg_sb --list-sigs --keyid-format long "<${email}>")"
 echo "####################################################"
 echo
 

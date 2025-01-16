@@ -125,6 +125,10 @@ process_projects() {
   for key in $keys; do
     project=${key##*_}
     echo "Project: ${project}"
+    if [[ "$project" =~ ^(.github|.eclipsefdn)$ ]]; then
+      echo "Skipping project: ${project}"
+      continue
+    fi
     create_token "${key}" "-${project}"
     deactivate_autoscan  "${key}"
   done

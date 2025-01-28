@@ -123,11 +123,11 @@ The ${DISPLAY_NAME} JIPP on Jiro is available here now:
 => https://ci.eclipse.org/${short_name}
 
 PLEASE NOTE:
-* Publishing to download.eclipse.org requires access via SCP. We've added the credentials to the JIPP. Please see https://wiki.eclipse.org/Jenkins#How_do_I_deploy_artifacts_to_download.eclipse.org.3F for more info.
+* Publishing to download.eclipse.org requires access via SCP. We've added the credentials to the JIPP. Please see https://github.com/eclipse-cbi/jiro/wiki/FAQ#how-do-i-deploy-artifacts-to-downloadeclipseorg for more info.
 
 * To simplify setting up jobs on our cluster-based infra, we provide a pod template that can also be used with freestyle jobs. The pod template has the label "centos-7" which can be specified in the job configuration under "Restrict where this project can be run". The image contains more commonly used dependencies than the default “basic” pod template.
 
-* You can find more info about Jenkins here: https://wiki.eclipse.org/Jenkins
+* You can find more info about Jenkins here: https://github.com/eclipse-cbi/jiro/wiki
 
 Please let us know if you need any additional plug-ins.
 

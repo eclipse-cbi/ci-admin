@@ -5,6 +5,7 @@ import json
 SITE = "pypi.org"
 LOGIN_PAGE = "https://" + SITE + "/account/login"
 REGISTER_PAGE = "https://" + SITE + "/account/register"
+ACCOUNT_SETTINGS_PAGE = "https://" + SITE + "/manage/account"
 
 config_path = os.path.expanduser('~/.cbi/config')
 with open(config_path, 'r') as config_file:
@@ -51,8 +52,12 @@ def ask_to_continue(message="Do you want to continue? (yes/no): "):
 
 def open_settings(page):
     if not page.get_by_text("Account settings").is_visible():
-        page.get_by_label("View menu").click()
-        page.get_by_role("link", name="Account settings").click()
+        #page.get_by_label("View menu").click()
+        #page.get_by_role("link", name="Account settings").click()
+        response = page.goto(ACCOUNT_SETTINGS_PAGE)
+        assert response is not None
+        if not response.ok:
+            raise RuntimeError(f"unable to load " + ACCOUNT_SETTINGS_PAGE + ": {response.status}")
 
 
 def nav_to_token_settings(page):

@@ -160,6 +160,11 @@ EOE
       api_url="${API_URL//<version>/${version}}"
       local json
       json="$(curl -sSL -H "Accept: application/json" "${api_url}")"
+      message="$(echo "${json}" | jq .message)"
+      if [[ "${message}" != "null" ]]; then
+        echo "  curl error: ${message}"
+        break
+      fi
     fi
 
     # DEBUG
@@ -280,7 +285,7 @@ update() {
   rsync -P -e ssh "${name}" "${CONNECTION}":/tmp/
 
   #TODO: fails when assigning separately?
-  local extraction_dir="$(tar tzf "${name}" | head -1 | cut -f1 -d"/") || true"
+  local extraction_dir="$(tar tzf "${name}" | head -1 | cut -f1 -d"/" || true)"
   #local extraction_dir="$(tar tzf "${name}" | head -1 | cut -f1 -d"/")"
 
   local user="outage4"
@@ -326,23 +331,24 @@ update() {
   send \"mkdir -p ${BASE_PATH}/jdk-${version}\r\"
   # move and extract jdk
   send \"cd ${BASE_PATH}/jdk-${version}\r\"
-  #send \"mv /tmp/${name} .\r\"
-  send \"cp /tmp/${name} .\r\"
-  send \"tar xzf ${name}\r\"
+  send \"tar xzf /tmp/${name} -C ${BASE_PATH}/jdk-${version}/\r\"
 
   #TODO: does not work for ea versions (extracted folder is named 'jdk-19' without the ea suffix)
   send \"ls -al\r\"
-    #TODO: reliably identify the new dir and set the symlink accordingly
-    #TODO: this still needs to be fixed for non-temurin JDKs
 
-  send \"mv ${extraction_dir} ${json_version}\r\"
+  #TODO: reliably identify the new dir and set the symlink accordingly
+  #TODO: this still needs to be fixed for non-temurin JDKs
+  
+  if { \"$extraction_dir\" != \"$json_version\" } {
+    send \"mv ${extraction_dir} ${json_version}\r\"
+  }
   send \"ls -al\r\"
   # double-check that dir exists
   if { \"$update_latest\" == \"true\" } {
     send \"ln -sfn ${json_version} latest\r\"
     send \"ls -al latest\r\"
   }
-  send \"rm ${name}\r\"
+  send \"rm /tmp/${name}\r\"
 
   # exit su, exit su and exit ssh
   send \"exit\rexit\rexit\r\"
@@ -354,7 +360,7 @@ update() {
 
 question_update_latest() {
   local version="${1:-}"
-  read -rp "Do you want to update the latest symlink for JDK ${version}? (Y)es, (N)o, E(x)it: " yn
+  read -rp "  Do you want to update the latest symlink for JDK ${version}? (Y)es, (N)o, E(x)it: " yn
   case $yn in
     [Yy]* ) echo "true" ;;
     [Nn]* ) echo "false" ;;
@@ -365,7 +371,7 @@ question_update_latest() {
 
 question_update() {
   local version="${1:-}"
-  read -rp "Do you want to update JDK ${version}? (Y)es, (N)o, E(x)it: " yn
+  read -rp "  Do you want to update JDK ${version}? (Y)es, (N)o, E(x)it: " yn
   case $yn in
     [Yy]* ) update "${version}";;
     [Nn]* ) return ;;
@@ -387,15 +393,15 @@ is_latest_version() {
 
   local server_version
   server_version="$(ssh "${CONNECTION}" readlink "${BASE_PATH}/jdk-${version}/latest" || true)"
-  echo "server_versioni: ${server_version}"
+
   if [[ -z "${server_version}" ]]; then
     echo "ERROR: ${BASE_PATH}/jdk-${version}/latest is missing"
 #TODO: ask if latest should be created
     exit 1
   fi
 
-  echo "  JSON version:   ${json_version}"
   echo "  Server version: ${server_version}"
+  echo "  JSON version:   ${json_version}"
 
   if [[ "${json_version}" == "${server_version}" ]]; then
     echo "  Already latest version installed. Nothing to do!"

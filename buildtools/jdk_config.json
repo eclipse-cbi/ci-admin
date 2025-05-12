@@ -3,7 +3,7 @@
     {
       "display_name": "Temurin",
       "url": "https://api.adoptium.net/v3/assets/latest/<version>/hotspot?architecture=x64&image_type=jdk&os=linux&vendor=eclipse",
-      "versions": [8, 11, 17, 20, 21, 22, 23]
+      "versions": [8, 11, 17, 20, 21, 22, 23, 24]
     }
   ],
   "semeru": [

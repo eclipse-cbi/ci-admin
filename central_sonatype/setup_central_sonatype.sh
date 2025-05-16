@@ -58,28 +58,28 @@ if [ -z "${DISPLAY_NAME}" ]; then
   fi
 fi
 
-create_ossrh_credentials() {
-  printf "\n\nCreating OSSRH credentials...\n"
-  "${CI_ADMIN_ROOT}/pass/add_creds.sh" "ossrh" "${PROJECT_NAME}" || true
+create_central_credentials() {
+  printf "\n\nCreating central sonatype credentials...\n"
+  "${CI_ADMIN_ROOT}/pass/add_creds.sh" "central" "${PROJECT_NAME}" || true
 
-  local ossrh_username
-  local ossrh_password
-  ossrh_username="$(passw "cbi" "bots/${PROJECT_NAME}/oss.sonatype.org/username")"
-  ossrh_password="$(passw "cbi" "bots/${PROJECT_NAME}/oss.sonatype.org/password")"
-  ossrh_email="$(passw "cbi" "bots/${PROJECT_NAME}/oss.sonatype.org/email")"
+  local central_username
+  local central_password
+  central_username="$(passw "cbi" "bots/${PROJECT_NAME}/central.sonatype.org/username")"
+  central_password="$(passw "cbi" "bots/${PROJECT_NAME}/central.sonatype.org/password")"
+  central_email="$(passw "cbi" "bots/${PROJECT_NAME}/central.sonatype.org/email")"
 
   cat <<EOF
 
-  # Create OSSRH Account
+  # Create Central Sonatype Account
 
-  * Sign-up at OSSRH (use credentials from pass)
-    Username:   ${ossrh_username}
-    Email:      ${ossrh_email}
-    Password:   ${ossrh_password}
+  * Sign-up at Central (use credentials from pass)
+    Username:   ${central_username}
+    Email:      ${central_email}
+    Password:   ${central_password}
 
     => Sign up here: https://central.sonatype.com/api/auth/login
 
-  * Signup with new OSSRH account
+  * Signup with the new account
   * Validate account email
 
 EOF
@@ -89,26 +89,23 @@ EOF
   
   cat <<EOF
 
-  # Request OSSRH Account to sonatype support via email
+  # Request namespace to sonatype support via email
 
   * Create an email to central-support@sonatype.com
   
-  * Subject: OSSRH Account creation for ${DISPLAY_NAME} Project
+  * Subject: Namespace creation for ${DISPLAY_NAME} Project
 
   * Body: 
-    Please create a new OSSRH Account at oss.sonatype.org for the ${DISPLAY_NAME} project.
+    Please create a new namespace at central.sonatype.org for the ${DISPLAY_NAME} project.
     Group ID: org.eclipse.${SHORT_NAME}
     Project URL: https://projects.eclipse.org/projects/${PROJECT_NAME}
-    Usernames: ${ossrh_username} (registered at central.sonatype.com)
+    Usernames: ${central_username} (registered at central.sonatype.com)
     SCM URL: https://github.com/eclipse-${SHORT_NAME}
 
-  * NOTE: Adjust SCM URL if needed
-  * IMPORTANT: if it’s an ee4j project, mention that the permissions need to be set for https://jakarta.oss.sonatype.org not https://oss.sonatype.org
-
-  Issue comment template for HelpDesk issue after the OSSRH support has been reached:
+  Issue comment template for HelpDesk issue after the sonatype support has been reached:
   ----------------------------------------------------------------------------------------------------------
 
-  The process for allowing deployments to OSSRH has been started. We are currently waiting sonatype support to be done.
+  The process for allowing deployments to central sonatype has been started. We are currently waiting sonatype support to be done.
 EOF
   
   read -rsp $'\nOnce you are done, Press any key to continue...\n' -n1
@@ -118,47 +115,23 @@ EOF
 register_user_token() {
 
   printf "\n\nRegister User Token...\n"
+  python "${SCRIPT_FOLDER}/playwright/central_create_token.py" "${PROJECT_NAME}"
 
-  local nexusProUrl
-  local ossrh_username
-  local ossrh_password
-  nexusProUrl="https://oss.sonatype.org"
-  ossrh_username="$(passw "cbi" "bots/${PROJECT_NAME}/oss.sonatype.org/username")"
-  ossrh_password="$(passw "cbi" "bots/${PROJECT_NAME}/oss.sonatype.org/password")"
-
-  if passw cbi "bots/${PROJECT_NAME}/oss.sonatype.org/gh-token-username" &> /dev/null ; then
-    _question_action "Reset User Token in secrets manager" "$("${JIRO_ROOT_FOLDER}/build/nexus-pro-token.sh" delete "${nexusProUrl}" "${ossrh_username}" "${ossrh_password}")"
-  fi
-
-  local ossrh_token
-  ossrh_token="$("${JIRO_ROOT_FOLDER}/build/nexus-pro-token.sh" get_or_create "${nexusProUrl}" "${ossrh_username}" "${ossrh_password}")"
-  ossrh_token_username="$(jq -r '.nameCode' <<< "${ossrh_token}")"
-  ossrh_token_password="$(jq -r '.passCode' <<< "${ossrh_token}")"
-
-  echo "${ossrh_token_username}" | passw cbi insert -m "bots/${PROJECT_NAME}/oss.sonatype.org/gh-token-username"
-  echo "${ossrh_token_password}" | passw cbi insert -m "bots/${PROJECT_NAME}/oss.sonatype.org/gh-token-password"
-
-  cat <<EOF
-
-  # Check User Token 
-
-  * Login with bot account to https://oss.sonatype.org
-    Username:   ${ossrh_username}
-    Password:   ${ossrh_password}
-    Username Token:   ${ossrh_token_username}
-    Password Token:   ${ossrh_token_password}
-
-  * Go to user profil, and select in the dropdown 'User Token' panel: https://oss.sonatype.org/#profile;User%20Token
-  * Click 'Access User Token'
-
-  # Add OSSRH Token to Repository Organization (if project doesn't use Jenkins)
-
-  * ORG_OSSRH_USERNAME: ${ossrh_token_username}
-  * ORG_OSSRH_PASSWORD: ${ossrh_token_password}
-  
-EOF
-  _open_url "https://oss.sonatype.org"  
   read -rsp $'\nOnce you are done, Press any key to continue...\n' -n1
+   cat <<EOF
+
+  # Add token to Repository Organization (if project doesn't use Jenkins)
+
+  secrets+: [
+    orgs.newOrgSecret('CENTRAL_SONATYPE_TOKEN_PASSWORD') {
+      value: "pass:bots/${PROJECT_NAME}/central.sonatype.org/token-password",
+    },
+    orgs.newOrgSecret('CENTRAL_SONATYPE_TOKEN_USERNAME') {
+      value: "pass:bots/${PROJECT_NAME}/central.sonatype.org/token-username",
+    },
+  ],
+
+EOF
 }
 
 create_gpg_credentials() {
@@ -167,18 +140,22 @@ create_gpg_credentials() {
     "${CI_ADMIN_ROOT}/pass/add_creds_gpg.sh" "${PROJECT_NAME}" "${DISPLAY_NAME} Project"
   fi
 
-  gpg_passphrase="$(passw "cbi" "bots/${PROJECT_NAME}/gpg/passphrase")"
-  gpg_secret="$(passw "cbi" "bots/${PROJECT_NAME}/gpg/secret-subkeys.asc")"
   cat <<EOF
 
   # Add GPG to Repository Organization (if project doesn't use Jenkins)
 
-  * ORG_GPG_PASSPHRASE: ${gpg_passphrase}
-  * ORG_GPG_PRIVATE_KEY: 
-  ${gpg_secret}
+  secrets+: [
+    orgs.newOrgSecret('GPG_KEY_ID') {
+      value: "pass:bots/${PROJECT_NAME}/gpg/key_id",
+    },
+    orgs.newOrgSecret('GPG_PASSPHRASE') {
+      value: "pass:bots/${PROJECT_NAME}/gpg/passphrase",
+    },
+    orgs.newOrgSecret('GPG_PRIVATE_KEY') {
+      value: "pass:bots/${PROJECT_NAME}/gpg/secret-subkeys.asc",
+    },
+  ],
 
-  Add those credentials to the repository organization secrets.
- 
 EOF
 }
 
@@ -213,7 +190,7 @@ EOF
   # Reply to ticket:
   
   The following credentials have been added to the ${DISPLAY_NAME} CI instance:
-    * OSSRH
+    * Central Sonatype
     * GPG
 
 EOF
@@ -232,57 +209,55 @@ otterdog_org_secrets() {
   echo "Add the following organization secrets at org level to the repository: git clone git@github.com/eclipse-${SHORT_NAME}/.eclipsefdn"
   cat <<EOF
   secrets+: [
-    orgs.newOrgSecret('ORG_GPG_KEY_ID') {
+    orgs.newOrgSecret('GPG_KEY_ID') {
       value: "pass:bots/${PROJECT_NAME}/gpg/key_id",
     },
-    orgs.newOrgSecret('ORG_GPG_PASSPHRASE') {
+    orgs.newOrgSecret('GPG_PASSPHRASE') {
       value: "pass:bots/${PROJECT_NAME}/gpg/passphrase",
     },
-    orgs.newOrgSecret('ORG_GPG_PRIVATE_KEY') {
+    orgs.newOrgSecret('GPG_PRIVATE_KEY') {
       value: "pass:bots/${PROJECT_NAME}/gpg/secret-subkeys.asc",
     },
-    orgs.newOrgSecret('ORG_OSSRH_PASSWORD') {
-      value: "pass:bots/${PROJECT_NAME}/oss.sonatype.org/gh-token-password",
+    orgs.newOrgSecret('CENTRAL_SONATYPE_TOKEN_PASSWORD') {
+      value: "pass:bots/${PROJECT_NAME}/central.sonatype.org/gh-token-password",
     },
-    orgs.newOrgSecret('ORG_OSSRH_USERNAME') {
-      value: "pass:bots/${PROJECT_NAME}/oss.sonatype.org/gh-token-username",
+    orgs.newOrgSecret('CENTRAL_SONATYPE_TOKEN_USERNAME') {
+      value: "pass:bots/${PROJECT_NAME}/central.sonatype.org/gh-token-username",
     },
   ],
 EOF
 }
 
 
-
-ossrh_comment_template() {
+central_comment_template() {
   cat << EOF
 
-  Issue comment template for HelpDesk issue once the OSSRH support is resolved (usually takes a few hours):
+  Issue comment template for HelpDesk issue once the Sonatype support is resolved (usually takes a few hours):
   --------------------------------------------------------------------------------------------------------
 
-  The default Maven settings contain a server definition named 'ossrh' to let you upload things to Sonatype's server.
+  The default Maven settings contain a server definition named 'central' to let you upload things to Sonatype's server.
   This server id should be used in a distributionManagement repository somewhere specifying the URL.
-  See http://central.sonatype.org/pages/ossrh-guide.html#releasing-to-central and http://central.sonatype.org/pages/ossrh-guide.html#ossrh-usage-notes for details.
+  See https://central.sonatype.org/publish/publish-portal-maven/#usage for details.
   The GPG passphrase is also configured (encrypted) in the settings (as described at
   https://maven.apache.org/plugins/maven-gpg-plugin/usage.html#Configure_passphrase_in_settings.xml). It's recommended to use the maven-gpg-plugin.
-  See also https://github.com/eclipse-cbi/jiro/wiki/Jenkins#how-can-artifacts-be-deployed-to-ossrh--maven-central
 
 
   Issue comment for project that does not use jenkins: 
   ----------------------------------------------------
 
   The following organization secrets have been added:
-  * ORG_GPG_KEY_ID
-  * ORG_GPG_PASSPHRASE
-  * ORG_GPG_PRIVATE_KEY
-  * ORG_OSSRH_PASSWORD
-  * ORG_OSSRH_USERNAME
-  See https://central.sonatype.org/publish/publish-maven/ on how to publish artifacts to maven central via Sonatype.
+  * GPG_KEY_ID
+  * GPG_PASSPHRASE
+  * GPG_PRIVATE_KEY
+  * CENTRAL_SONATYPE_TOKEN_PASSWORD
+  * CENTRAL_SONATYPE_TOKEN_USERNAME
+  See https://central.sonatype.org/publish/publish-portal-maven/ on how to publish artifacts to maven central via Sonatype.
 
 EOF
 }
 
 # Main
-_question_action "create ossrh credentials" create_ossrh_credentials
+_question_action "create central account" create_central_credentials
 
 _question_action "register User Token in secrets manager (not necessary for jenkins integration)" register_user_token
 
@@ -294,7 +269,7 @@ _question_action "regenerate Maven settings for Jenkins" regen_maven_settings
 
 _question_action "add otterdog secrets" otterdog_org_secrets
 
-_question_action "comment on issue with template" ossrh_comment_template
+_question_action "comment on issue with template" central_comment_template
 
 read -rsp $'\nOnce you are done, Press any key to continue...\n' -n1
 

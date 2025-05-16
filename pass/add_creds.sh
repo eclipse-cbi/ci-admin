@@ -201,9 +201,9 @@ develocity() {
   generic "${project_name}" "${site}"
 }
 
-ossrh() {
+central() {
   local project_name="${1:-}"
-  local site="oss.sonatype.org"
+  local site="central.sonatype.org"
 
   generic "${project_name}" "${site}"
 }

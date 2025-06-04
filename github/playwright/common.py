@@ -110,9 +110,9 @@ def login(page, project_name, username, password):
     else:
         print("Device verification page not found or skipped.")
 
-    if (page.get_by_role("heading", name="Verify your two-factor authentication (2FA) settings").is_visible()):
+    if (page.get_by_role("heading", name="Two-factor authentication").is_visible()):
         print("Found Verify 2FA page.")
-        page.get_by_role("button", name="Verify 2FA now").click()
+        page.get_by_role("button", name="Verify").click()
     
     # deal with confirm account settings page
     if (page.get_by_text("Confirm your account recovery settings").is_visible()):
@@ -127,7 +127,7 @@ def login(page, project_name, username, password):
         print("Waiting for next 2FA token for 35 seconds...")
         page.wait_for_timeout(35000)
         twofa_token_pass = get_pass_2fa_otp(project_name)
-        page.get_by_role("button", name="Verify 2FA now").click()
+        page.get_by_role("button", name="Verify").click()
         page.get_by_placeholder("XXXXXX").fill(twofa_token_pass)
         page.get_by_role("button", name="Done").click()
 

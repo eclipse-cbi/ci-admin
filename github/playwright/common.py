@@ -71,7 +71,7 @@ def nav_to_token_settings(page):
 def signout(page):
     open_nav_menu(page)
     page.get_by_role("link", name="Sign out").click()
-    page.get_by_role("button", name="Sign out", exact=True).click()
+    page.get_by_role("button", name="Sign out from all accounts", exact=True).click()
 
 
 def login(page, project_name, username, password):
@@ -109,10 +109,6 @@ def login(page, project_name, username, password):
         page.get_by_placeholder("XXXXXX").fill(twofa_token_pass)
     else:
         print("Device verification page not found or skipped.")
-
-    if (page.get_by_role("heading", name="Two-factor authentication").is_visible()):
-        print("Found Verify 2FA page.")
-        page.get_by_role("button", name="Verify").click()
     
     # deal with confirm account settings page
     if (page.get_by_text("Confirm your account recovery settings").is_visible()):

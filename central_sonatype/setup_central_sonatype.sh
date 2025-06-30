@@ -256,6 +256,11 @@ central_comment_template() {
 EOF
 }
 
+namespaces_snapshot() {
+  printf "\n\nSet snapshot feature to all namespaces...\n"
+  python "${SCRIPT_FOLDER}/playwright/central_namespace_snapshot.py" "${PROJECT_NAME}"
+}
+
 # Main
 _question_action "create central account" create_central_credentials
 
@@ -268,6 +273,8 @@ _question_action "create Jenkins credentials" create_jenkins_credentials
 _question_action "regenerate Maven settings for Jenkins" regen_maven_settings
 
 _question_action "add otterdog secrets" otterdog_org_secrets
+
+_question_action "set snapshot on namespaces" namespaces_snapshot
 
 _question_action "comment on issue with template" central_comment_template
 

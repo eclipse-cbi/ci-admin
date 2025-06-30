@@ -219,10 +219,10 @@ otterdog_org_secrets() {
       value: "pass:bots/${PROJECT_NAME}/gpg/secret-subkeys.asc",
     },
     orgs.newOrgSecret('CENTRAL_SONATYPE_TOKEN_PASSWORD') {
-      value: "pass:bots/${PROJECT_NAME}/central.sonatype.org/gh-token-password",
+      value: "pass:bots/${PROJECT_NAME}/central.sonatype.org/token-password",
     },
     orgs.newOrgSecret('CENTRAL_SONATYPE_TOKEN_USERNAME') {
-      value: "pass:bots/${PROJECT_NAME}/central.sonatype.org/gh-token-username",
+      value: "pass:bots/${PROJECT_NAME}/central.sonatype.org/token-username",
     },
   ],
 EOF

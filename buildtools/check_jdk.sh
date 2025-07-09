@@ -161,7 +161,7 @@ EOE
       local json
       json="$(curl -sSL -H "Accept: application/json" "${api_url}")"
       message="$(echo "${json}" | jq .message)" || true
-      if [[ "${message}" != "null" ]]; then
+      if [[ "${message}" != "null" ]] && [[ "${message}" != "" ]]; then
         echo "  curl error: ${message}"
         break
       fi

@@ -23,6 +23,7 @@ LAST_PAGE="$(curl -sSI "https://projects.eclipse.org/api/projects?pagesize=${PAG
 
 # only query API if cache file is older than 1 hour
 if [[ ! -f ${CACHE_FILE} ]] || [ "$(stat --format=%Y ${CACHE_FILE})" -le $(( $(date +%s) - CACHE_TIMEOUT )) ]; then
+  echo "Cache expired (4 hours). Fetching data from projecst.eclipse.org API..."
   for page in $(seq 1 1 "${LAST_PAGE}"); do
     response="$(curl -sSL "https://projects.eclipse.org/api/projects?pagesize=${PAGE_SIZE}&page=${page}")"
     full_response+="${response}"

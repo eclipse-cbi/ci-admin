@@ -109,8 +109,8 @@ def setup_2fa(page, project_name):
 
     # enter OTP
     page.get_by_role("button", name="Close").click()
-    page.get_by_role("textbox", name="XXXXXX").fill(twofa_token)
-    page.get_by_text("Verify the code from the app").click()
+    page.get_by_role('textbox', name="Verify the code from the app").click()
+    page.get_by_role('textbox', name="Verify the code from the app").fill(twofa_token)
 
     # get recovery codes
     page.locator(".two-factor-recovery-code").nth(0).text_content()  # The next line does not work without this one !?!??!

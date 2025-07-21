@@ -12,7 +12,7 @@ def signup(page, project_name, username, password, email):
 
     assert response is not None
     if not response.ok:
-        raise RuntimeError(f"unable to load GitHub login page: {response.status}")
+        raise RuntimeError(f"unable to load signup page: {response.status}")
 
     expect(page.locator('#email')).to_be_visible(timeout=10000)
     page.locator('#email').fill(email)

@@ -39,13 +39,13 @@ def ask_to_continue(message="Do you want to continue? (yes/no): "):
     while True:
         user_input = input(message).strip().lower()
         if user_input in ['yes', 'y']:
-            print("Continuing...")
+            #print("Continuing...")
             return True
         elif user_input in ['no', 'n']:
-            print("Exiting...")
+            #print("Exiting...")
             return False
         else:
-            print("Please enter 'yes' or 'no'.")
+            print("Please enter 'yes/y' or 'no/n'.")
 
 
 def open_nav_menu(page):
@@ -123,9 +123,12 @@ def login(page, project_name, username, password):
         print("Waiting for next 2FA token for 35 seconds...")
         page.wait_for_timeout(35000)
         twofa_token_pass = get_pass_2fa_otp(project_name)
-        page.get_by_role("button", name="Verify").click()
+        page.get_by_role("button", name="Verify 2FA now").click()
+        #Page title "Verify your two-factor authentication (2FA) settings"
         page.get_by_placeholder("XXXXXX").fill(twofa_token_pass)
-        page.get_by_role("button", name="Done").click()
+        page.get_by_role("button", name="Verify").click()
 
     if (page.get_by_role("heading", name="2FA verification successful!").is_visible()):
         page.get_by_role("link", name="Done").click()
+
+    print("")

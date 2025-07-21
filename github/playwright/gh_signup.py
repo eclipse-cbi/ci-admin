@@ -65,6 +65,8 @@ def signup(page, project_name, username, password, email):
 
 
 def setup_2fa(page, project_name):
+    print("Checking/adding 2FA...")
+
     home_dir = os.path.expanduser("~")
     downloads_dir = os.path.join(home_dir, "Downloads")
 
@@ -75,7 +77,7 @@ def setup_2fa(page, project_name):
     # Check if 2FA is already enabled
     page.get_by_role("heading", name="Two-factor authentication", exact=True).click() # This click is required, otherwise the next elements are not found!?
     if not page.get_by_role("heading", name="Two-factor authentication is not enabled yet.").is_visible():
-        print("2FA is already set up. Skipping.")
+        print("=> 2FA is already set up. Skipping.\n")
         return
 
     page.get_by_role("link", name="Enable two-factor authentication").click()
@@ -94,7 +96,7 @@ def setup_2fa(page, project_name):
         if not twofa_seed:
             sys.exit("2FA seed text not found!")
 
-    print("Found 2FA seed text: " + twofa_seed)
+    print("   Found 2FA seed text: " + twofa_seed)
 
     # input('Press any key to continue\n')
 
@@ -105,7 +107,7 @@ def setup_2fa(page, project_name):
 
     # get OTP from pass
     twofa_token = os.popen("oathtool --totp -b " + twofa_seed).read()
-    print("2FA token: " + twofa_token)
+    print("   2FA token: " + twofa_token)
 
     # enter OTP
     page.get_by_role("button", name="Close").click()
@@ -117,7 +119,7 @@ def setup_2fa(page, project_name):
     twofa_codes = page.locator(".two-factor-recovery-code").all_text_contents()
     twofa_codes = '\n'.join(twofa_codes)
 
-    print("Found 2FA recovery codes:\n" + twofa_codes)
+    print("   Found 2FA recovery codes:\n" + twofa_codes)
 
     # input('Press any key to continue\n')
 
@@ -130,44 +132,49 @@ def setup_2fa(page, project_name):
         page.get_by_role("button", name="Download").click()
     download = download_info.value
     twofa_codes_files = os.path.join(downloads_dir, download.suggested_filename)
-    print("Downloaded recovery codes to: " + twofa_codes_files)
+    print("   Downloaded recovery codes to: " + twofa_codes_files)
     download.save_as(twofa_codes_files)
 
     # input('Press any key to continue\n')
     page.get_by_role("button", name="I have saved my recovery codes").click()
     page.get_by_role("button", name="Done").click()
+    print("=> 2FA setup complete.\n")
 
 
 def setup_ssh(page, project_name, ssh_pub_key, email):
     # navigate to SSH settings
+    print("Checking/adding SSH key...")
     common.open_settings(page)
     page.get_by_role("link", name="SSH and GPG keys").click()
+
+    key_begin=ssh_pub_key.split(" ")[1][0:18]
+    print("SSH key begin: " + key_begin)
 
     # Check if SSH public key has already been added
     page.get_by_role("heading", name="SSH keys").click() # This click is required, otherwise the next elements are not found!?
     if page.get_by_role("heading", name="Authentication keys").is_visible():
-        if page.get_by_text(email).is_visible():
+        if page.get_by_text(key_begin).is_visible():
             # Take screenshot
             page.screenshot(path="ssh_key_already_exists.png")
-            print("SSH key has already been added. See screenshot.")
+            print("=> SSH key has already been added. See screenshot.\n")
             return
 
     page.get_by_role("link", name="New SSH key").click()
     page.get_by_placeholder("Begins with 'ssh-rsa', 'ecdsa-sha2-nistp256', 'ecdsa-sha2-nistp384', 'ecdsa-sha2-nistp521', 'ssh-ed25519', 'sk-ecdsa-sha2-nistp256@openssh.com', or 'sk-ssh-ed25519@openssh.com'").fill(ssh_pub_key)
     page.get_by_role("button", name="Add SSH key").click()
-
+    print("=> SSH key has been added.\n")
 
 def setup_token(page, project_name):
+    print("Checking/adding PAT...")
     short_name = common.get_project_shortname(project_name)
-
     common.nav_to_token_settings(page)
 
     # Check if token has already been added
     page.get_by_role("heading", name="Personal access tokens (classic)").click() # This click is required, otherwise the next elements are not found!?
     token_name = "Jenkins GitHub Plugin token https://ci.eclipse.org/" + short_name
     if page.get_by_role("link", name=token_name).is_visible():
-        if common.ask_to_continue("Do you want to regenerate it? (yes/no):"):
-            print("Regenerate jenkins token")
+        if common.ask_to_continue("=> Token already exists. Do you want to regenerate it? (y/n): "):
+            print("   Regenerating jenkins token...")
 
             # token list page
             page.get_by_role("link", name=token_name).click()
@@ -178,11 +185,11 @@ def setup_token(page, project_name):
             page.get_by_role("menuitemradio", name="No expiration").click()
             page.get_by_role("button", name="Regenerate token").click()
             page.get_by_role("button", name="Copy token").click()
-
         else:
+            print("")
             return
     else:
-        print("Create jenkins token")
+        print("=> Creating new Jenkins token...")
 
         page.get_by_role("button", name="Generate new token").click()
         page.get_by_role("menuitem", name="Generate new token (classic) For general use").click()
@@ -196,15 +203,15 @@ def setup_token(page, project_name):
         page.get_by_role("button", name="Generate token").click()
         page.get_by_role("button", name="Copy token").click()
 
-    print("Register jenkins token")
     api_token = pyperclip.paste()
     print("API token: " + api_token)
     if not api_token:
-        print("ERROR: jenkins token is empty")
+        print("   ERROR: jenkins token is empty")
         sys.exit(1)
 
     # add token to pass
     common.add_to_pass(project_name, api_token, "api-token")
+    print("   Jenkins token has been created and added to pass.\n")
 
 
 def main():

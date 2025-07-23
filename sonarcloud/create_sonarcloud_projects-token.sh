@@ -91,23 +91,17 @@ curl_post() {
 curl_get() {
   local api_path="$1"
   local api_opts="$2"
-  local dry="${3:-${DRY_RUN}}"
 
-  if ! ${dry}; then
-    curl -sSL \
-      --request GET \
-      --header "Content-Type: application/x-www-form-urlencoded" \
-      -u "${SONAR_TOKEN}": \
-     "${SONAR_API_BASE_URL}/${api_path}?${api_opts}"
-  else
-    echo "DRY-RUN: curl -sSL --request POST --header \"Content-Type: application/x-www-form-urlencoded\" -u \"${SONAR_TOKEN}\": \"${SONAR_API_BASE_URL}/${api_path}?${api_opts}\"" >&2
-    echo "{}"
-  fi
+  curl -sSL \
+    --request GET \
+    --header "Content-Type: application/x-www-form-urlencoded" \
+    -u "${SONAR_TOKEN}": \
+    "${SONAR_API_BASE_URL}/${api_path}?${api_opts}"
 }
 
 get_projects() {
   local sonar_organization="$1"
-  curl_get  "projects/search" "organization=${sonar_organization}&ps=500" false | jq -r '.components[].key'
+  curl_get  "projects/search" "organization=${sonar_organization}&ps=500" | jq -r '.components[].key'
 }
 
 create_token() {

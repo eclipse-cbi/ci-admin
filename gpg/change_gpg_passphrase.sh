@@ -81,9 +81,7 @@ key_id="$(_get_key_id "${project_name}")"
 
 echo "old passphrase: ${PASSPHRASE}"
 
-generate_new_passphrase=$(_question_true_false "generate password")
-if [ "$generate_new_passphrase" = false ]
-then
+if _question_true_false "generate password"; then
   read -rp "Enter new passphrase: " NEW_PASSPHRASE
 else
   NEW_PASSPHRASE=$(_generate_shell_safe_password)

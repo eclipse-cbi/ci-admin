@@ -74,9 +74,8 @@ test_api_token() {
 curl_post() {
   local data="$1"
   local api_path="$2"
-  local dry="${3:-${DRY_RUN}}"
 
-  if ! ${dry}; then
+  if ! ${DRY_RUN}; then
     curl -sSL \
       --request POST \
       --header "Content-Type: application/x-www-form-urlencoded" \

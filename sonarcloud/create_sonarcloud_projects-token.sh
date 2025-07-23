@@ -113,7 +113,7 @@ create_token() {
     error_msg=$(echo "${reply}" | jq -r '.errors[].msg')
     echo "WARNING creating token: ${error_msg}"
 
-    if question_true_false "revoke token and generate new one"; then
+    if _question_true_false "revoke token and generate new one"; then
       curl_post "name=${token_name}" 'user_tokens/revoke'
       create_token "${token_name}" "${suffix}"
     fi

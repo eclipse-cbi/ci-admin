@@ -33,6 +33,9 @@ DRY_RUN=false
 
 #shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
+source "${SCRIPT_FOLDER}/../utils/common.sh"
+
+LOCAL_CONFIG="${HOME}/.cbi/config"
 
 SONAR_TOKEN="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "sonar-token")"
 JIRO_ROOT_DIR="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "jiro-root-dir")"
@@ -47,11 +50,33 @@ if [ -z "${JIRO_ROOT_DIR}" ] || [ "${JIRO_ROOT_DIR}" == "null" ]; then
   exit 1
 fi
 
+test_api_token() {
+  response=$(curl -sSL --header "Content-Type: application/x-www-form-urlencoded" -u "${SONAR_TOKEN}": -w "\n%{http_code}" "${SONAR_API_BASE_URL}/authentication/validate")
+
+  http_code=$(echo "$response" | tail -n 1)
+  content=$(echo "$response" | head -n -1)
+
+  if [ "$http_code" -eq 200 ]; then
+      valid=$(echo "$content"| jq -r '.valid')
+      if [ "$valid" = "true" ]; then
+        echo "API token is valid."
+      else
+        echo "API token is invalid. Please create a new token: https://sonarcloud.io/account/security and update it in ${LOCAL_CONFIG}, entry 'sonar-token'." >&2
+        echo "NOTE: For security reasons, tokens that have been inactive for 60 days will be automatically removed." >&2
+        exit 1
+      fi
+  else
+      echo "API token failed to authenticate. HTTP code: $http_code, please create a new token: https://sonarcloud.io/account/security"
+      exit 1
+  fi
+}
+
 curl_post() {
   local data="$1"
   local api_path="$2"
+  local dry="${3:-${DRY_RUN}}"
 
-  if ! ${DRY_RUN}; then
+  if ! ${dry}; then
     curl -sSL \
       --request POST \
       --header "Content-Type: application/x-www-form-urlencoded" \
@@ -67,32 +92,40 @@ curl_post() {
 curl_get() {
   local api_path="$1"
   local api_opts="$2"
+  local dry="${3:-${DRY_RUN}}"
 
-  if ! ${DRY_RUN}; then
+  if ! ${dry}; then
     curl -sSL \
       --request GET \
       --header "Content-Type: application/x-www-form-urlencoded" \
       -u "${SONAR_TOKEN}": \
      "${SONAR_API_BASE_URL}/${api_path}?${api_opts}"
   else
-    echo "DRY-RUN: curl -sSL --request POST --header \"Content-Type: application/x-www-form-urlencoded\" -u \"${SONAR_TOKEN}\": -d \"${data}\" \"${SONAR_API_BASE_URL}/${api_path}\"" >&2
+    echo "DRY-RUN: curl -sSL --request POST --header \"Content-Type: application/x-www-form-urlencoded\" -u \"${SONAR_TOKEN}\": \"${SONAR_API_BASE_URL}/${api_path}?${api_opts}\"" >&2
     echo "{}"
   fi
 }
 
 get_projects() {
   local sonar_organization="$1"
-  curl_get  "projects/search" "organization=${sonar_organization}&ps=500"| jq -r '.components[].key'
+  curl_get  "projects/search" "organization=${sonar_organization}&ps=500" false | jq -r '.components[].key'
 }
 
 create_token() {
   local token_name="Analyze \"${1:-}\""
   local suffix="${2:-}"
-
   echo "Creating SonarCloud token:"
   reply="$(curl_post "name=${token_name}" 'user_tokens/generate')"
   if echo "${reply}" | jq -e 'has("errors")' > /dev/null ; then
-    echo "${reply}" | jq -r '.errors[].msg'
+    error_msg=$(echo "${reply}" | jq -r '.errors[].msg')
+    echo "WARNING creating token: ${error_msg}"
+
+    generate_new_token=$(_question_true_false "revoke token and generate new one")
+    if [ "$generate_new_token" = true ]
+    then
+      curl_post "name=${token_name}" 'user_tokens/revoke'
+      create_token "${token_name}" "${suffix}"
+    fi
   else
     token="$(echo "${reply}" | jq -r '.token')"
     if ! ${DRY_RUN}; then
@@ -134,4 +167,5 @@ process_projects() {
   done
 }
 
+test_api_token
 process_projects "${SONAR_ORG}"

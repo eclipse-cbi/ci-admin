@@ -30,14 +30,14 @@ _question_action() {
   esac
 }
 
+#TODO: add E(x)it condition ( => exit 0) that works reliably also in a subshell
 _question_true_false() {
   local message="${1:-}"
-  read -rp "Do you want to ${message}? (Y)es, (N)o, E(x)it: " yn
+  read -rp "Do you want to ${message}? (Y)es, (N)o: " yn
   case $yn in
     [Yy]* ) echo "true" ;;
     [Nn]* ) echo "false" ;;
-    [Xx]* ) exit 0;;
-        * ) echo "Please answer (Y)es, (N)o, E(x)it"; _question_true_false "${message}";
+        * ) echo "Please answer (Y)es, (N)o"; _question_true_false "${message}";
   esac
 }
 

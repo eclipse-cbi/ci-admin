@@ -24,11 +24,12 @@ def signup(page, username, password, email):
 
     # little dance to get the "Continue" button to show up
     for x in range(10):
-        if page.get_by_role("checkbox", name="Receive occasional product").is_visible():
+        checkbox_name = "Receive occasional product"
+        if page.get_by_role("checkbox", name=checkbox_name).is_visible():
             page.wait_for_timeout(2000)
-            page.get_by_role("checkbox", name="Receive occasional product").uncheck()
+            page.get_by_role("checkbox", name=checkbox_name).uncheck()
             page.wait_for_timeout(2000)
-            page.get_by_role("checkbox", name="Receive occasional product").uncheck()
+            page.get_by_role("checkbox", name=checkbox_name).uncheck()
             page.get_by_role("button", name="Create account").click()
         else:
             print(x)

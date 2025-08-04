@@ -7,7 +7,7 @@ import pyperclip
 from playwright.sync_api import sync_playwright, Error, expect
 
 
-def signup(page, project_name, username, password, email):
+def signup(page, username, password, email):
     response = page.goto("https://github.com/signup")
 
     assert response is not None
@@ -15,23 +15,21 @@ def signup(page, project_name, username, password, email):
         raise RuntimeError(f"unable to load signup page: {response.status}")
 
     expect(page.locator('#email')).to_be_visible(timeout=10000)
-    page.locator('#email').fill(email)
-    page.get_by_role("button", name="Continue").click()
-    page.locator('#password').fill(password)
-    page.get_by_role("button", name="Continue").click()
-    page.locator("#login").fill(username)
-    page.get_by_role("button", name="Continue").click()
-    
-    # EMail preferences (don't select check box)
+    page.get_by_role("textbox", name="Email").click()
+    page.get_by_role("textbox", name="Email").fill(email)
+    page.get_by_role("textbox", name="Password").click()
+    page.get_by_role("textbox", name="Password").fill(password)
+    page.get_by_role("textbox", name="Username").click()
+    page.get_by_role("textbox", name="Username").fill(username)
 
     # little dance to get the "Continue" button to show up
     for x in range(10):
-        if page.get_by_text("Receive occasional product").is_visible():
+        if page.get_by_role("checkbox", name="Receive occasional product").is_visible():
             page.wait_for_timeout(2000)
-            page.get_by_label("Email preferences").uncheck()
+            page.get_by_role("checkbox", name="Receive occasional product").uncheck()
             page.wait_for_timeout(2000)
-            page.get_by_label("Email preferences").uncheck()
-            page.get_by_role("button", name="Continue").click()
+            page.get_by_role("checkbox", name="Receive occasional product").uncheck()
+            page.get_by_role("button", name="Create account").click()
         else:
             print(x)
             break
@@ -246,7 +244,7 @@ def main():
             common.login(page, project_name, username, password)
         else:
             print("User account does not exist, signing up.")
-            signup(page, project_name, username, password, email)
+            signup(page, username, password, email)
 
         expect(page.get_by_role("heading", name="Home", exact=True)).to_be_visible(timeout=30000)
 

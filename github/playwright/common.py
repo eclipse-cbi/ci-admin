@@ -121,14 +121,21 @@ def login(page, project_name, username, password):
     if (page.get_by_role("heading", name="Two-factor authentication").is_visible()):
         print("Found 2nd token verification page.")
         print("Waiting for next 2FA token for 35 seconds...")
-        page.wait_for_timeout(35000)
+        page.wait_for_timeout(10000)
+        print("Waiting for next 2FA token for 25 seconds...")
+        page.wait_for_timeout(10000)
+        print("Waiting for next 2FA token for 15 seconds...")
+        page.wait_for_timeout(10000)
+        print("Waiting for next 2FA token for  5 seconds...")
+        page.wait_for_timeout(5000)
         twofa_token_pass = get_pass_2fa_otp(project_name)
         page.get_by_role("button", name="Verify 2FA now").click()
         #Page title "Verify your two-factor authentication (2FA) settings"
         page.get_by_placeholder("XXXXXX").fill(twofa_token_pass)
-        page.get_by_role("button", name="Verify").click()
 
+    page.wait_for_timeout(2000)
     if (page.get_by_role("heading", name="2FA verification successful!").is_visible()):
         page.get_by_role("link", name="Done").click()
+        print("Found '2FA verification successful!' page.")
 
     print("")

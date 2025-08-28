@@ -4,6 +4,8 @@ import subprocess
 import requests
 import common
 import pyperclip
+import sshpubkeys
+
 from playwright.sync_api import sync_playwright, Error, expect
 
 
@@ -146,13 +148,13 @@ def setup_ssh(page, project_name, ssh_pub_key, email):
     common.open_settings(page)
     page.get_by_role("link", name="SSH and GPG keys").click()
 
-    key_begin=ssh_pub_key.split(" ")[1][0:18]
-    print("SSH key begin: " + key_begin)
+    key_hash = sshpubkeys.SSHKey(ssh_pub_key).hash_sha256()
+    print("SHA256: " + key_hash)
 
     # Check if SSH public key has already been added
     page.get_by_role("heading", name="SSH keys").click() # This click is required, otherwise the next elements are not found!?
     if page.get_by_role("heading", name="Authentication keys").is_visible():
-        if page.get_by_text(key_begin).is_visible():
+        if page.get_by_text(key_hash).is_visible():
             # Take screenshot
             page.screenshot(path="ssh_key_already_exists.png")
             print("=> SSH key has already been added. See screenshot.\n")

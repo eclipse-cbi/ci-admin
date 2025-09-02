@@ -13,6 +13,10 @@ set -o nounset
 set -o pipefail
 
 IFS=$'\n\t'
+SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+
+#shellcheck disable=SC1091
+source "${SCRIPT_FOLDER}/../utils/common.sh"
 
 tmp_dir="temp"
 
@@ -59,8 +63,8 @@ chmod 600 id_rsa
 # get old pw from pass
 old_pw=$(pass "${pw_store_path}/id_rsa.passphrase")
 
-# overwrite old pw in pass with new pw without "\"
-pwgen -1 -s -r '\' -y 64 | pass insert -m ${pw_store_path}/id_rsa.passphrase
+# overwrite old pw in pass with new shell safe pw
+_generate_shell_safe_password 64 | pass insert -m ${pw_store_path}/id_rsa.passphrase
 
 new_pw=$(pass "${pw_store_path}/id_rsa.passphrase")
 

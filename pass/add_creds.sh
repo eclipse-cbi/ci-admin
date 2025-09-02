@@ -16,6 +16,9 @@ IFS=$'\n\t'
 
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
+#shellcheck disable=SC1091
+source "${SCRIPT_FOLDER}/../utils/common.sh"
+#shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/pass_wrapper.sh"
 
 _verify_inputs() {
@@ -87,7 +90,7 @@ _generate_ssh_keys() {
   #echo "pw_store_path: ${pw_store_path}";
 
   # shellcheck disable=SC1003
-  pwgen -1 -s -r '\\"-' -y 64 | passw cbi insert -m "${pw_store_path}/id_rsa.passphrase"
+  _generate_shell_safe_password 64 | passw cbi insert -m "${pw_store_path}/id_rsa.passphrase"
   passw cbi "${pw_store_path}/id_rsa.passphrase" | "${SCRIPT_FOLDER}"/../ssh-keygen-ni.sh -C "${email}" -f "${temp_path}"
 
   # Insert private and public key into pw store
@@ -302,7 +305,7 @@ user_pw() {
 
   # generate pw if not given
   if [[ -z "${pw}" ]]; then
-    pw="$(pwgen -1 -s -y 24)"
+    pw="$(_generate_shell_safe_password 24)"
   fi
   _add_to_pw_store "${project_name}" "${site}" "${email}" "${user}" "${pw}"
 }
@@ -322,7 +325,7 @@ user_pw_prompt () {
   echo -n "${site} username: "; read -r user
   read -p "Do you want to generate the password? (Y)es, (N)o, E(x)it: " yn
   case $yn in
-    [Yy]* ) pw="$(pwgen -1 -s -y 24)";printf "%s password: %s\n" "${site}" "${pw}";;
+    [Yy]* ) pw="$(_generate_shell_safe_password 24)";printf "%s password: %s\n" "${site}" "${pw}";;
     [Nn]* ) echo -n "${site} password: ";read -r pw;;
     [Xx]* ) exit;;
         * ) echo "Please answer (Y)es, (N)o, E(x)it";exit 1;

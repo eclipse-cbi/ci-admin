@@ -13,6 +13,17 @@ set -o nounset
 set -o pipefail
 
 IFS=$'\n\t'
+SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
+CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
+
+#shellcheck disable=SC1091
+source "${SCRIPT_FOLDER}/../utils/common.sh"
+
+JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
+BACKEND_SERVER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "server" "backend_server")"
+BACKEND_SERVER_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "user" "backend_server")"
+BACKEND_SERVER_PW="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "pw" "backend_server")"
+BACKEND_SERVER_PW_ROOT="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "pw_root" "backend_server")"
 
 maven_version="${1:-}"
 FILE_NAME="apache-maven-${maven_version}-bin.tar.gz"
@@ -25,22 +36,6 @@ if [ -z "${maven_version}" ]; then
   printf "ERROR: a maven version must be given (eg. '3.8.4').\n"
   exit 1
 fi
-
-# read local config
-LOCAL_CONFIG="${HOME}/.cbi/config"
-if [[ ! -f "${LOCAL_CONFIG}" ]]; then
-  echo "ERROR: File '$(readlink -f "${LOCAL_CONFIG}")' does not exists"
-  echo "Create one to configure db and file server credentials. Example:"
-  echo '{"backend_server": {"server": "myserver", "user": "user", "pw": "<path in pass>", "pw_root": "<path in pass>"}}' | jq -M
-  exit 1
-fi
-
-JIRO_ROOT_FOLDER="$(jq -r '."jiro-root-dir"' < "${LOCAL_CONFIG}")"
-
-BACKEND_SERVER="$(jq -r '.["backend_server"]["server"]' "${LOCAL_CONFIG}")"
-BACKEND_SERVER_USER="$(jq -r '.["backend_server"]["user"]' "${LOCAL_CONFIG}")"
-BACKEND_SERVER_PW="$(jq -r '.["backend_server"]["pw"]' "${LOCAL_CONFIG}")"
-BACKEND_SERVER_PW_ROOT="$(jq -r '.["backend_server"]["pw_root"]' "${LOCAL_CONFIG}")"
 
 download_maven() {
   wget -c "${DOWNLOAD_URL}"
@@ -126,6 +121,11 @@ update() {
 update_jiro_template() {
   local maven_version="${1:-}"
   echo "Updating JIRO tools-maven.hbs template..."
+  # check if entry already exists
+  if grep "apache-maven-${maven_version}" "${JIRO_ROOT_FOLDER}/templates/jenkins/partials/tools-maven.hbs" > /dev/null; then
+    echo "Entry for apache-maven-${maven_version} already exists! Skipping..."
+    return
+  fi
   # update /jiro/templates/jenkins/partials/tools-maven.hbs
   maven_template="${JIRO_ROOT_FOLDER}/templates/jenkins/partials/tools-maven.hbs"
   yq e ".maven.installations += [{\"name\": \"apache-maven-${maven_version}\", \"home\": \"/opt/tools/apache-maven/${maven_version}\"}]" -i "${maven_template}" 
@@ -141,6 +141,8 @@ update_jiro_template() {
 
 eval "$(ssh-agent -s)"
 ssh-add ~/.ssh/id_rsa
+
+#TODO: check if version already exists on backend server
 
 download_maven
 

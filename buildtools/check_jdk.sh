@@ -54,9 +54,12 @@ API_URL="$(jq -r ".${JDK_NAME}[].url" "${JDK_CONFIG}")"
 OUTPUT_FILE="${SCRIPT_FOLDER}/${JDK_NAME}_jdk_versions.json"
 BASE_PATH="/home/data/cbi/buildtools/java/${JDK_NAME}"
 
-backend_user="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "user" "backend_server")"
-backend_server="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "server" "backend_server")"
-CONNECTION="${backend_user}@${backend_server}"
+BACKEND_SERVER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "server" "backend_server")"
+BACKEND_SERVER_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "user" "backend_server")"
+BACKEND_SERVER_PW="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "pw" "backend_server")"
+BACKEND_SERVER_PW_ROOT="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "pw_root" "backend_server")"
+
+CONNECTION="${BACKEND_SERVER_USER}@${BACKEND_SERVER}"
 
 is_ea_build() {
   local version="${1:-}"
@@ -280,7 +283,7 @@ update() {
 
 #TODO: check if dir already exists
 
-  #wget on bambam does not work
+  #wget on backend server does not work
   wget -c "${url}" --user-agent="${USER_AGENT}"
   rsync -P -e ssh "${name}" "${CONNECTION}":/tmp/
 
@@ -288,10 +291,10 @@ update() {
   local extraction_dir="$(tar tzf "${name}" | head -1 | cut -f1 -d"/" || true)"
   #local extraction_dir="$(tar tzf "${name}" | head -1 | cut -f1 -d"/")"
 
-  local user="outage4"
-  local server="bambam"
-  local pw="it-pass/IT/accounts/shell/outage4@build,lts,bambam"
-  local pwRoot="it-pass/IT/accounts/shell/root@fred,barney,backend"
+  local user="${BACKEND_SERVER_USER}"
+  local server="${BACKEND_SERVER}"
+  local pw="${BACKEND_SERVER_PW}"
+  local pwRoot="${BACKEND_SERVER_PW_ROOT}"
 
   local userPrompt="$user@$server:~> *"
   local passwordPrompt="\[Pp\]assword: *"

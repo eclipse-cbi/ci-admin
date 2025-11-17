@@ -47,16 +47,9 @@ def open_nav_menu(page):
     page.get_by_role("button", name="Avatar").click()
 
 
-def open_settings(page):
-    open_nav_menu(page)
-    page.get_by_role("link", name="View Account").click()
-
-
 def nav_to_token_settings(page):
-    open_settings(page)
-    # navigate to token settings
-    page.locator('[data-test="access-user-token-btn"]').click()
-    page.locator('[data-test="access-token-ok-btn"]').click()
+    open_nav_menu(page)
+    page.get_by_role("link", name="View User Tokens").click()
 
 
 def signout(page):

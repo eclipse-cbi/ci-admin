@@ -81,6 +81,7 @@ NC='\033[0m' # No Color
 _fetch_projects_api() {
   echo "Fetching projects from Eclipse API..."
   bash "${SCRIPT_FOLDER}/fetch_projects_api.sh"
+  return 0
 }
 
 # Get all project IDs from API
@@ -89,6 +90,7 @@ _get_api_projects() {
     _fetch_projects_api
   fi
   jq -r '.[].project_id' "${CACHE_FILE}" | sort
+  return 0
 }
 
 # Get all level 1 secrets from Vault (secrets/cbi/*)
@@ -101,6 +103,7 @@ _get_vault_secrets() {
     jq -r '.[]' | \
     sed 's:/$::' | \
     sort
+  return 0
 }
 
 # Main comparison function
@@ -223,6 +226,7 @@ EXAMPLES:
   $(basename "$0") --refresh          # Force API cache refresh
 
 EOF
+  return 0
 }
 
 main() {
@@ -251,7 +255,8 @@ main() {
     rm -f "${CACHE_FILE}"
   fi
 
-  _compare_vault_with_api;
+  _compare_vault_with_api
+  return $?
 }
 
 main "$@"

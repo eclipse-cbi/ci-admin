@@ -231,9 +231,10 @@ EOF
 
 main() {
   local refresh=false
+  local param="$1"
   
   while [[ $# -gt 0 ]]; do
-    case $1 in
+    case $param in
       -h|--help)
         _usage
         exit 0
@@ -243,7 +244,7 @@ main() {
         shift
         ;;
       *)
-        echo "Unknown option: $1"
+        echo "Unknown option: $param"
         _usage
         exit 1
         ;;

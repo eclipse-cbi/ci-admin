@@ -17,6 +17,7 @@ fi
 # Helper function to check if token is valid
 _is_token_valid() {
     vault token lookup &>/dev/null
+    return $?
 }
 
 # Helper function to load token from file

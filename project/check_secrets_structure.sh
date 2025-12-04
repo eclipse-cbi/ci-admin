@@ -231,7 +231,7 @@ EOF
 
 main() {
   local refresh=false
-  local param="$1"
+  local param="${1:-}"
   
   while [[ $# -gt 0 ]]; do
     case $param in

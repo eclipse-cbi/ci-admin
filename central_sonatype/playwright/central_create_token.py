@@ -35,7 +35,7 @@ def setup_token(page, project_name):
 
     # add token to pass
     common.add_to_pass(project_name, token_username, "token-username")
-    common.add_to_pass(project_name, token_pass, "token-password")
+    common.add_to_pass(project_name, token_password, "token-password")
 
     page.locator("[data-test=\"close-view-token-modal\"]").click()
 

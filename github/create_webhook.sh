@@ -14,12 +14,15 @@ set -o nounset
 set -o pipefail
 
 IFS=$'\n\t'
-SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
-CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
-TOKEN="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "access_token" "github")"
-#shellcheck disable=SC2089
-EVENTS='["push","pull_request"]'
+SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+#shellcheck disable=SC1091
+source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
+
+GITHUB_PASS_DOMAIN="github.com"
+
+CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
+LOCAL_TOKEN="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "access_token" "github")"
 
 help() {
   printf "Available commands:\n"
@@ -29,12 +32,58 @@ help() {
   exit 0
 }
 
-org() {
+create_github_hook() {
+  local token="$1"
+  local type="$2"
+  local org="$3"
+  local webhook_url="$4"
+  local events="$5"
+  
+  curl -sS \
+    -w "\n%{http_code}" \
+    -X POST \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: Bearer ${token}" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "https://api.github.com/${type}/${org}/hooks" \
+    -d '{"name":"web","active":true,"events":'${events}',"config":{"url":"'${webhook_url}'","content_type":"json"}}'
+}
+
+process_response() {
+  local response="$1"
+  local message="$2"  
+  local http_code
+  local content
+  
+  http_code=$(echo "${response}" | tail -n 1)
+  content=$(echo "${response}" | head -n -1)
+  
+  case "${http_code}" in
+    201)
+      echo "INFO: Webhook created successfully with ${message}."
+      return 0
+      ;;
+    422)
+      echo "INFO: Webhook already exists for ${message}."
+      return 0
+      ;;
+    *)
+      echo "ERROR: Failed to create webhook with ${message}. Check org/repo permissions and if the token has the ability to create webhooks."
+      printf " Message: %s\n" "$(echo "${content}" | jq '.message')"
+      return 1
+      ;;
+  esac
+}
+
+create_hook() {
   local project_name="${1:-}"
   local org="${2:-}"
+  local hook_type="${3:-}"
+
   local short_name="${project_name##*.}"
   local webhook_url="https://ci.eclipse.org/${short_name}/github-webhook/"
-
+  local events='["push","pull_request"]'
+  
   # check that project name is not empty
   if [[ -z "${project_name}" ]]; then
     printf "ERROR: a project name must be given.\n"
@@ -47,60 +96,27 @@ org() {
     exit 1
   fi
 
+  bot_token=$(passw cbi "bots/${project_name}/${GITHUB_PASS_DOMAIN}/api-token")
+
   echo "Creating organization webhook..."
 
-  local response
-  response="$(curl -sS\
-    -X POST \
-    -H "Accept: application/vnd.github+json" \
-    -H "Authorization: Bearer ${TOKEN}"\
-    -H "X-GitHub-Api-Version: 2022-11-28" \
-    "https://api.github.com/orgs/${org}/hooks" \
-    -d '{"name":"web","active":true,"events":'${EVENTS}',"config":{"url":"'${webhook_url}'","content_type":"json"}}')"
-  
-  if [[ "$(echo "${response}" | jq .errors)" != "null" ]] || [[ "$(echo "${response}" | jq .message)" != "null" ]]; then
-    echo "ERROR:"
-    printf " Message: %s\n" "$(echo "${response}" | jq '.message')"
-    printf " Errors/Message: %s\n" "$(echo "${response}" | jq '.errors[].message')"
+  response=$(create_github_hook "${bot_token}" "${hook_type}" "${org}" "${webhook_url}" "${events}")
+  if ! process_response "${response}" "${project_name} project and bot token"; then
+    echo "INFO: Try with CBI token"
+    response=$(create_github_hook "${LOCAL_TOKEN}" "${hook_type}" "${org}" "${webhook_url}" "${events}")
+    if ! process_response "${response}" "${project_name} project and cbi config token"; then
+      echo "ERROR: Failed to create webhook for ${project_name} project."
+      exit 1
+    fi
   fi
 }
 
+org() {
+  create_hook "$1" "$2" "orgs"
+}
+
 repo() {
-  local project_name="${1:-}"
-  local repo="${2:-}" # org/repo
-  local short_name="${project_name##*.}"
-  local webhook_url="https://ci.eclipse.org/${short_name}/github-webhook/"
-
-  # check that project name is not empty
-  if [[ -z "${project_name}" ]]; then
-    printf "ERROR: a project name must be given.\n"
-    exit 1
-  fi
-  
-  # check that repo name is not empty
-  if [[ -z "${repo}" ]]; then
-    printf "ERROR: a GitHub repo name (org/repo) must be given.\n"
-    exit 1
-  fi
-
-  echo "Creating repo webhook..."
-
-  local response
-  response="$(curl -sS\
-    -X POST \
-    -H "Accept: application/vnd.github+json" \
-    -H "Authorization: Bearer ${TOKEN}"\
-    -H "X-GitHub-Api-Version: 2022-11-28" \
-    "https://api.github.com/repos/${repo}/hooks" \
-    -d '{"name":"web","active":true,"events":'${EVENTS}',"config":{"url":"'${webhook_url}'","content_type":"json"}}')"
-  
-  if [[ "$(echo "${response}" | jq .errors)" != "null" ]] || [[ "$(echo "${response}" | jq .message)" != "null" ]]; then
-    echo "ERROR:"
-    printf " Message: %s\n" "$(echo "${response}" | jq '.message')"
-    printf " Errors/Message: %s\n" "$(echo "${response}" | jq '.errors[].message')"
-  else
-    echo "Webhook created."
-  fi
+  create_hook "$1" "$2" "repos"
 }
 
 "$@"

@@ -142,12 +142,13 @@ create_otterdog_token
 # Prepare otterdog
 prepare_otterdog
 
+# Install Eclipse Otterdog GH app,
+# required before setting up otterdog
+# otherwise some ruleset might not be applied correctly
+install_otterdog_gh_app
+
 # Set up otterdog
 otterdog_config
 
-# Install Eclipse Otterdog GH app
-install_otterdog_gh_app
-
 # Comment on the ticket
 issue_comment
-

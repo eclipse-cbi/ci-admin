@@ -115,7 +115,7 @@ test_vaultctl_write_read() {
 
     ######## Test writing patch both fields #############################################
     "$VAULTCTL" write "$VAULT_MOUNT" "$VAULT_PATH" "$VAULT_KEY_1=$VAULT_VALUE_1" "$VAULT_KEY_2=$VAULT_VALUE_1"
-    result1=$("$VAULTCTL" read "$VAULT_MOUNT" "$VAULT_PATH/$VAULT_KEY_2")
+    result1=$("$VAULTCTL" read "$VAULT_MOUNT" "$VAULT_PATH/$VAULT_KEY_1")
     result2=$("$VAULTCTL" read "$VAULT_MOUNT" "$VAULT_PATH/$VAULT_KEY_2")
     assert_equals "$VAULT_VALUE_1" "$result1" "vaultctl write and read patch first key"
     assert_equals "$VAULT_VALUE_1" "$result2" "vaultctl write and read patch second key"

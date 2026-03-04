@@ -20,18 +20,22 @@ readonly NC='\033[0m' # No Color
 # Logging functions
 log_info() {
     echo -e "${NC} $*"
+    return 0
 }
 
 log_success() {
     echo -e "${GREEN}✅ $*"
+    return 0
 }
 
 log_warning() {
     echo -e "${YELLOW}⚠️ $*" >&2
+    return 0
 }
 
 log_error() {
     echo -e "${RED}❌ $*" >&2
+    return 0
 }
 
 # Check if vault CLI is available
@@ -41,6 +45,7 @@ check_vault_cli() {
         log_info "Visit: https://developer.hashicorp.com/vault/downloads"
         exit 1
     fi
+    return 0
 }
 
 
@@ -112,6 +117,7 @@ save_username_to_config() {
     local username="$1"
     echo "VAULT_USERNAME=\"$username\"" > "$CONFIG_FILE"
     chmod 600 "$CONFIG_FILE"
+    return 0
 }
 
 # Prompt for username
@@ -193,6 +199,7 @@ cmd_login() {
 
     export VAULT_TOKEN
     export VAULT_USERNAME
+    return 0
 }
 
 # Command: status
@@ -255,6 +262,7 @@ cmd_logout() {
     else
         log_info "Not currently logged in"
     fi
+    return 0
 }
 
 # Validate shell identifier (variable name)
@@ -274,6 +282,7 @@ shell_escape_value() {
     local value="$1"
     # Use printf %q for robust shell escaping
     printf "%q" "$value"
+    return 0
 }
 
 # Function to retrieve secret from Vault
@@ -1109,6 +1118,7 @@ Configuration:
   Token stored in:   $VAULT_TOKEN_FILE
 
 EOF
+    return 0
 }
 
 # Main function
@@ -1180,6 +1190,7 @@ main() {
             exit 1
             ;;
     esac
+    return 0
 }
 
 main "$@"

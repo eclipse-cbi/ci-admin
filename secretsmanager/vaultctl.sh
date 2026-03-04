@@ -92,9 +92,18 @@ _is_token_valid() {
 # Load username from config
 load_username_from_config() {
     if [[ -f "$CONFIG_FILE" ]]; then
-        source "$CONFIG_FILE"
-        if [[ -n "${VAULT_USERNAME:-}" ]]; then
-            return 0
+        # Safely parse VAULT_USERNAME from config without executing the file
+        local line username
+        line="$(grep -m1 '^VAULT_USERNAME=' "$CONFIG_FILE" 2>/dev/null || true)"
+        if [[ -n "$line" ]]; then
+            username="${line#VAULT_USERNAME=}"
+            # Remove optional surrounding double quotes
+            username="${username%\"}"
+            username="${username#\"}"
+            if [[ -n "$username" ]]; then
+                VAULT_USERNAME="$username"
+                return 0
+            fi
         fi
     fi
     return 1

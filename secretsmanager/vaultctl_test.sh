@@ -18,6 +18,21 @@ SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
 VAULTCTL="${SCRIPT_FOLDER}/vaultctl.sh"
 
+# Temporary files array for cleanup
+TEMP_FILES=()
+
+# Cleanup function for EXIT trap
+cleanup_temp_files() {
+    for temp_file in "${TEMP_FILES[@]}"; do
+        if [[ -f "$temp_file" ]]; then
+            rm -f "$temp_file"
+        fi
+    done
+}
+
+# Set trap to cleanup temp files on exit
+trap cleanup_temp_files EXIT
+
 # Test helper function for assertions
 assert_equals() {
     local expected="$1"
@@ -75,9 +90,16 @@ VAULT_FILE_PATH="$(mktemp)"
 VAULT_FILE_PATH1="$(mktemp)"
 VAULT_FILE_PATH2="$(mktemp)"
 VAULT_EMPTY_FILE_PATH="$(mktemp)"
+
+# Track temp files for cleanup
+TEMP_FILES+=("$VAULT_FILE_PATH" "$VAULT_FILE_PATH1" "$VAULT_FILE_PATH2" "$VAULT_EMPTY_FILE_PATH")
+
+# Populate temp files
 echo '{"file_key_value_test":"file_secret_value"}' > "$VAULT_FILE_PATH"
 echo '{"file_key_value_test1":"file_secret_value1"}' > "$VAULT_FILE_PATH1"
 echo '{"file_key_value_test2":"file_secret_value2"}' > "$VAULT_FILE_PATH2"
+# Explicitly create empty file for empty-file test case
+: > "$VAULT_EMPTY_FILE_PATH"
 
 # Test cases for vaultctl write and vaultctl read
 test_vaultctl_write_read() {

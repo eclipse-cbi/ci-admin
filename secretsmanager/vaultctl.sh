@@ -257,6 +257,25 @@ cmd_logout() {
     fi
 }
 
+# Validate shell identifier (variable name)
+validate_shell_identifier() {
+    local identifier="$1"
+    local context="${2:-variable name}"
+    
+    if [[ ! "$identifier" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+        log_error "Invalid $context: '$identifier'. Must match [A-Za-z_][A-Za-z0-9_]*"
+        return 1
+    fi
+    return 0
+}
+
+# Shell-escape a value for safe eval
+shell_escape_value() {
+    local value="$1"
+    # Use printf %q for robust shell escaping
+    printf "%q" "$value"
+}
+
 # Function to retrieve secret from Vault
 get_vault_secret() {
     local mount="$1"
@@ -292,6 +311,18 @@ export_secret_as_env() {
     local prefix="${5:-}"
     local uppercase="${6:-false}"
     
+    # Validate prefix if provided
+    if [[ -n "$prefix" ]]; then
+        if ! validate_shell_identifier "$prefix" "prefix"; then
+            return 1
+        fi
+    fi
+    
+    # Validate env_var before applying transformations
+    if ! validate_shell_identifier "$env_var" "environment variable"; then
+        return 1
+    fi
+    
     # Add prefix if provided
     if [[ -n "$prefix" ]]; then
         env_var="${prefix}${env_var}"
@@ -312,8 +343,10 @@ export_secret_as_env() {
             log_warning "Retrieved empty value for $env_var from Vault."
             return 1
         else
-            # Output export command for eval
-            echo "export $env_var='$value'"
+            # Output export command for eval with proper escaping
+            local escaped_value
+            escaped_value=$(shell_escape_value "$value")
+            echo "export $env_var=$escaped_value"
             log_success "$env_var loaded from Vault" >&2
             return 0
         fi
@@ -337,6 +370,10 @@ _export_all_secrets() {
             --prefix)
                 if [[ -n "${2:-}" ]]; then
                     prefix="$2"
+                    # Validate prefix
+                    if ! validate_shell_identifier "$prefix" "prefix"; then
+                        return 1
+                    fi
                     shift 2
                 else
                     log_error "--prefix requires an argument"
@@ -410,9 +447,17 @@ _export_all_secrets() {
                 var_name="${var_name^^}"
             fi
 
-            # Escape single quotes in value by replacing ' with '\''
-            local escaped_value="${value//\'/\'\\\'\'}"
-            echo "export $var_name='$escaped_value'"
+            # Validate final variable name
+            if ! validate_shell_identifier "$var_name" "generated variable name"; then
+                log_warning "Skipping invalid variable name generated from key: $key" >&2
+                success=false
+                continue
+            fi
+
+            # Use robust shell escaping
+            local escaped_value
+            escaped_value=$(shell_escape_value "$value")
+            echo "export $var_name=$escaped_value"
             
             if [[ "$var_name" != "$key" ]]; then
                 log_success "$key exported as $var_name" >&2
@@ -447,6 +492,10 @@ cmd_export_env() {
             --prefix)
                 if [[ -n "${2:-}" ]]; then
                     prefix="$2"
+                    # Validate prefix
+                    if ! validate_shell_identifier "$prefix" "prefix"; then
+                        return 1
+                    fi
                     shift 2
                 else
                     log_error "--prefix requires an argument"

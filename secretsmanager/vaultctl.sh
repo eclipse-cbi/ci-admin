@@ -4,8 +4,6 @@
 # A command-line utility to manage Vault authentication and operations
 #
 
-# set -euo pipefail
-
 # Configuration
 export VAULT_ADDR="${VAULT_ADDR:-https://secretsmanager.eclipse.org}"
 

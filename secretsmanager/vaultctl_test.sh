@@ -40,8 +40,15 @@ cleanup_vault() {
     # vault kv delete -mount="$mount" "$path" > /dev/null 2>&1 || true
 
     echo "INFO: Start cleanup for path: ${path}"
-    metadata=$(vault kv metadata get -mount="${mount}" -format=json "${path}" &> /dev/null)  || true
-    data=$(echo "${metadata}" | jq '.data')
+    if ! metadata=$(vault kv metadata get -mount="${mount}" -format=json "${path}" 2> /dev/null); then
+        echo "INFO: No metadata found for path: ${path}, skipping cleanup"
+        return
+    fi
+
+    if ! data=$(echo "${metadata}" | jq '.data' 2> /dev/null); then
+        echo "WARN: Failed to parse metadata for path: ${path}, skipping cleanup"
+        return
+    fi
     [[ "${data}" == "null" ]] && return
 
     versions=$(echo "${metadata}" | jq '.data.versions | keys_unsorted[] | tonumber' | tr '\n' ',' | sed 's/\(.*\),/\1 /')

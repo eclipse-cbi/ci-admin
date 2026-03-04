@@ -941,7 +941,7 @@ cmd_write() {
 cmd_export_vault() {
     # Load token silently (redirect all output to /dev/null)
     if ! load_token_from_file &>/dev/null; then
-        echo "echo 'Error: Not authenticated. Run \"vaultctl login\" first.' >&2" >&2
+        echo "Error: Not authenticated. Run \"vaultctl login\" first." >&2
         return 1
     fi
     

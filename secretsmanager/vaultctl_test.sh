@@ -38,7 +38,7 @@ assert_equals() {
     local expected="$1"
     local actual="$2"
     local test_description="$3"
-    if [ "$expected" != "$actual" ]; then
+    if [[ "$expected" != "$actual" ]]; then
         echo -e "INFO: Test failed: $test_description \u274c"
         echo "INFO: Expected: $expected"
         echo "INFO: Actual:   $actual"

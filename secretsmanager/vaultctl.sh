@@ -212,9 +212,11 @@ cmd_status() {
         log_info "VAULT_TOKEN: ${VAULT_TOKEN:0:10}..."
         echo ""
         vault token lookup 2>/dev/null | grep -E "(display_name|policies|creation_time|expire_time)"
+        return 0
     else
         log_warning "Not authenticated"
         log_info "Run 'vaultctl login' to authenticate"
+        return 1
     fi
 }
 

@@ -51,7 +51,8 @@ if [ -z "${JIRO_ROOT_DIR}" ] || [ "${JIRO_ROOT_DIR}" == "null" ]; then
 fi
 
 test_api_token() {
-  response=$(curl -sSL --header "Content-Type: application/x-www-form-urlencoded" -u "${SONAR_TOKEN}": -w "\n%{http_code}" "${SONAR_API_BASE_URL}/authentication/validate")
+  local token="${1:-${SONAR_TOKEN}}"
+  response=$(curl -sSL --header "Content-Type: application/x-www-form-urlencoded" -u "${token}": -w "\n%{http_code}" "${SONAR_API_BASE_URL}/authentication/validate")
 
   http_code=$(echo "$response" | tail -n 1)
   content=$(echo "$response" | head -n -1)
@@ -59,15 +60,12 @@ test_api_token() {
   if [ "$http_code" -eq 200 ]; then
       valid=$(echo "$content"| jq -r '.valid')
       if [ "$valid" = "true" ]; then
-        echo "API token is valid."
+        return 0
       else
-        echo "API token is invalid. Please create a new token: https://sonarcloud.io/account/security and update it in ${LOCAL_CONFIG}, entry 'sonar-token'." >&2
-        echo "NOTE: For security reasons, tokens that have been inactive for 60 days will be automatically removed." >&2
-        exit 1
+        return 1
       fi
   else
-      echo "API token failed to authenticate. HTTP code: $http_code, please create a new token: https://sonarcloud.io/account/security"
-      exit 1
+      return 1
   fi
 }
 
@@ -107,6 +105,27 @@ get_projects() {
 create_token() {
   local token_name="Analyze \"${1:-}\""
   local suffix="${2:-}"
+  local token_path="bots/${PROJECT_NAME}/sonarcloud.io/token${suffix}"
+  
+  # Check if token already exists in secrets manager
+  echo "Checking if token already exists in secrets manager..."
+  if passw cbi show "${token_path}" > /dev/null 2>&1; then
+    echo "Token found in secrets manager at ${token_path}"
+    existing_token=$(passw cbi show "${token_path}")
+    
+    # Test if the existing token is still valid
+    echo "Testing existing token validity..."
+    if test_api_token "${existing_token}"; then
+      echo "Existing token is still valid. No need to generate a new one."
+      return 0
+    else
+      echo "Existing token is invalid or expired. Generating a new token..."
+    fi
+  else
+    echo "No existing token found. Generating a new token..."
+  fi
+  
+  # Generate new token
   echo "Creating SonarCloud token:"
   reply="$(curl_post "name=${token_name}" 'user_tokens/generate')"
   if echo "${reply}" | jq -e 'has("errors")' > /dev/null ; then
@@ -120,9 +139,9 @@ create_token() {
   else
     token="$(echo "${reply}" | jq -r '.token')"
     if ! ${DRY_RUN}; then
-      echo "${token}" | passw cbi insert --echo "bots/${PROJECT_NAME}/sonarcloud.io/token${suffix}"
+      echo "${token}" | passw cbi insert --echo "${token_path}"
     else
-      echo "DRY-RUN: passw cbi insert --echo \"bots/${PROJECT_NAME}/sonarcloud.io/token${suffix}\""
+      echo "DRY-RUN: passw cbi insert --echo \"${token_path}\""
     fi
   fi
 }
@@ -158,5 +177,13 @@ process_projects() {
   done
 }
 
-test_api_token
+# Test admin token
+echo "Testing admin API token..."
+if ! test_api_token; then
+  echo "API token is invalid. Please create a new token: https://sonarcloud.io/account/security and update it in ${LOCAL_CONFIG}, entry 'sonar-token'." >&2
+  echo "NOTE: For security reasons, tokens that have been inactive for 60 days will be automatically removed." >&2
+  exit 1
+fi
+echo "Admin API token is valid."
+
 process_projects "${SONAR_ORG}"

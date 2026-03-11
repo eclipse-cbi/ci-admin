@@ -1110,6 +1110,14 @@ cmd_mv() {
     fi
     log_success "Source deleted: $mount/$src_path"
 
+    # Update local cache: replace old path with new path (no full rescan needed)
+    local cache_file
+    cache_file=$(_cache_file "$mount")
+    if [[ -f "$cache_file" ]]; then
+        _cache_rename_path "$mount" "$src_path" "$dst_path"
+        log_info "Cache updated: $mount/$src_path → $mount/$dst_path"
+    fi
+
     log_success "Move complete: $mount/$src_path → $mount/$dst_path"
     return 0
 }
@@ -1345,6 +1353,23 @@ _cache_save() {
            paths: [inputs] }' \
         < "$tmpfile" > "$cache_file"
     chmod 600 "$cache_file"
+}
+
+# Updates the cache after a rename: replaces old_path with new_path (if cache exists)
+_cache_rename_path() {
+    local mount="$1"
+    local old_path="$2"
+    local new_path="$3"
+    local cache_file
+    cache_file=$(_cache_file "$mount")
+    [[ -f "$cache_file" ]] || return 0
+    local tmp_updated
+    tmp_updated=$(mktemp)
+    # Replace the old entry with the new one, preserve all other metadata
+    jq --arg old "$old_path" --arg new "$new_path" '
+        .paths |= map(if . == $old then $new else . end)
+        | .count = (.paths | length)
+    ' "$cache_file" > "$tmp_updated" && mv "$tmp_updated" "$cache_file"
 }
 
 # Clears the cache for a given mount
@@ -1913,6 +1938,9 @@ Examples:
   # Move (rename) a secret path
   vaultctl mv cbi technology.cbi/repo3.eclipse.org technology.cbi/repo.eclipse.org
   vaultctl mv users myuser/old-path myuser/new-path
+
+  # Bulk rename: find all paths matching a pattern and rename them with sed
+  vaultctl find cbi '*repo3.*' -b | while read p; do vaultctl mv cbi "\$p" "\$(echo "\$p" | sed 's/repo3\.eclipse\.org/repo.eclipse.org/')"; done
   
   # Delete a secret path permanently
   vaultctl rm cbi technology.cbi/old-repo.eclipse.org

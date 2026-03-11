@@ -1770,7 +1770,7 @@ cmd_find() {
                 local cache_count cached_at
                 cache_count=$(wc -l < "$all_paths_file")
                 cached_at=$(date '+%Y-%m-%d %H:%M:%S')
-                log_info "Index of $cache_count paths saved to cache on $cached_at (TTL: ${VAULT_CACHE_TTL}s)" >&2
+                log_info "Index of $cache_count paths saved to cache on $cached_at (TTL: ${VAULT_CACHE_TTL}s)\n" >&2
             fi
         fi
 

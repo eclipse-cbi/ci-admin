@@ -998,6 +998,238 @@ cmd_write() {
     fi
 }
 
+# Command: mv
+cmd_mv() {
+    local mount="${1:-}"
+    local src_path="${2:-}"
+    local dst_path="${3:-}"
+
+    if [[ -z "$mount" || -z "$src_path" || -z "$dst_path" ]]; then
+        log_error "Usage: vaultctl mv <mount> <src-path> <dst-path>"
+        echo ""
+        echo "Move (rename) a secret path: copies all fields to the new path then deletes the source."
+        echo ""
+        echo "NOTE: paths must not start or end with a slash."
+        echo ""
+        echo "Examples:"
+        echo "  vaultctl mv cbi technology.cbi/repo3.eclipse.org technology.cbi/repo.eclipse.org"
+        echo "  vaultctl mv users myuser/old-cbi myuser/cbi"
+        return 1
+    fi
+
+    # Basic path validation (no leading/trailing slash)
+    for p in "$src_path" "$dst_path"; do
+        if [[ "$p" =~ ^/ || "$p" =~ /$ ]]; then
+            log_error "Path must not start or end with a slash: '$p'"
+            return 1
+        fi
+    done
+
+    if [[ "$src_path" == "$dst_path" ]]; then
+        log_error "Source and destination paths are identical."
+        return 1
+    fi
+
+    # Ensure token is loaded
+    if ! load_token_from_file &>/dev/null; then
+        log_error "Not authenticated. Run 'vaultctl login' first."
+        return 1
+    fi
+
+    # Read all fields from source as JSON
+    log_info "Reading secrets from: $mount/$src_path" >&2
+    local secret_json
+    secret_json=$(vault kv get -mount="$mount" -format=json "$src_path" 2>&1)
+    if [[ $? -ne 0 ]]; then
+        log_error "Source path not found or not readable: $mount/$src_path"
+        log_error "Vault error: $secret_json"
+        return 1
+    fi
+
+    # Extract the kv data object
+    local kv_data
+    kv_data=$(echo "$secret_json" | jq -r '.data.data' 2>/dev/null)
+    if [[ -z "$kv_data" || "$kv_data" == "null" ]]; then
+        log_error "No data found at: $mount/$src_path"
+        return 1
+    fi
+
+    local field_count
+    field_count=$(echo "$kv_data" | jq 'keys | length')
+    log_info "Found $field_count field(s) to move." >&2
+
+    # Check if destination already exists
+    local dst_check
+    dst_check=$(vault kv get -mount="$mount" -format=json "$dst_path" 2>/dev/null)
+    if [[ -n "$dst_check" ]]; then
+        log_warning "Destination already exists: $mount/$dst_path"
+        echo -n "Overwrite? (y/N): "
+        read -r confirm
+        if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+            log_info "Move cancelled."
+            return 1
+        fi
+    fi
+
+    # Build a temporary JSON file with the kv data to pass to vault kv put
+    local tmp_payload
+    tmp_payload=$(mktemp)
+    # Convert {"key":"val",...} to key=value pairs via process substitution
+    local -a kv_args=()
+    while IFS= read -r key; do
+        local val
+        val=$(echo "$kv_data" | jq -r --arg k "$key" '.[$k]')
+        # Write value to a temp file to avoid shell escaping issues
+        local vtmp
+        vtmp=$(mktemp)
+        printf '%s' "$val" > "$vtmp"
+        kv_args+=("${key}=@${vtmp}")
+    done < <(echo "$kv_data" | jq -r 'keys[]')
+
+    # Write to destination
+    log_info "Writing secrets to: $mount/$dst_path" >&2
+    if ! vault kv put -mount="$mount" "$dst_path" "${kv_args[@]}" &>/dev/null; then
+        log_error "Failed to write secrets to destination: $mount/$dst_path"
+        # Cleanup value temp files
+        for arg in "${kv_args[@]}"; do rm -f "${arg#*=@}"; done
+        rm -f "$tmp_payload"
+        return 1
+    fi
+    log_success "Secrets written to: $mount/$dst_path"
+
+    # Cleanup value temp files
+    for arg in "${kv_args[@]}"; do rm -f "${arg#*=@}"; done
+    rm -f "$tmp_payload"
+
+    # Delete source
+    log_info "Deleting source path: $mount/$src_path" >&2
+    if ! vault kv metadata delete -mount="$mount" "$src_path" &>/dev/null; then
+        log_warning "Could not delete source metadata at: $mount/$src_path"
+        log_warning "The data has been copied to destination but source was NOT deleted."
+        return 1
+    fi
+    log_success "Source deleted: $mount/$src_path"
+
+    log_success "Move complete: $mount/$src_path → $mount/$dst_path"
+    return 0
+}
+
+# Command: rm
+cmd_rm() {
+    local mount=""
+    local path=""
+    local force=false
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -f|--force)
+                force=true
+                shift
+                ;;
+            -*)
+                log_error "Unknown option: $1"
+                return 1
+                ;;
+            *)
+                if [[ -z "$mount" ]]; then
+                    mount="$1"
+                elif [[ -z "$path" ]]; then
+                    path="$1"
+                else
+                    log_error "Too many arguments."
+                    return 1
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    if [[ -z "$mount" || -z "$path" ]]; then
+        log_error "Usage: vaultctl rm [-f] <mount> <path>"
+        echo ""
+        echo "Permanently delete a secret path and all its versions/metadata."
+        echo ""
+        echo "Options:"
+        echo "  -f, --force   Skip confirmation prompt"
+        echo ""
+        echo "NOTE: path must not start or end with a slash."
+        echo ""
+        echo "Examples:"
+        echo "  vaultctl rm cbi technology.cbi/old-repo.eclipse.org"
+        echo "  vaultctl rm users myuser/deprecated-key"
+        echo "  vaultctl rm -f cbi technology.cbi/old-key     # no confirmation"
+        return 1
+    fi
+
+    # Basic path validation (no leading/trailing slash)
+    if [[ "$path" =~ ^/ || "$path" =~ /$ ]]; then
+        log_error "Path must not start or end with a slash: '$path'"
+        return 1
+    fi
+
+    # Ensure token is loaded
+    if ! load_token_from_file &>/dev/null; then
+        log_error "Not authenticated. Run 'vaultctl login' first."
+        return 1
+    fi
+
+    # Check secret exists and show info
+    log_info "Fetching info from: $mount/$path" >&2
+    local secret_json
+    secret_json=$(vault kv get -mount="$mount" -format=json "$path" 2>&1)
+    if [[ $? -ne 0 ]]; then
+        log_error "Path not found or not readable: $mount/$path"
+        log_error "Vault error: $secret_json"
+        return 1
+    fi
+
+    local kv_data
+    kv_data=$(echo "$secret_json" | jq -r '.data.data' 2>/dev/null)
+    local field_count=0
+    if [[ -n "$kv_data" && "$kv_data" != "null" ]]; then
+        field_count=$(echo "$kv_data" | jq 'keys | length')
+    fi
+    local version
+    version=$(echo "$secret_json" | jq -r '.data.metadata.version // "?"' 2>/dev/null)
+
+    echo ""
+    log_warning "About to PERMANENTLY delete:"
+    echo "  Mount   : $mount"
+    echo "  Path    : $path"
+    echo "  Fields  : $field_count"
+    echo "  Version : $version"
+    echo "  Action  : all versions and metadata will be destroyed (irreversible)"
+    echo ""
+
+    if [[ "$force" != true ]]; then
+        echo -n "Type the path to confirm deletion ('$path'): "
+        read -r confirm
+        if [[ "$confirm" != "$path" ]]; then
+            log_info "Deletion cancelled."
+            return 1
+        fi
+    fi
+
+    # Permanently delete all versions and metadata
+    log_info "Deleting: $mount/$path" >&2
+    if ! vault kv metadata delete -mount="$mount" "$path" &>/dev/null; then
+        log_error "Failed to delete path: $mount/$path"
+        return 1
+    fi
+    log_success "Permanently deleted: $mount/$path"
+
+    # Invalidate local cache for this mount so next find reflects the deletion
+    local cache_file
+    cache_file=$(_cache_file "$mount")
+    if [[ -f "$cache_file" ]]; then
+        rm -f "$cache_file"
+        log_info "Cache invalidated for mount: $mount"
+    fi
+
+    return 0
+}
+
 # Command: export-vault
 cmd_export_vault() {
     # Load token silently (redirect all output to /dev/null)
@@ -1600,17 +1832,30 @@ Commands:
       
   find <mount> [pattern] [options]
       Search for secret paths in a Vault mount matching a glob pattern.
-      Results are streamed progressively. A local index is cached to speed up
-      subsequent searches on the same mount.
+      A local index is cached to speed up subsequent searches on the same mount.
       Arguments:
         mount   - The Vault mount point to search (e.g., users, cbi)
         pattern - Optional glob pattern (default: * = all paths)
       Options:
         --no-cache          Bypass cache, scan live (still updates cache)
+        --no-cache-write    Scan live without updating the cache
+        -b, --bare          Output raw paths only (no progress, no log messages)
         --clear-cache       Clear cached index for this mount and exit
         --clear-all-cache   Clear all mount caches (mount not required)
         --cache-info        Show cache status for this mount (or all)
         --cache-ttl <s>     Override cache TTL in seconds (default: 3600)
+        --parallel <n>      Number of parallel scan workers (default: ${VAULT_PARALLEL})
+      
+  mv <mount> <src-path> <dst-path>
+      Move (rename) a secret path within a mount.
+      Copies all fields to the new path then permanently deletes the source.
+      Usage: vaultctl mv <mount> <src-path> <dst-path>
+      
+  rm <mount> <path> [-f]
+      Permanently delete a secret path and all its versions/metadata.
+      Usage: vaultctl rm [-f] <mount> <path>
+      Options:
+        -f, --force   Skip confirmation prompt
       
   export-env <mount> <path> <ENV_VAR:key> [<ENV_VAR2:key2> ...]
       Export secrets from Vault as environment variables
@@ -1664,6 +1909,14 @@ Examples:
   # Write secrets
   vaultctl write users myuser/cbi username=john password=******
   vaultctl write cbi technology.cbi/github.com api-token=***** password=******
+  
+  # Move (rename) a secret path
+  vaultctl mv cbi technology.cbi/repo3.eclipse.org technology.cbi/repo.eclipse.org
+  vaultctl mv users myuser/old-path myuser/new-path
+  
+  # Delete a secret path permanently
+  vaultctl rm cbi technology.cbi/old-repo.eclipse.org
+  vaultctl rm -f users myuser/deprecated-key              # skip confirmation
   
   # Find secret paths (with local cache)
   vaultctl find users                                   # List all paths in users mount (cached)
@@ -1722,6 +1975,14 @@ main() {
         write)
             shift
             cmd_write "$@"
+            ;;
+        mv)
+            shift
+            cmd_mv "$@"
+            ;;
+        rm|delete)
+            shift
+            cmd_rm "$@"
             ;;
         find)
             shift

@@ -9,6 +9,9 @@ export VAULT_ADDR="${VAULT_ADDR:-https://secretsmanager.eclipse.org}"
 
 readonly VAULT_TOKEN_FILE="$HOME/.vault-token"
 readonly CONFIG_FILE="$HOME/.vaultctl"
+readonly VAULT_CACHE_DIR="${HOME}/.vaultctl_cache"
+VAULT_CACHE_TTL="${VAULT_CACHE_TTL:-3600}" # Cache TTL in seconds (default: 1 hour)
+VAULT_PARALLEL="${VAULT_PARALLEL:-5}"     # Number of parallel scan workers
 
 # Colors for output
 readonly RED='\033[0;31m'
@@ -1015,6 +1018,555 @@ cmd_export_vault() {
     return 0
 }
 
+# Helper function to list paths recursively in Vault
+# ─── Cache management for vault find ────────────────────────────────────────
+
+# Returns the cache file path for a given mount
+_cache_file() {
+    echo "${VAULT_CACHE_DIR}/${1}.json"
+}
+
+# Returns 0 if the cache for a mount exists and is within TTL
+_cache_is_valid() {
+    local mount="$1"
+    local cache_file
+    cache_file=$(_cache_file "$mount")
+    [[ -f "$cache_file" ]] || return 1
+    local epoch now diff
+    # Use the epoch stored inside the JSON (independent of filesystem timestamps)
+    epoch=$(jq -r '.created_at_epoch // empty' "$cache_file" 2>/dev/null) || return 1
+    [[ -n "$epoch" ]] || return 1
+    now=$(date +%s)
+    diff=$(( now - epoch ))
+    [[ $diff -lt $VAULT_CACHE_TTL ]]
+}
+
+# Returns a human-readable age string for the cache of a mount (e.g. "5 minutes ago")
+_cache_age_str() {
+    local mount="$1"
+    local cache_file epoch now diff
+    cache_file=$(_cache_file "$mount")
+    epoch=$(jq -r '.created_at_epoch // empty' "$cache_file" 2>/dev/null)
+    [[ -z "$epoch" ]] && { echo "unknown"; return; }
+    now=$(date +%s)
+    diff=$(( now - epoch ))
+    if   [[ $diff -lt 60 ]];   then echo "${diff}s ago"
+    elif [[ $diff -lt 3600 ]]; then echo "$(( diff / 60 ))min ago"
+    elif [[ $diff -lt 86400 ]]; then echo "$(( diff / 3600 ))h ago"
+    else echo "$(( diff / 86400 ))d ago"
+    fi
+}
+
+# Streams all cached paths for a mount to stdout
+_cache_load() {
+    local mount="$1"
+    jq -r '.paths[]' "$(_cache_file "$mount")" 2>/dev/null
+}
+
+# Saves a newline-delimited list of paths (from a temp file) to the cache
+# Cache file format:
+#   {
+#     "mount":            "<mount>",
+#     "created_at":       "YYYY-MM-DD HH:MM:SS",
+#     "created_at_epoch": <unix_timestamp>,
+#     "ttl":              <seconds>,
+#     "count":            <number_of_paths>,
+#     "paths":            [ ... ]
+#   }
+_cache_save() {
+    local mount="$1"
+    local tmpfile="$2"
+    mkdir -p "$VAULT_CACHE_DIR"
+    chmod 700 "$VAULT_CACHE_DIR"
+    local cache_file now_epoch now_human
+    cache_file=$(_cache_file "$mount")
+    now_epoch=$(date +%s)
+    now_human=$(date '+%Y-%m-%d %H:%M:%S')
+    # Build JSON: read paths from tmpfile, wrap with metadata
+    jq -Rn \
+        --arg mount       "$mount" \
+        --arg created_at  "$now_human" \
+        --argjson epoch   "$now_epoch" \
+        --argjson ttl     "$VAULT_CACHE_TTL" \
+        '{ mount: $mount,
+           created_at: $created_at,
+           created_at_epoch: $epoch,
+           ttl: $ttl,
+           count: ([inputs] | length),
+           paths: [inputs] }' \
+        < "$tmpfile" > "$cache_file"
+    # jq consumes stdin twice with [inputs]; re-run correctly with slurpfile workaround
+    # Use a two-pass approach: count separately then build
+    local count
+    count=$(wc -l < "$tmpfile")
+    jq -Rn \
+        --arg mount       "$mount" \
+        --arg created_at  "$now_human" \
+        --argjson epoch   "$now_epoch" \
+        --argjson ttl     "$VAULT_CACHE_TTL" \
+        --argjson count   "$count" \
+        '{ mount: $mount,
+           created_at: $created_at,
+           created_at_epoch: $epoch,
+           ttl: $ttl,
+           count: $count,
+           paths: [inputs] }' \
+        < "$tmpfile" > "$cache_file"
+    chmod 600 "$cache_file"
+}
+
+# Clears the cache for a given mount
+_cache_clear() {
+    local mount="$1"
+    local cache_file
+    cache_file=$(_cache_file "$mount")
+    if [[ -f "$cache_file" ]]; then
+        rm -f "$cache_file"
+        log_success "Cache cleared for mount: $mount"
+    else
+        log_info "No cache found for mount: $mount"
+    fi
+}
+
+# Clears all cached indexes
+_cache_clear_all() {
+    if [[ -d "$VAULT_CACHE_DIR" ]]; then
+        local count=0
+        for f in "${VAULT_CACHE_DIR}"/*.json; do
+            [[ -f "$f" ]] || continue
+            rm -f "$f"
+            count=$(( count + 1 ))
+        done
+        log_success "Cleared $count cache file(s) from $VAULT_CACHE_DIR"
+    else
+        log_info "No cache directory found: $VAULT_CACHE_DIR"
+    fi
+}
+
+# Shows cache status: for a specific mount or all mounts
+_cache_info() {
+    local mount="${1:-}"
+    if [[ -n "$mount" ]]; then
+        local cache_file
+        cache_file=$(_cache_file "$mount")
+        if [[ -f "$cache_file" ]]; then
+            local created_at count ttl age
+            created_at=$(jq -r '.created_at // "unknown"' "$cache_file" 2>/dev/null)
+            count=$(jq -r '.count // "?"' "$cache_file" 2>/dev/null)
+            ttl=$(jq -r '.ttl // "?"' "$cache_file" 2>/dev/null)
+            age=$(_cache_age_str "$mount")
+            log_info "Cache for '$mount': $count paths"
+            log_info "  Created : $created_at ($age)"
+            log_info "  TTL     : ${ttl}s"
+            if _cache_is_valid "$mount"; then
+                log_success "Cache is valid"
+            else
+                log_warning "Cache is expired"
+            fi
+        else
+            log_info "No cache found for mount: $mount"
+        fi
+    else
+        if [[ -d "$VAULT_CACHE_DIR" ]]; then
+            local found=false
+            log_info "Cache directory: $VAULT_CACHE_DIR (TTL: ${VAULT_CACHE_TTL}s)"
+            for f in "${VAULT_CACHE_DIR}"/*.json; do
+                [[ -f "$f" ]] || continue
+                found=true
+                local name created_at count age valid_str
+                name=$(basename "$f" .json)
+                created_at=$(jq -r '.created_at // "unknown"' "$f" 2>/dev/null)
+                count=$(jq -r '.count // "?"' "$f" 2>/dev/null)
+                age=$(_cache_age_str "$name")
+                if _cache_is_valid "$name"; then valid_str="valid"; else valid_str="expired"; fi
+                log_info "  $name: $count paths, created: $created_at ($age) [$valid_str]"
+            done
+            [[ "$found" == "false" ]] && log_info "No cache files found in $VAULT_CACHE_DIR"
+        else
+            log_info "No cache directory: $VAULT_CACHE_DIR"
+        fi
+    fi
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Global state for find (cmd_find scope only)
+_VAULT_FIND_COUNT=0
+
+# ──── Queue-based parallel scan ──────────────────────────────────────────────
+#
+# Design: counter tracks "paths queued + paths in-flight" (never decremented on
+# pop, only decremented when an item's processing is fully complete).
+# This guarantees termination detection: counter=0 ⟺ all work is done.
+#
+#  _vault_try_pop    – atomic pop; outputs "stop", "wait", or "path:<p>"
+#  _vault_finish_item – atomic: push N subdirs + counter += (N-1)
+#  _vault_worker_body – worker main loop
+
+# Atomic pop from work queue.
+# Outputs to stdout:
+#   stop      → counter=0, worker must exit
+#   wait      → queue empty but in-flight work remains, worker must wait
+#   path:<p>  → item claimed (p may be empty = mount root)
+_vault_try_pop() {
+    local work_dir="$1"
+    (
+        flock -x 9
+        local counter
+        counter=$(cat "${work_dir}/counter.txt" 2>/dev/null || echo 0)
+        if [[ $counter -le 0 ]]; then
+            echo "stop"
+        else
+            local f path
+            for f in "${work_dir}/queue"/[0-9]*.item; do
+                [[ -f "$f" ]] || break   # handles no-match (nullglob off)
+                path=$(cat "$f" 2>/dev/null)
+                rm -f "$f"
+                echo "path:${path}"
+                exit 0                   # exit subshell with found item
+            done
+            echo "wait"
+        fi
+    ) 9>"${work_dir}/queue.lock"
+}
+
+# Atomic: push child subdirs to queue and update counter by (N_subdirs - 1).
+# This is the ONLY operation that modifies both queue and counter.
+_vault_finish_item() {
+    local work_dir="$1"; shift
+    local subdirs=("$@")
+    (
+        flock -x 9
+        local seq
+        seq=$(cat "${work_dir}/queue/.seq" 2>/dev/null || echo 0)
+        local subdir
+        for subdir in "${subdirs[@]}"; do
+            printf '%s' "$subdir" > "${work_dir}/queue/$(printf '%012d' $seq).item"
+            seq=$(( seq + 1 ))
+        done
+        echo "$seq" > "${work_dir}/queue/.seq"
+        local counter
+        counter=$(cat "${work_dir}/counter.txt" 2>/dev/null || echo 0)
+        echo $(( counter + ${#subdirs[@]} - 1 )) > "${work_dir}/counter.txt"
+    ) 9>"${work_dir}/queue.lock"
+}
+
+# Worker: pops paths from the shared queue and scans them until counter=0.
+_vault_worker_body() {
+    local mount="$1"
+    local worker_id="$2"
+    local work_dir="$3"
+    local wout="${work_dir}/worker_${worker_id}.txt"
+    local wprog="${work_dir}/progress_${worker_id}.txt"
+    touch "$wout" "$wprog"
+
+    while true; do
+        local pop_result
+        pop_result=$(_vault_try_pop "$work_dir")
+        case "$pop_result" in
+            stop) break ;;
+            wait)
+                printf '' > "$wprog"   # clear progress: worker is idle
+                sleep 0.05
+                continue ;;
+            path:*)
+                local path="${pop_result#path:}"
+                printf '%s/%s' "$mount" "$path" > "$wprog"
+
+                local result subdirs=()
+                result=$(vault kv list -mount="$mount" -format=json "$path" 2>/dev/null)
+
+                if [[ $? -eq 0 && -n "$result" && "$result" != "null" ]]; then
+                    while IFS= read -r item; do
+                        [[ -z "$item" ]] && continue
+                        local full="${path:+${path}/}${item}"
+                        if [[ "$item" == */ ]]; then
+                            subdirs+=("${full%/}")
+                        else
+                            echo "${full%/}" >> "$wout"
+                        fi
+                    done < <(echo "$result" | jq -r '.[]' 2>/dev/null)
+                fi
+
+                # Atomically push children + adjust counter
+                _vault_finish_item "$work_dir" "${subdirs[@]}"
+                ;;
+        esac
+    done
+    printf '' > "$wprog"  # clear on clean exit
+}
+
+# Background progress monitor: reads worker progress files and updates a single
+# terminal line. Runs until the done-signal file is created.
+_vault_progress_monitor() {
+    local work_dir="$1"
+    local done_signal="$2"
+    local term_width prefix max_path_len display active total_paths last_path
+
+    while [[ ! -f "$done_signal" ]]; do
+        active=0
+        total_paths=0
+        last_path=""
+
+        # Read each worker's current progress file
+        for pf in "${work_dir}"/progress_*.txt; do
+            [[ -f "$pf" ]] || continue
+            local p
+            p=$(cat "$pf" 2>/dev/null)
+            if [[ -n "$p" ]]; then
+                active=$(( active + 1 ))
+                last_path="$p"
+            fi
+        done
+
+        # Count total paths found so far across all worker files
+        for wf in "${work_dir}"/worker_*.txt; do
+            [[ -f "$wf" ]] || continue
+            local c
+            c=$(wc -l < "$wf" 2>/dev/null || echo 0)
+            total_paths=$(( total_paths + c ))
+        done
+
+        term_width=$(tput cols 2>/dev/null || echo 80)
+        prefix=" Scanning [${active} workers • ${total_paths} paths]: "
+        max_path_len=$(( term_width - ${#prefix} - 1 ))
+        display="${last_path:-...}"
+        if [[ ${#display} -gt $max_path_len && $max_path_len -gt 3 ]]; then
+            display="...${display: -$(( max_path_len - 3 ))}"
+        fi
+        printf "\r\033[K%s%s" "$prefix" "$display" >&2
+        sleep 0.1
+    done
+}
+
+# Command: find
+cmd_find() {
+    local mount="${1:-}"
+    shift || true
+    local pattern="*"
+    local use_cache=true
+    local write_cache=true
+    local bare=false
+    local clear_mode=false
+    local clear_all=false
+    local show_cache_info=false
+
+    # Parse options
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --no-cache)
+                use_cache=false
+                shift ;;
+            --no-cache-write)
+                write_cache=false
+                shift ;;
+            -b|--bare)
+                bare=true
+                shift ;;
+            --clear-cache)
+                clear_mode=true
+                shift ;;
+            --clear-all-cache)
+                clear_all=true
+                shift ;;
+            --cache-info)
+                show_cache_info=true
+                shift ;;
+            --cache-ttl)
+                if [[ -n "${2:-}" && "$2" =~ ^[0-9]+$ ]]; then
+                    VAULT_CACHE_TTL="$2"
+                    shift 2
+                else
+                    log_error "--cache-ttl requires a numeric value in seconds"
+                    return 1
+                fi ;;
+            --parallel)
+                if [[ -n "${2:-}" && "$2" =~ ^[1-9][0-9]*$ ]]; then
+                    VAULT_PARALLEL="$2"
+                    shift 2
+                else
+                    log_error "--parallel requires a positive integer"
+                    return 1
+                fi ;;
+            -*)
+                log_error "Unknown option: $1"
+                return 1 ;;
+            *)
+                pattern="$1"
+                shift ;;
+        esac
+    done
+
+    # --clear-all-cache doesn't need a mount
+    if [[ "$clear_all" == "true" ]]; then
+        _cache_clear_all
+        return $?
+    fi
+
+    if [[ -z "$mount" ]]; then
+        log_error "Usage: vaultctl find <mount> [pattern] [options]"
+        echo ""
+        echo "Search for secret paths in a Vault mount matching a glob pattern."
+        echo ""
+        echo "Arguments:"
+        echo "  mount     - The Vault mount point to search (e.g., users, cbi)"
+        echo "  pattern   - Optional glob pattern to match paths (default: * = all)"
+        echo ""
+        echo "Options:"
+        echo "  --no-cache          Bypass cache and scan live (still updates cache)"
+        echo "  --no-cache-write    Scan live without updating the cache"
+        echo "  -b, --bare          Output raw paths only (no progress, no log messages)"
+        echo "  --clear-cache       Clear cached index for this mount and exit"
+        echo "  --clear-all-cache   Clear all mount caches and exit (mount not required)"
+        echo "  --cache-info        Show cache status for this mount (or all if no mount)"
+        echo "  --cache-ttl <s>     Override cache TTL in seconds (default: ${VAULT_CACHE_TTL}s)"
+        echo "  --parallel <n>      Number of parallel scan workers (default: ${VAULT_PARALLEL})"
+        echo ""
+        echo "Examples:"
+        echo "  vaultctl find users                     # List all paths in users mount"
+        echo "  vaultctl find users '*/cbi/*'           # Paths under any user's cbi dir"
+        echo "  vaultctl find cbi 'technology.cbi/*'   # Paths under technology.cbi"
+        echo "  vaultctl find users 'myuser/*'          # Paths for a specific user"
+        echo "  vaultctl find users --clear-cache       # Clear cached index for users"
+        echo "  vaultctl find --clear-all-cache         # Clear all caches"
+        echo "  vaultctl find users --cache-info        # Show cache status for users"
+        echo "  vaultctl find --cache-info              # Show status of all caches"
+        return 1
+    fi
+
+    # --clear-cache: remove cache for this mount and exit
+    if [[ "$clear_mode" == "true" ]]; then
+        _cache_clear "$mount"
+        return $?
+    fi
+
+    # --cache-info: display cache metadata and exit
+    if [[ "$show_cache_info" == "true" ]]; then
+        _cache_info "$mount"
+        return $?
+    fi
+
+    # Ensure token is loaded
+    if ! load_token_from_file &>/dev/null; then
+        log_error "Not authenticated. Run 'vaultctl login' first."
+        return 1
+    fi
+
+    [[ "$bare" == "false" ]] && log_info "Searching in mount '$mount' with pattern: $pattern" >&2
+
+    _VAULT_FIND_COUNT=0
+
+    if [[ "$use_cache" == "true" ]] && _cache_is_valid "$mount"; then
+        # ── Cache hit: filter client-side and stream results immediately ──────
+        local cache_file created_at age count_indexed
+        cache_file=$(_cache_file "$mount")
+        created_at=$(jq -r '.created_at // "unknown"' "$cache_file" 2>/dev/null)
+        count_indexed=$(jq -r '.count // "?"' "$cache_file" 2>/dev/null)
+        age=$(_cache_age_str "$mount")
+        if [[ "$bare" == "false" ]]; then
+            log_info "Using cached index — $count_indexed paths, cached on $created_at ($age)" >&2
+            echo "" >&2
+        fi
+
+        while IFS= read -r cached_path; do
+            if [[ "$cached_path" == $pattern ]]; then
+                echo "$cached_path"
+                _VAULT_FIND_COUNT=$(( _VAULT_FIND_COUNT + 1 ))
+            fi
+        done < <(_cache_load "$mount")
+    else
+        # ── Cache miss: live scan with progressive display ────────────────────
+        if [[ "$bare" == "false" ]]; then
+            if [[ "$use_cache" == "true" ]]; then
+                log_info "No valid cache found, scanning live..." >&2
+            else
+                log_info "Cache bypassed, scanning live..." >&2
+            fi
+        fi
+
+        # ── Queue-based parallel scan ─────────────────────────────────────────
+        # Exactly VAULT_PARALLEL workers share a global work queue.
+        # Counter = paths queued + paths in-flight; reaches 0 when all is done.
+        local work_dir
+        work_dir=$(mktemp -d)
+        local queue_dir="${work_dir}/queue"
+        local all_paths_file="${work_dir}/all_paths.txt"
+        local done_signal="${work_dir}/.done"
+        mkdir -p "$queue_dir"
+        touch "$all_paths_file"
+
+        # Seed: mount root (empty path), counter=1
+        printf '' > "${queue_dir}/000000000000.item"
+        echo "1" > "${work_dir}/counter.txt"
+        echo "1" > "${queue_dir}/.seq"
+
+        # Start background progress monitor (skipped in bare mode)
+        local monitor_pid=""
+        if [[ "$bare" == "false" ]]; then
+            _vault_progress_monitor "$work_dir" "$done_signal" &
+            monitor_pid=$!
+        fi
+
+        # Launch exactly VAULT_PARALLEL workers; they self-terminate via the queue
+        local -a worker_pids=()
+        local _wi
+        for (( _wi=0; _wi<VAULT_PARALLEL; _wi++ )); do
+            ( _vault_worker_body "$mount" "$_wi" "$work_dir" ) &
+            worker_pids+=($!)
+        done
+
+        # Wait for all workers to finish
+        wait "${worker_pids[@]}" 2>/dev/null
+
+        # Stop progress monitor
+        touch "$done_signal"
+        if [[ -n "$monitor_pid" ]]; then
+            wait "$monitor_pid" 2>/dev/null || true
+            printf "\r\033[K" >&2
+        fi
+
+        # Merge all worker outputs
+        local f
+        for f in "${work_dir}"/worker_*.txt; do
+            [[ -f "$f" ]] && cat "$f" >> "$all_paths_file"
+        done
+
+        # Save full index to cache
+        if [[ "$write_cache" == "true" && -s "$all_paths_file" ]]; then
+            _cache_save "$mount" "$all_paths_file"
+            if [[ "$bare" == "false" ]]; then
+                local cache_count cached_at
+                cache_count=$(wc -l < "$all_paths_file")
+                cached_at=$(date '+%Y-%m-%d %H:%M:%S')
+                log_info "Index of $cache_count paths saved to cache on $cached_at (TTL: ${VAULT_CACHE_TTL}s)" >&2
+            fi
+        fi
+
+        # Filter and display results
+        if [[ -s "$all_paths_file" ]]; then
+            while IFS= read -r p; do
+                if [[ "$p" == $pattern ]]; then
+                    echo "$p"
+                    _VAULT_FIND_COUNT=$(( _VAULT_FIND_COUNT + 1 ))
+                fi
+            done < "$all_paths_file"
+        fi
+
+        rm -rf "$work_dir"
+    fi
+
+    if [[ $_VAULT_FIND_COUNT -eq 0 ]]; then
+        [[ "$bare" == "false" ]] && { echo "" >&2; log_warning "No paths found matching pattern: $pattern" >&2; }
+        return 1
+    fi
+
+    if [[ "$bare" == "false" ]]; then
+        echo "" >&2
+        log_success "Found $_VAULT_FIND_COUNT path(s)" >&2
+    fi
+    return 0
+}
+
 # Show help
 show_help() {
     cat << EOF
@@ -1045,6 +1597,20 @@ Commands:
       Write secrets to Vault
       Usage: vaultctl write <mount> <path> [<key>=<secret> | <key>=@<secret_file> | @<secret_file>]
       Note: path is the full path to the secret without the field name
+      
+  find <mount> [pattern] [options]
+      Search for secret paths in a Vault mount matching a glob pattern.
+      Results are streamed progressively. A local index is cached to speed up
+      subsequent searches on the same mount.
+      Arguments:
+        mount   - The Vault mount point to search (e.g., users, cbi)
+        pattern - Optional glob pattern (default: * = all paths)
+      Options:
+        --no-cache          Bypass cache, scan live (still updates cache)
+        --clear-cache       Clear cached index for this mount and exit
+        --clear-all-cache   Clear all mount caches (mount not required)
+        --cache-info        Show cache status for this mount (or all)
+        --cache-ttl <s>     Override cache TTL in seconds (default: 3600)
       
   export-env <mount> <path> <ENV_VAR:key> [<ENV_VAR2:key2> ...]
       Export secrets from Vault as environment variables
@@ -1099,6 +1665,15 @@ Examples:
   vaultctl write users myuser/cbi username=john password=******
   vaultctl write cbi technology.cbi/github.com api-token=***** password=******
   
+  # Find secret paths (with local cache)
+  vaultctl find users                                   # List all paths in users mount (cached)
+  vaultctl find users '*/cbi/*'                         # Find paths under any user's cbi dir
+  vaultctl find cbi 'technology.cbi/*'                  # Find paths under technology.cbi
+  vaultctl find users 'myuser/*' --no-cache             # Force live scan, update cache
+  vaultctl find users --clear-cache                     # Invalidate cached index for users
+  vaultctl find --clear-all-cache                       # Invalidate all cached indexes
+  vaultctl find users --cache-info                      # Show cache status for users mount
+  
   # Export secrets as environment variables
   eval \$(vaultctl export-users JENKINS_USERNAME JENKINS_PASSWORD) # Export specific user secrets
   eval \$(vaultctl export-users jenkins_username --prefix CI_ --uppercase) # With prefix and uppercase
@@ -1147,6 +1722,10 @@ main() {
         write)
             shift
             cmd_write "$@"
+            ;;
+        find)
+            shift
+            cmd_find "$@"
             ;;
         export-env)
             shift

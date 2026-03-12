@@ -860,44 +860,76 @@ cmd_export_users_cbi_all() {
 
 # Command: read
 cmd_read() {
-    local mount="${1:-}"
-    local path="${2:-}"
+    local mount=""
+    local path=""
+    local batch=false
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -b|--batch)
+                batch=true
+                shift
+                ;;
+            -*)
+                log_error "Unknown option: $1"
+                return 1
+                ;;
+            *)
+                if [[ -z "$mount" ]]; then
+                    mount="$1"
+                elif [[ -z "$path" ]]; then
+                    path="$1"
+                else
+                    log_error "Too many arguments."
+                    return 1
+                fi
+                shift
+                ;;
+        esac
+    done
 
     if [[ -z "$mount" || -z "$path" ]]; then
-        log_error "Usage: vaultctl read <mount> <path>"
-        echo ""
-        echo "NOTE: path is the full path to the secret, including the field name"
-        echo ""
-        echo "Examples:"
-        echo "  vaultctl read users <username>/cbi/JENKINS_USERNAME"
-        echo "  vaultctl read cbi technology.cbi/github.com/api-token"
+        if [[ "$batch" != true ]]; then
+            log_error "Usage: vaultctl read [-b] <mount> <path>"
+            echo ""
+            echo "NOTE: path is the full path to the secret, including the field name"
+            echo ""
+            echo "Options:"
+            echo "  -b, --batch   Silent mode: suppress all messages, only return exit code"
+            echo ""
+            echo "Examples:"
+            echo "  vaultctl read users <username>/cbi/JENKINS_USERNAME"
+            echo "  vaultctl read cbi technology.cbi/github.com/api-token"
+            echo "  vaultctl read -b cbi technology.cbi/github.com/api-token && echo ok"
+        fi
         return 1
     fi
-    
+
     # Check if path is valid: don't start with a slash, at least one slash, does not end with a slash
     if [[ ! "$path" =~ ^[^/]+/.+[^/]$ ]]; then
-        log_error "Path is invalid, slash issue. Path should not start or end with a slash and must contain at least one slash."
+        [[ "$batch" != true ]] && log_error "Path is invalid, slash issue. Path should not start or end with a slash and must contain at least one slash."
         return 1
     fi
-    
+
     # Ensure token is loaded
     if ! load_token_from_file &>/dev/null; then
-        log_error "Not authenticated. Run 'vaultctl login' first."
+        [[ "$batch" != true ]] && log_error "Not authenticated. Run 'vaultctl login' first."
         return 1
     fi
-    
+
     # Extract secret path and field
     local vault_secret_path="${path%/*}"
     local field="${path##*/}"
-    
+
     local data
     data=$(vault kv get -mount="$mount" -field="$field" "$vault_secret_path" 2>/dev/null)
 
     if [[ $? -ne 0 ]]; then
-        log_error "Vault entry not found: vault kv get -mount=\"$mount\" -field=\"$field\" \"$vault_secret_path\""
+        [[ "$batch" != true ]] && log_error "Vault entry not found: vault kv get -mount=\"$mount\" -field=\"$field\" \"$vault_secret_path\""
         return 1
     fi
-    
+
     echo -n "$data"
     return 0
 }
@@ -1845,10 +1877,12 @@ Commands:
       Export vault environment variables for current shell
       Usage: vaultctl export-vault
       
-  read <mount> <path>
+  read <mount> <path> [-b]
       Read a secret field from Vault
-      Usage: vaultctl read <mount> <path>
+      Usage: vaultctl read [-b] <mount> <path>
       Note: path is the full path to the secret, including the field name
+      Options:
+        -b, --batch   Silent mode: suppress all messages, only return exit code
       
   write <mount> <path> <key>=<value> [...]
       Write secrets to Vault
@@ -1986,70 +2020,88 @@ main() {
     case "$command" in
         login)
             cmd_login
+            exit $?
             ;;
         logout)
             cmd_logout
+            exit $?
             ;;
         status)
             cmd_status
+            exit $?
             ;;
         export-vault)
             cmd_export_vault
+            exit $?
             ;;
         read)
             shift
             cmd_read "$@"
+            exit $?
             ;;
         write)
             shift
             cmd_write "$@"
+            exit $?
             ;;
         mv)
             shift
             cmd_mv "$@"
+            exit $?
             ;;
         rm|delete)
             shift
             cmd_rm "$@"
+            exit $?
             ;;
         find)
             shift
             cmd_find "$@"
+            exit $?
             ;;
         export-env)
             shift
             cmd_export_env "$@"
+            exit $?
             ;;
         export-env-all)
             shift
             cmd_export_env_all "$@"
+            exit $?
             ;;
         export-users)
             shift
             cmd_export_users "$@"
+            exit $?
             ;;
         export-users-all)
             shift
             cmd_export_users_all "$@"
+            exit $?
             ;;
         export-users-path)
             shift
             cmd_export_users_path "$@"
+            exit $?
             ;;
         export-users-path-all)
             shift
             cmd_export_users_path_all "$@"
+            exit $?
             ;;
         export-users-cbi)
             shift
             cmd_export_users_cbi "$@"
+            exit $?
             ;;
         export-users-cbi-all)
             shift
             cmd_export_users_cbi_all "$@"
+            exit $?
             ;;
         help|--help|-h)
             show_help
+            exit 0
             ;;
         *)
             log_error "Unknown command: $command"
@@ -2058,7 +2110,6 @@ main() {
             exit 1
             ;;
     esac
-    return 0
 }
 
 main "$@"

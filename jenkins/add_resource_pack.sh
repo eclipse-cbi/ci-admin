@@ -182,6 +182,9 @@ update_jiro_config() {
     sed -i "/displayName/a \ ${new_line}" "${config_file}"
   fi
   echo "  New value: ${new_value}"
+  echo
+  echo "TODO: deploy changes for CI instance!"
+  echo "TODO: commit in jiro repos!"
 }
 
 #MAIN
@@ -204,5 +207,4 @@ else
 fi
 
 echo
-echo "TODO: deploy changes for CI instance!"
-echo "TODO: commit changes in cbi-sponsoring-api and jiro repos!"
+echo "TODO: commit changes in cbi-sponsoring-api!"

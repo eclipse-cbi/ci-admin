@@ -230,7 +230,6 @@ $(printf "${GREEN}Commands:${NC}")
 
 $(printf "${GREEN}Examples:${NC}")
   ci-adm nexus create-repos technology.cbi
-  ci-adm nexus create-repos technology.cbi
 EOF
       ;;
     

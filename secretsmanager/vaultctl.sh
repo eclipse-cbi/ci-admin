@@ -184,14 +184,13 @@ vault_ldap_login() {
     # Try to load from config
     if load_password_from_config; then
         log_info "Using saved password."
-        return 0
     fi
 
     if [[ -n $VAULT_PASSWORD ]]; then
       password_argument="password=$VAULT_PASSWORD"
     fi
 
-    if vault login -method=ldap -address="$VAULT_ADDR" username="$VAULT_USERNAME" $password_argument >/dev/null; then
+    if vault login -address="$VAULT_ADDR" -method=ldap username="$VAULT_USERNAME" $password_argument; then
         log_success "Vault login successful"
         
         # Load the token that was just saved

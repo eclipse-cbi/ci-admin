@@ -132,7 +132,7 @@ install_cli() {
 # Check PATH
 check_path() {
   if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
-    print_warning "Warning: $INSTALL_DIR is not in your PATH"
+    print_warning "$INSTALL_DIR is not in your PATH"
     print_info "Add it to your PATH by adding this line to your ~/.bashrc or ~/.zshrc:"
     echo ""
     echo "  export PATH=\"\$PATH:$INSTALL_DIR\""

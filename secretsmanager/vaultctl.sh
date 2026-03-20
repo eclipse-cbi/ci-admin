@@ -115,6 +115,26 @@ load_username_from_config() {
     return 1
 }
 
+# Load password from config
+load_password_from_config() {
+    if [[ -f "$CONFIG_FILE" ]]; then
+        # Safely parse VAULT_PASSWORD from config without executing the file
+        local line password
+        line="$(grep -m1 '^VAULT_PASSWORD=' "$CONFIG_FILE" 2>/dev/null || true)"
+        if [[ -n "$line" ]]; then
+            password="${line#VAULT_PASSWORD=}"
+            # Remove optional surrounding double quotes
+            password="${password%\"}"
+            password="${password#\"}"
+            if [[ -n "$password" ]]; then
+                VAULT_PASSWORD="$password"
+                return 0
+            fi
+        fi
+    fi
+    return 1
+}
+
 # Save username to config
 save_username_to_config() {
     local username="$1"
@@ -159,8 +179,19 @@ get_vault_username() {
 vault_ldap_login() {
     log_info "Logging in to Vault using LDAP method..."
     log_info "Vault address: $VAULT_ADDR"
-    
-    if vault login -method=ldap -address="$VAULT_ADDR" username="$VAULT_USERNAME" >/dev/null; then
+
+    local password_argument=""
+    # Try to load from config
+    if load_password_from_config; then
+        log_info "Using saved password."
+        return 0
+    fi
+
+    if [[ -n $VAULT_PASSWORD ]]; then
+      password_argument="password=$VAULT_PASSWORD"
+    fi
+
+    if vault login -method=ldap -address="$VAULT_ADDR" username="$VAULT_USERNAME" $password_argument >/dev/null; then
         log_success "Vault login successful"
         
         # Load the token that was just saved

@@ -898,18 +898,31 @@ cmd_read() {
         if [[ "$batch" != true ]]; then
             log_error "Usage: vaultctl read [-b] [-v] <mount> <path>"
             echo ""
-            echo "NOTE: path is the full path to the secret, including the field name"
+            echo "NOTE: path can be either a secret name (to list keys) or secret/field"
             echo ""
             echo "Options:"
             echo "  -b, --batch    Silent mode: suppress all messages, only return exit code"
             echo "  -v, --verbose  Verbose mode: display vault commands being executed"
             echo ""
             echo "Examples:"
+            echo "  vaultctl read cbi technology.cbi # List keys in secret 'technology.cbi'"
             echo "  vaultctl read users <username>/cbi/JENKINS_USERNAME"
             echo "  vaultctl read cbi technology.cbi/github.com/api-token"
             echo "  vaultctl read -b cbi technology.cbi/github.com/api-token && echo ok"
             echo "  vaultctl read -v cbi technology.cbi/github.com/api-token"
         fi
+        return 1
+    fi
+
+    # Normalize path: remove trailing slash, reject leading slash
+    path="${path%/}"
+    if [[ "$path" =~ ^/ ]]; then
+        [[ "$batch" != true ]] && log_error "Path cannot start with a slash: $path"
+        return 1
+    fi
+    
+    if [[ -z "$path" ]]; then
+        [[ "$batch" != true ]] && log_error "Path cannot be empty"
         return 1
     fi
 
@@ -919,42 +932,93 @@ cmd_read() {
         return 1
     fi
 
-    # Extract secret path and field
-    local vault_secret_path="${path%/*}"
-    local field="${path##*/}"
+    # Check if path contains a slash to determine if it's secret/field or just secret
+    local vault_secret_path
+    local field
+    
+    if [[ "$path" == */* ]]; then
+        # Path contains slash: split into secret_path and field
+        vault_secret_path="${path%/*}"
+        field="${path##*/}"
+        
+        # Verbose mode: display the command
+        if [[ "$verbose" == true ]]; then
+            log_info "Command: vault kv get -mount=\"$mount\" -field=\"$field\" \"$vault_secret_path\""
+        fi
 
-    # Verbose mode: display the command
-    if [[ "$verbose" == true ]]; then
-        log_info "Command: vault kv get -mount=\"$mount\" -field=\"$field\" \"$vault_secret_path\""
-    fi
+        local data
+        data=$(vault kv get -mount="$mount" -field="$field" "$vault_secret_path" 2>/dev/null)
 
-    local data
-    data=$(vault kv get -mount="$mount" -field="$field" "$vault_secret_path" 2>/dev/null)
+        if [[ $? -ne 0 ]]; then
+            # In batch mode, don't use fallbacks - fail immediately
+            if [[ "$batch" == true ]]; then
+                return 1
+            fi
+            
+            # Fallback 1: Try to list keys of the secret
+            log_warning "Field '$field' not found. Trying to list keys of the secret..."
+            
+            if [[ "$verbose" == true ]]; then
+                log_info "Command: vault kv get -mount=\"$mount\" -format=json \"$vault_secret_path/$field\" | jq -r '.data.data | keys[]'"
+            fi
+            
+            local keys
+            keys=$(vault kv get -mount="$mount" -format=json "$vault_secret_path/$field" 2>/dev/null | jq -r '.data.data | keys[]' 2>/dev/null)
+            
+            if [[ $? -eq 0 && -n "$keys" ]]; then
+                log_info "Available keys in secret '$vault_secret_path/$field':"
+                echo "$keys"
+                return 1
+            fi
+            
+            # Fallback 2: Try to list secrets in the path
+            log_warning "Secret not found. Trying to list secrets in path..."
+            
+            if [[ "$verbose" == true ]]; then
+                log_info "Command: vault kv list -mount=\"$mount\" -format=json \"$vault_secret_path\" | jq -r '.[]'"
+            fi
+            
+            local secrets
+            secrets=$(vault kv list -mount="$mount" -format=json "$vault_secret_path" 2>/dev/null | jq -r '.[]' 2>/dev/null)
+            
+            if [[ $? -eq 0 && -n "$secrets" ]]; then
+                log_info "Available secrets in path '$vault_secret_path':"
+                echo "$secrets"
+                return 1
+            fi
+            
+            # If all fallbacks fail
+            log_error "Vault entry not found: vault kv get -mount=\"$mount\" -field=\"$field\" \"$vault_secret_path\""
+            return 1
+        fi
 
-    if [[ $? -ne 0 ]]; then
-        # In batch mode, don't use fallbacks - fail immediately
+        echo -n "$data"
+        return 0
+    else
+        # No slash: treat as secret name, list its keys
+        vault_secret_path="$path"
+        
+        if [[ "$verbose" == true ]]; then
+            log_info "Command: vault kv get -mount=\"$mount\" -format=json \"$vault_secret_path\" | jq -r '.data.data | keys[]'"
+        fi
+        
+        local keys
+        keys=$(vault kv get -mount="$mount" -format=json "$vault_secret_path" 2>/dev/null | jq -r '.data.data | keys[]' 2>/dev/null)
+        
+        if [[ $? -eq 0 && -n "$keys" ]]; then
+            if [[ "$batch" != true ]]; then
+                log_info "Available keys in secret '$vault_secret_path':"
+                echo "$keys"
+            fi
+            return 1
+        fi
+        
+        # Fallback: Try to list secrets in the path (in case it's a directory)
         if [[ "$batch" == true ]]; then
             return 1
         fi
         
-        # Fallback 1: Try to list keys of the secret
-        log_warning "Field not found. Trying to list keys of the secret..."
-        
-        if [[ "$verbose" == true ]]; then
-            log_info "Command: vault kv get -mount=\"$mount\" -format=json \"$vault_secret_path/$field\" | jq -r '.data.data | keys[]'"
-        fi
-        
-        local keys
-        keys=$(vault kv get -mount="$mount" -format=json "$vault_secret_path/$field" 2>/dev/null | jq -r '.data.data | keys[]' 2>/dev/null)
-        
-        if [[ $? -eq 0 && -n "$keys" ]]; then
-            log_info "Available keys in secret '$vault_secret_path/$field':"
-            echo "$keys"
-            return 1
-        fi
-        
-        # Fallback 2: Try to list secrets in the path
-        log_warning "Secret not found. Trying to list secrets in path..."
+        log_warning "Not a secret. Trying to list secrets in path..."
         
         if [[ "$verbose" == true ]]; then
             log_info "Command: vault kv list -mount=\"$mount\" -format=json \"$vault_secret_path\" | jq -r '.[]'"
@@ -969,13 +1033,9 @@ cmd_read() {
             return 1
         fi
         
-        # If all fallbacks fail
-        log_error "Vault entry not found: vault kv get -mount=\"$mount\" -field=\"$field\" \"$vault_secret_path\""
+        log_error "Vault entry not found: vault kv get -mount=\"$mount\" \"$vault_secret_path\""
         return 1
     fi
-
-    echo -n "$data"
-    return 0
 }
 
 # Command: write

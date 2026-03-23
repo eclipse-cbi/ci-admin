@@ -863,12 +863,17 @@ cmd_read() {
     local mount=""
     local path=""
     local batch=false
+    local verbose=false
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -b|--batch)
                 batch=true
+                shift
+                ;;
+            -v|--verbose)
+                verbose=true
                 shift
                 ;;
             -*)
@@ -891,24 +896,20 @@ cmd_read() {
 
     if [[ -z "$mount" || -z "$path" ]]; then
         if [[ "$batch" != true ]]; then
-            log_error "Usage: vaultctl read [-b] <mount> <path>"
+            log_error "Usage: vaultctl read [-b] [-v] <mount> <path>"
             echo ""
             echo "NOTE: path is the full path to the secret, including the field name"
             echo ""
             echo "Options:"
-            echo "  -b, --batch   Silent mode: suppress all messages, only return exit code"
+            echo "  -b, --batch    Silent mode: suppress all messages, only return exit code"
+            echo "  -v, --verbose  Verbose mode: display vault commands being executed"
             echo ""
             echo "Examples:"
             echo "  vaultctl read users <username>/cbi/JENKINS_USERNAME"
             echo "  vaultctl read cbi technology.cbi/github.com/api-token"
             echo "  vaultctl read -b cbi technology.cbi/github.com/api-token && echo ok"
+            echo "  vaultctl read -v cbi technology.cbi/github.com/api-token"
         fi
-        return 1
-    fi
-
-    # Check if path is valid: don't start with a slash, at least one slash, does not end with a slash
-    if [[ ! "$path" =~ ^[^/]+/.+[^/]$ ]]; then
-        [[ "$batch" != true ]] && log_error "Path is invalid, slash issue. Path should not start or end with a slash and must contain at least one slash."
         return 1
     fi
 
@@ -922,10 +923,56 @@ cmd_read() {
     local vault_secret_path="${path%/*}"
     local field="${path##*/}"
 
+    # Verbose mode: display the command
+    if [[ "$verbose" == true ]]; then
+        log_info "Command: vault kv get -mount=\"$mount\" -field=\"$field\" \"$vault_secret_path\""
+    fi
+
     local data
     data=$(vault kv get -mount="$mount" -field="$field" "$vault_secret_path" 2>/dev/null)
 
     if [[ $? -ne 0 ]]; then
+        # Fallback 1: Try to list keys of the secret
+        if [[ "$batch" != true ]]; then
+            log_warning "Field not found. Trying to list keys of the secret..."
+        fi
+        
+        if [[ "$verbose" == true ]]; then
+            log_info "Command: vault kv get -mount=\"$mount\" -format=json \"$vault_secret_path/$field\" | jq -r '.data.data | keys[]'"
+        fi
+        
+        local keys
+        keys=$(vault kv get -mount="$mount" -format=json "$vault_secret_path/$field" 2>/dev/null | jq -r '.data.data | keys[]' 2>/dev/null)
+        
+        if [[ $? -eq 0 && -n "$keys" ]]; then
+            if [[ "$batch" != true ]]; then
+                log_info "Available keys in secret '$vault_secret_path/$field':"
+            fi
+            echo "$keys"
+            return 1
+        fi
+        
+        # Fallback 2: Try to list secrets in the path
+        if [[ "$batch" != true ]]; then
+            log_warning "Secret not found. Trying to list secrets in path..."
+        fi
+        
+        if [[ "$verbose" == true ]]; then
+            log_info "Command: vault kv list -mount=\"$mount\" -format=json \"$vault_secret_path\" | jq -r '.[]'"
+        fi
+        
+        local secrets
+        secrets=$(vault kv list -mount="$mount" -format=json "$vault_secret_path" 2>/dev/null | jq -r '.[]' 2>/dev/null)
+        
+        if [[ $? -eq 0 && -n "$secrets" ]]; then
+            if [[ "$batch" != true ]]; then
+                log_info "Available secrets in path '$vault_secret_path':"
+            fi
+            echo "$secrets"
+            return 1
+        fi
+        
+        # If all fallbacks fail
         [[ "$batch" != true ]] && log_error "Vault entry not found: vault kv get -mount=\"$mount\" -field=\"$field\" \"$vault_secret_path\""
         return 1
     fi

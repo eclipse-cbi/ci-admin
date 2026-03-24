@@ -99,7 +99,16 @@ curl_get() {
 
 get_projects() {
   local sonar_organization="$1"
-  curl_get  "projects/search" "organization=${sonar_organization}&ps=500" | jq -r '.components[].key'
+  local response
+  response=$(curl_get "projects/search" "organization=${sonar_organization}&ps=500")
+  
+  if echo "${response}" | jq -e 'has("errors")' > /dev/null ; then
+    error_msg=$(echo "${response}" | jq -r '.errors[].msg')
+    echo "ERROR: ${error_msg}" >&2
+    return 1
+  fi
+  
+  echo "${response}" | jq -r '.components[].key'
 }
 
 create_token() {

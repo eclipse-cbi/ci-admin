@@ -62,19 +62,19 @@ create_pgp_credentials() {
   else
     "${SCRIPT_FOLDER}/../pass/add_creds_gpg.sh" "${project_name}" "${display_name}"
   fi
-
   # add credentials to Jenkins instance
-  "${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${project_name}"
+  if [[ -d "${JIRO_ROOT_FOLDER}/instances/${project_name}" ]]; then
+    "${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${project_name}"
 
+    # extract secret-subkeys.asc file from pass
+    passw cbi "${PASS_BASE_PATH}/secret-subkeys.asc" > "${SECRET_SUBKEYS_FILENAME}"
 
-  # extract secret-subkeys.asc file from pass
-  passw cbi "${PASS_BASE_PATH}/secret-subkeys.asc" > "${SECRET_SUBKEYS_FILENAME}"
-
-  # Add manually to JIPP
-  echo
-  echo "Add ${SECRET_SUBKEYS_FILENAME} to ${SHORT_NAME} JIPP manually..."
-  read -rsp "Press enter to continue or CTRL-C to stop the script"
-  echo
+    # Add manually to JIPP
+    echo
+    echo "Add ${SECRET_SUBKEYS_FILENAME} to ${SHORT_NAME} JIPP manually..."
+    read -rsp "Press enter to continue or CTRL-C to stop the script"
+    echo
+  fi
 }
 
 create_pgp_credentials "${PROJECT_NAME}"
@@ -82,7 +82,10 @@ create_pgp_credentials "${PROJECT_NAME}"
 # Add GPG passphrase
 gpg_passphrase_secret_id="gpg-passphrase"
 gpg_passphrase="$(passw cbi "${PASS_BASE_PATH}/passphrase")"
-"${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "default" "${PROJECT_NAME}" "${gpg_passphrase_secret_id}" "GPG Passphrase" "${gpg_passphrase}"
+
+if [[ -d "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}" ]]; then
+  "${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "default" "${PROJECT_NAME}" "${gpg_passphrase_secret_id}" "GPG Passphrase" "${gpg_passphrase}"
+fi
 
 # Sign with webmaster's key
 printf "\n\n# Sign GPG public key with Webmaster key...\n"

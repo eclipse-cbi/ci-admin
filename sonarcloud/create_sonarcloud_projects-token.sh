@@ -126,6 +126,10 @@ create_token() {
     echo "Testing existing token validity..."
     if test_api_token "${existing_token}"; then
       echo "Existing token is still valid. No need to generate a new one."
+      if _question_true_false "revoke token and generate new one"; then
+        curl_post "name=${token_name}" 'user_tokens/revoke'
+        create_token "${token_name}" "${suffix}"
+      fi
       return 0
     else
       echo "Existing token is invalid or expired. Generating a new token..."

@@ -21,7 +21,6 @@ Most scripts will not work without access to the password store or the internal 
       - [Password Store (pass) Module](#password-store-pass-module)
       - [Matrix Module](#matrix-module)
       - [SonarCloud Module](#sonarcloud-module)
-      - [Develocity Module](#develocity-module)
       - [Project Management Module](#project-management-module)
       - [GitLab Runner Module](#gitlab-runner-module)
       - [Service Accounts Module](#service-accounts-module)
@@ -101,7 +100,6 @@ ci-adm <module> <command> [arguments...]
 | `pass` | Password store management |
 | `matrix` | Matrix bot management |
 | `sonarcloud` | SonarCloud project management |
-| `develocity` | Develocity bot setup |
 | `project` | Project configuration management |
 | `gitlab-runner` | GitLab runner provisioning |
 | `service-accounts` | Service account management |
@@ -209,13 +207,6 @@ ci-adm sonarcloud create-project technology.cbi
 
 # Create SonarCloud project token
 ci-adm sonarcloud create-token adoptium
-```
-
-#### Develocity Module
-
-```bash
-# Setup Develocity bot
-ci-adm develocity setup-bot technology.cbi
 ```
 
 #### Project Management Module

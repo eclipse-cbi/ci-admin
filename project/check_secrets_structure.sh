@@ -31,44 +31,9 @@ EXCLUDE_PATTERNS=(
   "research."
 )
 
-# Check if vault CLI is available
-if ! command -v vault > /dev/null; then
-  >&2 echo "ERROR: this program requires 'vault' CLI"
-  exit 1
-fi
-
-# Authenticate with secretsmanager
-SMLOGIN_SCRIPT="${SCRIPT_FOLDER}/../secretsmanager/smlogin.sh"
-
-if [[ -z "${VAULT_TOKEN:-}" ]] || ! vault token lookup &>/dev/null 2>&1; then
-  echo "Authenticating with Vault..."
-  
-  if [[ ! -f "${SMLOGIN_SCRIPT}" ]]; then
-    >&2 echo "ERROR: smlogin.sh script not found at: ${SMLOGIN_SCRIPT}"
-    >&2 echo "Please authenticate manually with: vault login"
-    exit 1
-  fi
-  
-  # Source the script to export VAULT_TOKEN
-  # shellcheck disable=SC1090
-  source "${SMLOGIN_SCRIPT}"
-  SOURCE_EXIT_CODE=$?
-  
-  if [[ ${SOURCE_EXIT_CODE} -ne 0 ]]; then
-    >&2 echo "ERROR: Authentication failed (exit code: ${SOURCE_EXIT_CODE})"
-    exit 1
-  fi
-fi
-
-# Final check: ensure VAULT_TOKEN is set and valid
-if [[ -z "${VAULT_TOKEN:-}" ]]; then
-  >&2 echo "ERROR: VAULT_TOKEN is not set after authentication"
-  exit 1
-fi
-
-if ! vault token lookup &>/dev/null; then
-  >&2 echo "ERROR: VAULT_TOKEN is invalid or expired"
-  exit 1
+if ! vaultctl status; then
+  >&2 echo "ERROR: your are not logged in to Vault or your token is invalid/expired."
+  vaultctl login
 fi
 
 # Colors for output

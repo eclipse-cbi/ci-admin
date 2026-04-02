@@ -140,7 +140,7 @@ $(printf "${GREEN}Develocity Commands:${NC}")
   develocity setup-bot <project_name>              Setup Develocity bot for a project
 
 $(printf "${GREEN}Project Management Commands:${NC}")
-  project check-secrets <project_name>             Check secrets structure
+  project check-secrets                            Check secrets structure
   project fetch-api                                Fetch projects from API
   project stats                                    Show project statistics
   project rename <old_name> <new_name>             Rename a project
@@ -300,13 +300,13 @@ EOF
 $(printf "${BLUE}ci-adm project${NC}") - Project configuration management
 
 $(printf "${GREEN}Commands:${NC}")
-  check-secrets <project_name>     Check secrets structure
+  check-secrets     Check secrets structure
   fetch-api                        Fetch projects from API
   stats                            Show project statistics
   rename <old_name> <new_name>     Rename a project
 
 $(printf "${GREEN}Examples:${NC}")
-  ci-adm project check-secrets technology.cbi
+  ci-adm project check-secrets
   ci-adm project stats
   ci-adm project rename old.project new.project
 EOF

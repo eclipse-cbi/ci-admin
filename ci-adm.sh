@@ -74,6 +74,7 @@ $(printf "${GREEN}Available Modules:${NC}")
   $(printf "${YELLOW}central-sonatype${NC}")  Maven Central / Sonatype setup
   $(printf "${YELLOW}projects-storage${NC}")  Projects storage setup
   $(printf "${YELLOW}buildtools${NC}")        Build tools management
+  $(printf "${YELLOW}repo${NC}")              Repository management
 
 $(printf "${GREEN}Examples:${NC}")
   ci-adm github setup-bot technology.cbi
@@ -159,6 +160,9 @@ $(printf "${GREEN}Projects Storage Commands:${NC}")
 $(printf "${GREEN}Build Tools Commands:${NC}")
   buildtools add-maven-version <version>           Add new Maven version
   buildtools check-jdk <args...>                   Check JDK configuration
+
+$(printf "${GREEN}Repository Commands:${NC}")
+  repo size <repo> [args...]                       Show Nexus repository size report
 
 EOF
 }
@@ -369,7 +373,22 @@ $(printf "${GREEN}Examples:${NC}")
   ci-adm buildtools check-jdk --help
 EOF
       ;;
-    
+
+    repo)
+      cat << EOF
+$(printf "${BLUE}ci-adm repo${NC}") - Repository management
+
+$(printf "${GREEN}Commands:${NC}")
+  size <repo> [nexus_host]                              Show Nexus repository size report
+  size <repo> <username> <password> [nexus_host]        Show Nexus repository size report with credentials
+
+$(printf "${GREEN}Examples:${NC}")
+  ci-adm repo size cbi-maven2-releases
+  ci-adm repo size cbi-maven2-releases repo.eclipse.org
+  ci-adm repo size cbi-maven2-releases myuser mypass
+EOF
+      ;;
+
     *)
       print_error "Unknown module: $module"
       echo ""
@@ -653,7 +672,21 @@ execute_command() {
           ;;
       esac
       ;;
-    
+
+    repo)
+      case "$command" in
+        size)
+          exec "${SCRIPT_DIR}/repo/repo_size.sh" "$@"
+          ;;
+        *)
+          print_error "Unknown command for repo: $command"
+          echo ""
+          show_module_help "repo"
+          exit 1
+          ;;
+      esac
+      ;;
+
     *)
       print_error "Unknown module: $module"
       echo ""

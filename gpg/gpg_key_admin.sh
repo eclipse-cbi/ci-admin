@@ -28,6 +28,9 @@ KEYSERVER="keyserver.ubuntu.com"
 
 TMP_GPG="/tmp/temp_gpg_test4"
 
+# Cleanup trap to remove temporary GPG directory on exit
+trap 'rm -rf "${TMP_GPG}"' EXIT INT TERM
+
 rm -rf "${TMP_GPG}"
 mkdir -p "${TMP_GPG}"
 chmod 700 "${TMP_GPG}"
@@ -200,13 +203,52 @@ sign() {
 
 test() {
   local project_name="${1:-}"
-  _preface "${project_name}"
+  
+  echo "allow-loopback-pinentry" > "${TMP_GPG}/gpg-agent.conf"
+  local pw_store_path="bots/${project_name}/gpg"
+  PASSPHRASE="$(passw cbi "${pw_store_path}/passphrase")"
 
+  # Test secret-keys
+  echo ""
+  echo "=== Testing secret-keys.asc ==="
+  _gpg_sb --batch --import <<< "$(passw cbi "${pw_store_path}/secret-keys.asc")"
   local key_id
   key_id="$(_get_key_id "${project_name}")"
+  
+  echo "Listing secret keys with their capabilities:"
+  _gpg_sb --list-secret-keys --with-colons "${key_id}" | grep -E "^(sec|ssb):" | awk -F: '{print $12 " - Key ID: " $5}'
+  
+  # Test passphrase by attempting to export the secret key (doesn't modify anything)
+  if _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback --armor --export-secret-keys "${key_id}" 3<<< "${PASSPHRASE}" > /dev/null 2>&1; then
+    echo "✓ secret-keys.asc: The passphrase is correct!"
+  else
+    echo "✗ secret-keys.asc: The passphrase is INCORRECT!"
+    return 1
+  fi
 
-  # test passphrase from pass
-  echo "1234" | _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback -o /dev/null --local-user "${key_id}" -as - 3<<< "${PASSPHRASE}" && echo "The passphrase stored in pass is correct!"
+  # Clean GPG home for second test
+  rm -rf "${TMP_GPG}"
+  mkdir -p "${TMP_GPG}"
+  chmod 700 "${TMP_GPG}"
+  echo "allow-loopback-pinentry" > "${TMP_GPG}/gpg-agent.conf"
+
+  # Test secret-subkeys
+  echo ""
+  echo "=== Testing secret-subkeys.asc ==="
+  _gpg_sb --batch --import <<< "$(passw cbi "${pw_store_path}/secret-subkeys.asc")"
+  
+  echo "Listing secret keys with their capabilities:"
+  _gpg_sb --list-secret-keys --with-colons "${key_id}" | grep -E "^(sec|ssb):" | awk -F: '{print $12 " - Key ID: " $5}'
+  
+  if echo "1234" | _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback -o /dev/null --local-user "${key_id}" -as - 3<<< "${PASSPHRASE}"; then
+    echo "✓ secret-subkeys.asc: The passphrase is correct and keys are functional!"
+  else
+    echo "✗ secret-subkeys.asc: The passphrase is INCORRECT or keys cannot sign!"
+    return 1
+  fi
+  
+  echo ""
+  echo "✓ All tests passed! Both keys work correctly with the stored passphrase."
 }
 
 upload() {
@@ -229,6 +271,5 @@ if [[ -z "${1:-}" ]]; then
   help
 fi
 
-rm -rf "${TMP_GPG}"
 echo "Done"
 

@@ -67,7 +67,6 @@ $(printf "${GREEN}Available Modules:${NC}")
   $(printf "${YELLOW}pass${NC}")              Password store management
   $(printf "${YELLOW}matrix${NC}")            Matrix bot management
   $(printf "${YELLOW}sonarcloud${NC}")        SonarCloud project management
-  $(printf "${YELLOW}develocity${NC}")        Develocity bot setup
   $(printf "${YELLOW}project${NC}")           Project configuration management
   $(printf "${YELLOW}gitlab-runner${NC}")     GitLab runner provisioning
   $(printf "${YELLOW}service-accounts${NC}")  Service account management
@@ -135,9 +134,6 @@ $(printf "${GREEN}Matrix Commands:${NC}")
 $(printf "${GREEN}SonarCloud Commands:${NC}")
   sonarcloud create-project <project_name>         Create SonarCloud project
   sonarcloud create-token <project_name>           Create SonarCloud project token
-
-$(printf "${GREEN}Develocity Commands:${NC}")
-  develocity setup-bot <project_name>              Setup Develocity bot for a project
 
 $(printf "${GREEN}Project Management Commands:${NC}")
   project check-secrets                            Check secrets structure
@@ -282,19 +278,7 @@ $(printf "${GREEN}Examples:${NC}")
   ci-adm sonarcloud create-token technology.cbi
 EOF
       ;;
-    
-    develocity)
-      cat << EOF
-$(printf "${BLUE}ci-adm develocity${NC}") - Develocity bot setup
-
-$(printf "${GREEN}Commands:${NC}")
-  setup-bot <project_name>     Setup Develocity bot for a project
-
-$(printf "${GREEN}Examples:${NC}")
-  ci-adm develocity setup-bot technology.cbi
-EOF
-      ;;
-    
+        
     project)
       cat << EOF
 $(printf "${BLUE}ci-adm project${NC}") - Project configuration management
@@ -558,20 +542,6 @@ execute_command() {
           print_error "Unknown command for sonarcloud: $command"
           echo ""
           show_module_help "sonarcloud"
-          exit 1
-          ;;
-      esac
-      ;;
-    
-    develocity)
-      case "$command" in
-        setup-bot)
-          exec "${SCRIPT_DIR}/develocity/setup_develocity_bot.sh" "$@"
-          ;;
-        *)
-          print_error "Unknown command for develocity: $command"
-          echo ""
-          show_module_help "develocity"
           exit 1
           ;;
       esac

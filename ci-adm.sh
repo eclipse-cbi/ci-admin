@@ -114,7 +114,7 @@ $(printf "${GREEN}GitLab Commands:${NC}")
 
 $(printf "${GREEN}GPG Commands:${NC}")
   gpg setup-signing <project_name>                 Setup GPG signing for a project
-  gpg key-admin <args...>                          GPG key administration
+  gpg admin <args...>                          GPG key administration
   gpg change-passphrase <project_name>             Change GPG key passphrase
 
 $(printf "${GREEN}Nexus Commands:${NC}")
@@ -211,13 +211,13 @@ $(printf "${BLUE}ci-adm gpg${NC}") - GPG key and signing management
 
 $(printf "${GREEN}Commands:${NC}")
   setup-signing <project_name>           Setup GPG signing for a project
-  key-admin <args...>                    GPG key administration
+  admin <args...>                    GPG key administration
   change-passphrase <project_name>       Change GPG key passphrase
 
 $(printf "${GREEN}Examples:${NC}")
   ci-adm gpg setup-signing technology.cbi
   ci-adm gpg change-passphrase technology.cbi
-  ci-adm gpg key-admin --help
+  ci-adm gpg admin --help
 EOF
       ;;
     
@@ -458,7 +458,7 @@ execute_command() {
         setup-signing)
           exec "${SCRIPT_DIR}/gpg/setup_gpg_signing.sh" "$@"
           ;;
-        key-admin)
+        admin)
           exec "${SCRIPT_DIR}/gpg/gpg_key_admin.sh" "$@"
           ;;
         change-passphrase)

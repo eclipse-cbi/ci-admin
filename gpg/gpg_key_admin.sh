@@ -144,7 +144,7 @@ renew() {
   read -p "Press enter to continue or CTRL-C to stop the script"
   echo
   echo "Deleting ${project_name} directory..."
-  rm -rf "${project_name}"
+  # rm -rf "${project_name}"
   echo
   echo "TODO: Push changes to cbi-pass repo."
   read -p "Press enter to continue or CTRL-C to stop the script"
@@ -216,12 +216,6 @@ test() {
   key_id="$(_get_key_id "${project_name}")"
   
   echo "Listing secret keys with their capabilities:"
-  _gpg_sb --list-secret-keys --with-colons "${key_id}" | grep -E "^(sec|ssb):" | awk -v now="$(date +%s)" -F: '{
-    expiry_str = ($7 != "") ? strftime("%Y-%m-%d", $7) : "no expiration"
-    print $12 " - Key ID: " $5 " - Expires: " expiry_str
-    if ($7 != "" && $7 + 0 < now + 0) found_expired = 1
-  }
-  END { exit found_expired+0 }' || { echo "✗ One or more keys have EXPIRED!"; exit 1; }
 
   # Test passphrase by attempting to export the secret key (doesn't modify anything)
   if _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback --armor --export-secret-keys "${key_id}" 3<<< "${PASSPHRASE}" > /dev/null 2>&1; then
@@ -247,6 +241,7 @@ test() {
     expiry_str = ($7 != "") ? strftime("%Y-%m-%d", $7) : "no expiration"
     print $12 " - Key ID: " $5 " - Expires: " expiry_str
     if ($7 != "" && $7 + 0 < now + 0) found_expired = 1
+    else if ($7 != "" && $7 + 0 < now + 2592000) print "⚠ WARNING: Key " $5 " expires in less than 30 days (" expiry_str ")"
   }
   END { exit found_expired+0 }' || { echo "✗ One or more keys have EXPIRED!"; exit 1; }
 

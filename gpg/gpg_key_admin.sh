@@ -216,14 +216,19 @@ test() {
   key_id="$(_get_key_id "${project_name}")"
   
   echo "Listing secret keys with their capabilities:"
-  _gpg_sb --list-secret-keys --with-colons "${key_id}" | grep -E "^(sec|ssb):" | awk -F: '{print $12 " - Key ID: " $5}'
-  
+  _gpg_sb --list-secret-keys --with-colons "${key_id}" | grep -E "^(sec|ssb):" | awk -v now="$(date +%s)" -F: '{
+    expiry_str = ($7 != "") ? strftime("%Y-%m-%d", $7) : "no expiration"
+    print $12 " - Key ID: " $5 " - Expires: " expiry_str
+    if ($7 != "" && $7 + 0 < now + 0) found_expired = 1
+  }
+  END { exit found_expired+0 }' || { echo "✗ One or more keys have EXPIRED!"; exit 1; }
+
   # Test passphrase by attempting to export the secret key (doesn't modify anything)
   if _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback --armor --export-secret-keys "${key_id}" 3<<< "${PASSPHRASE}" > /dev/null 2>&1; then
     echo "✓ secret-keys.asc: The passphrase is correct!"
   else
     echo "✗ secret-keys.asc: The passphrase is INCORRECT!"
-    return 1
+    exit 1
   fi
 
   # Clean GPG home for second test
@@ -238,13 +243,18 @@ test() {
   _gpg_sb --batch --import <<< "$(passw cbi "${pw_store_path}/secret-subkeys.asc")"
   
   echo "Listing secret keys with their capabilities:"
-  _gpg_sb --list-secret-keys --with-colons "${key_id}" | grep -E "^(sec|ssb):" | awk -F: '{print $12 " - Key ID: " $5}'
-  
+  _gpg_sb --list-secret-keys --with-colons "${key_id}" | grep -E "^(sec|ssb):" | awk -v now="$(date +%s)" -F: '{
+    expiry_str = ($7 != "") ? strftime("%Y-%m-%d", $7) : "no expiration"
+    print $12 " - Key ID: " $5 " - Expires: " expiry_str
+    if ($7 != "" && $7 + 0 < now + 0) found_expired = 1
+  }
+  END { exit found_expired+0 }' || { echo "✗ One or more keys have EXPIRED!"; exit 1; }
+
   if echo "1234" | _gpg_sb --batch --passphrase-fd 3 --pinentry-mode=loopback -o /dev/null --local-user "${key_id}" -as - 3<<< "${PASSPHRASE}"; then
     echo "✓ secret-subkeys.asc: The passphrase is correct and keys are functional!"
   else
     echo "✗ secret-subkeys.asc: The passphrase is INCORRECT or keys cannot sign!"
-    return 1
+    exit 1
   fi
   
   echo ""

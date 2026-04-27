@@ -271,11 +271,12 @@ $(printf "${BLUE}ci-adm sonarcloud${NC}") - SonarCloud project management
 
 $(printf "${GREEN}Commands:${NC}")
   create-project <project_name>        Create SonarCloud project
-  create-token <project_name>          Create SonarCloud project token
+  create-token <project_name> <github_project>  Create SonarCloud project token for a specific or all github projects
 
 $(printf "${GREEN}Examples:${NC}")
   ci-adm sonarcloud create-project technology.cbi
   ci-adm sonarcloud create-token technology.cbi
+  ci-adm sonarcloud create-token technology.cbi eclipse-cbi jiro
 EOF
       ;;
         

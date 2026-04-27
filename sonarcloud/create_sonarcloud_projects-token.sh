@@ -27,6 +27,7 @@ fi
 
 SHORT_NAME="${PROJECT_NAME##*.}"
 SONAR_ORG="${2:-eclipse-${SHORT_NAME}}"
+GITHUB_PROJECT="${3:-}"
 
 SONAR_API_BASE_URL="https://sonarcloud.io/api"
 DRY_RUN=false
@@ -174,12 +175,16 @@ deactivate_autoscan() {
 
 process_projects() {
   local sonar_organization="$1"
+  local github_project="$2"
 
   local keys
   keys=$(get_projects "$sonar_organization" )
 
   for key in $keys; do
     project=${key##*_}
+    if [[ -n "${github_project}" && "${project}" != "${github_project}" ]]; then
+      continue
+    fi
     echo "Project: ${project}"
     if [[ "$project" =~ ^(.github|.eclipsefdn)$ ]]; then
       echo "Skipping project: ${project}"
@@ -199,4 +204,4 @@ if ! test_api_token; then
 fi
 echo "Admin API token is valid."
 
-process_projects "${SONAR_ORG}"
+process_projects "${SONAR_ORG}" "${GITHUB_PROJECT}"

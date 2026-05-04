@@ -29,6 +29,7 @@ Most scripts will not work without access to the password store or the internal 
       - [Build Tools Module](#build-tools-module)
   - [Dependencies](#dependencies)
   - [Playwright Installation](#playwright-installation)
+  - [Playwright upgrade](#playwright-upgrade)
   - [Uninstallation](#uninstallation)
   - [Contributing](#contributing)
   - [AI-Assisted Development](#ai-assisted-development)
@@ -284,6 +285,13 @@ python -m pip install playwright
 python -m pip install pyperclip
 playwright install
 ```
+
+## Playwright upgrade
+
+```shell
+python -m pip install --upgrade playwright
+python -m playwright install firefox
+``` 
 
 ## Uninstallation
 

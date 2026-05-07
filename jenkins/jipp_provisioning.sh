@@ -20,7 +20,7 @@
 #  - add pub key to genie to .ssh/authorized_keys in home dir on projects-storage
 #  - create new JIRO JIPP
 #  - ask if GitHub credentials should be set up
-#  - ask if OSSRH credentials should be set up
+#  - ask if central portal credentials should be set up
 #  - show issue template
 
 
@@ -88,9 +88,9 @@ setup_github() {
   printf "\n"
 }
 
-setup_ossrh() {
-  pushd "${CI_ADMIN_ROOT}/ossrh" > /dev/null
-  ./setup_ossrh.sh "${PROJECT_NAME}" "${DISPLAY_NAME}"
+setup_central() {
+  pushd "${CI_ADMIN_ROOT}/central_sonatype" > /dev/null
+  ./setup_central_sonatype.sh "${PROJECT_NAME}" "${DISPLAY_NAME}"
   popd > /dev/null
   printf "\n"
 }
@@ -151,10 +151,10 @@ question "setup new JIPP instance" "setup_jipp"
 # ask if GitHub bot credentials should be created
 question "setup GitHub bot credentials" "setup_github"
 
-# ask if OSSRH/gpg credentials should be created
-question "setup OSSRH credentials" "setup_ossrh"
+# ask if Central Portal credentials should be created
+question "setup Central Portal credentials" "setup_central"
 
-#TODO: only if github or ossrh setup was executed
+#TODO: only if github or central setup was executed
 # create Jenkins credentials
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials.sh" "${PROJECT_NAME}"
 "${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "auto" "${PROJECT_NAME}"

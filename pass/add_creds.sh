@@ -119,7 +119,6 @@ help() {
   printf "github\t\t\tCreate GitHub credentials (username/password).\n"
   printf "github_ssh\t\tCreate SSH credentials for GitHub (SSH keypair).\n"
   printf "matrix\t\tCreate Matrix credentials for chat.eclipse.org (username/password).\n"
-  printf "ossrh\t\t\tCreate credentials for OSSRH (username/password).\n"
   printf "projects_storage\tCreate SSH credentials for projects-storage.eclipse.org (SSH keypair).\n"
   printf "docker\t\t\tCreate credentials for docker.com (username/password).\n"
   printf "quay\t\t\tCreate credentials for quay.io (username/password).\n"

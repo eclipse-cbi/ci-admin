@@ -70,9 +70,9 @@ setup_gitlab_bot() {
   printf "\n"
 }
 
-setup_ossrh() {
-  pushd "${CI_ADMIN_ROOT}/ossrh" > /dev/null
-  ./setup_ossrh.sh "${PROJECT_NAME}" "${DISPLAY_NAME}"
+setup_central() {
+  pushd "${CI_ADMIN_ROOT}/central_sonatype" > /dev/null
+  ./setup_central_sonatype.sh "${PROJECT_NAME}" "${DISPLAY_NAME}"
   popd > /dev/null
   printf "\n"
 }
@@ -110,7 +110,7 @@ read -rp "Press enter to continue or CTRL-C to stop the script"
 _question_action "setup GitLab bot" "setup_gitlab_bot"
 
 _question_action "setup Projects storage credentials" "setup_projects_storage"
-_question_action "setup OSSRH credentials" "setup_ossrh"
+_question_action "setup Central Portal credentials" "setup_central"
 
 _question_action "setup new Grac instance" "setup_grac"
 

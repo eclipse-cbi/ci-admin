@@ -8,7 +8,7 @@
 # SPDX-License-Identifier: EPL-2.0
 #*******************************************************************************
 
-# Setup GPG signing only (not for OSSRH/Maven Central)
+# Setup GPG signing only (not for central portal/Maven Central)
 
 # Bash strict-mode
 set -o errexit

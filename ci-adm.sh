@@ -74,6 +74,7 @@ $(printf "${GREEN}Available Modules:${NC}")
   $(printf "${YELLOW}projects-storage${NC}")  Projects storage setup
   $(printf "${YELLOW}buildtools${NC}")        Build tools management
   $(printf "${YELLOW}repo${NC}")              Repository management
+  $(printf "${YELLOW}check${NC}")             Check and validate tokens
 
 $(printf "${GREEN}Examples:${NC}")
   ci-adm github setup-bot technology.cbi
@@ -159,6 +160,9 @@ $(printf "${GREEN}Build Tools Commands:${NC}")
 
 $(printf "${GREEN}Repository Commands:${NC}")
   repo size <repo> [args...]                       Show Nexus repository size report
+
+$(printf "${GREEN}Check Commands:${NC}")
+  check api-token <project_name> <service> [token_name]    Test API token from Vault
 
 EOF
 }
@@ -371,6 +375,30 @@ $(printf "${GREEN}Examples:${NC}")
   ci-adm repo size cbi-maven2-releases
   ci-adm repo size cbi-maven2-releases repo.eclipse.org
   ci-adm repo size cbi-maven2-releases myuser mypass
+EOF
+      ;;
+
+    check)
+      cat << EOF
+$(printf "${BLUE}ci-adm check${NC}") - Check and validate tokens
+
+$(printf "${GREEN}Commands:${NC}")
+  api-token <project_name> <service> [token_name]     Test API token from Vault
+
+$(printf "${GREEN}Supported Services:${NC}")
+  - github
+  - gitlab (gitlab.eclipse.org)
+  - sonarcloud
+  - pypi.org
+  - docker.com
+  - sbom.eclipse.org (dependency-track)
+  - npmjs
+  - crates.io
+
+$(printf "${GREEN}Examples:${NC}")
+  ci-adm check api-token ee4j.mojarra github
+  ci-adm check api-token technology.cbi gitlab
+  ci-adm check api-token ee4j.mojarra github custom-token
 EOF
       ;;
 
@@ -653,6 +681,20 @@ execute_command() {
           print_error "Unknown command for repo: $command"
           echo ""
           show_module_help "repo"
+          exit 1
+          ;;
+      esac
+      ;;
+
+    check)
+      case "$command" in
+        api-token)
+          exec "${SCRIPT_DIR}/check/api-token.sh" "$@"
+          ;;
+        *)
+          print_error "Unknown command for check: $command"
+          echo ""
+          show_module_help "check"
           exit 1
           ;;
       esac

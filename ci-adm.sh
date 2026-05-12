@@ -101,6 +101,7 @@ $(printf "${BLUE}ci-adm${NC}") - All Available Commands
 $(printf "${GREEN}GitHub Commands:${NC}")
   github setup-bot <project_name>          Setup GitHub bot for a project
   github setup-otterdog <project_name>     Setup OtterDog for a project
+  github setup-token <kind> <project_name> Setup GitHub token for a kind (e.g. renovate)
   github create-webhook <project_name>     Create GitHub webhook
   github deploy-key <project_name>         Setup deploy key
   github gen-credentials <project_name>    Generate GitHub credentials
@@ -179,12 +180,14 @@ $(printf "${BLUE}ci-adm github${NC}") - GitHub integration management
 $(printf "${GREEN}Commands:${NC}")
   setup-bot <project_name>         Setup GitHub bot for a project
   setup-otterdog <project_name>    Setup OtterDog for a project
+  setup-token <kind> <project_name>       Setup GitHub token for a kind (e.g. renovate)
   create-webhook <project_name>    Create GitHub webhook
   deploy-key <project_name>        Setup deploy key
   gen-credentials <project_name>   Generate GitHub credentials
 
 $(printf "${GREEN}Examples:${NC}")
   ci-adm github setup-bot technology.cbi
+  ci-adm github setup-token renovate technology.cbi
   ci-adm github create-webhook technology.cbi
   ci-adm github deploy-key technology.cbi
 EOF
@@ -434,6 +437,9 @@ execute_command() {
           ;;
         setup-otterdog)
           exec "${SCRIPT_DIR}/github/setup_otterdog.sh" "$@"
+          ;;
+        setup-token)
+          exec "${SCRIPT_DIR}/github/setup_token.sh" "$@"
           ;;
         create-webhook)
           exec "${SCRIPT_DIR}/github/create_webhook.sh" "$@"

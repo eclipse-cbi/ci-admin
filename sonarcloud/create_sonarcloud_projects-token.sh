@@ -129,6 +129,7 @@ create_token() {
       echo "Existing token is still valid. No need to generate a new one."
       if _question_true_false "revoke token and generate new one"; then
         curl_post "name=${token_name}" 'user_tokens/revoke'
+        passw cbi delete "${token_path}"
         create_token "${token_name}" "${suffix}"
       fi
       return 0

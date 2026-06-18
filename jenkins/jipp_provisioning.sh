@@ -15,7 +15,6 @@
 #    - check if download dir exists
 #    - check if genie user is part of the project LDAP/Unix group
 #  - fix LDAP on projects-storage
-#  - create Gerrit credentials and add them to pass (TODO: remove)
 #  - create projects-storage credentials and add them to pass
 #  - add pub key to genie to .ssh/authorized_keys in home dir on projects-storage
 #  - create new JIRO JIPP
@@ -125,7 +124,7 @@ The ${DISPLAY_NAME} JIPP on Jiro is available here now:
 PLEASE NOTE:
 * Publishing to download.eclipse.org requires access via SCP. We've added the credentials to the JIPP. Please see https://github.com/eclipse-cbi/jiro/wiki/FAQ#how-do-i-deploy-artifacts-to-downloadeclipseorg for more info.
 
-* To simplify setting up jobs on our cluster-based infra, we provide a pod template that can also be used with freestyle jobs. The pod template has the label "centos-7" which can be specified in the job configuration under "Restrict where this project can be run". The image contains more commonly used dependencies than the default “basic” pod template.
+* To simplify setting up jobs on our cluster-based infra, we provide a pod template that can also be used with freestyle jobs. The pod template has the label "ubuntu-latest" which can be specified in the job configuration under "Restrict where this project can be run". The image contains more commonly used dependencies than the default “basic” pod template.
 
 * You can find more info about Jenkins here: https://github.com/eclipse-cbi/jiro/wiki
 
@@ -146,7 +145,7 @@ read -rp "Press enter to continue or CTRL-C to stop the script"
 question "setup Projects storage credentials" "setup_projects_storage"
 
 # ask if the jipp should be created
-question "setup new JIPP instance" "setup_jipp"
+question "setup a new JIPP instance" "setup_jipp"
 
 # ask if GitHub bot credentials should be created
 question "setup GitHub bot credentials" "setup_github"

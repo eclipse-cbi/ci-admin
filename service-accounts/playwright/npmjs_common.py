@@ -78,6 +78,10 @@ def login(page, project_name, username, password):
 
     #2FA
     if (page.get_by_role("heading", name="Enter One-time Password").is_visible()):
+      if (page.locator("#login").filter(has_text="sent a one-time password to your email address")):
+        print("First time setup. Please manually enter password that was sent via email.")
+        input('Press any key to continue\n')
+      else: 
         twofa_token_pass = get_pass_2fa_otp(project_name)
         page.get_by_label("One-Time Password").click()
         page.get_by_label("One-Time Password").fill(twofa_token_pass)

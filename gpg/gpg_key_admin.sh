@@ -108,6 +108,7 @@ _upload_question() {
 help() {
   printf "Available commands:\n"
   printf "Command\t\tDescription\n\n"
+  printf "decrypt\t\tDecrypt a file.\n"
   printf "renew\t\tRenew expiration and send key to key server.\n"
   printf "revoke\t\tRevoke public key on key server.\n"
   printf "sign\t\tSign key with webmaster key.\n"
@@ -254,6 +255,19 @@ test() {
   
   echo ""
   echo "✓ All tests passed! Both keys work correctly with the stored passphrase."
+}
+
+decrypt() {
+  local project_name="${1:-}"
+  local encrypted_file="${2:-}"
+  _check_parameter "encrypte file" "encrypted_file"
+  _preface "${project_name}"
+
+  local key_id
+  key_id="$(_get_key_id "${project_name}")"
+
+  # test passphrase from pass
+  _gpg_sb --passphrase-fd 3 --pinentry-mode=loopback -o /dev/null --local-user "${key_id}" 3<<< "${PASSPHRASE}" -o decrypted_file --decrypt ${encrypted_file}
 }
 
 upload() {

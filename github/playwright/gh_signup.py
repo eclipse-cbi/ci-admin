@@ -7,6 +7,7 @@ import pyperclip
 import sshpubkeys
 
 from playwright.sync_api import sync_playwright, Error, expect
+from ansible.module_utils.facts.system import ssh_pub_keys
 
 
 def signup(page, username, password, email):
@@ -148,6 +149,8 @@ def setup_ssh(page, project_name, ssh_pub_key, email):
     common.open_settings(page)
     page.get_by_role("link", name="SSH and GPG keys").click()
 
+    print("ssh_pub_key: " + ssh_pub_key)
+
     key_hash = sshpubkeys.SSHKey(ssh_pub_key).hash_sha256()
     print("SHA256: " + key_hash)
 
@@ -236,7 +239,7 @@ def main():
         username = common.get_pass_creds(project_name, "username")
         password = common.get_pass_creds(project_name, "password")
         email = common.get_pass_creds(project_name, "email")
-        ssh_pubkey = common.get_pass_creds(project_name, "id_rsa.pub")
+        ssh_pubkey = common.get_pass_creds(project_name, "id_ed25519.pub")
 
         # check if GH account has been set up or not
         url = "https://github.com/" + username.strip()

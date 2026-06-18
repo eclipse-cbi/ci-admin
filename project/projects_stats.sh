@@ -46,47 +46,50 @@ no_of_gerrit_gitlab_projects="$(jq 'select(.gerrit_repos!=[] and .gitlab_repos!=
 echo "Number of projects: ${no_of_projects}"
 echo "Number of active projects: ${no_of_active_projects}"
 echo
-echo "Number of projects that use GitHub: ${no_of_github_projects}"
-echo "  Number of projects that use the GitHub org field: ${no_of_github_org_projects}"
-echo "  Number of projects that use the GitHub org AND github_repos fields: ${no_of_github_org1_projects}"
-echo "Number of projects that use GitLab: ${no_of_gitlab_projects}"
-echo "  Number of projects that use the GitLab project group field: ${no_of_gitlab_pg_projects}"
-echo "  Number of projects that use the GitLab project group AND gitlab_repos fields: ${no_of_gitlab_pg1_projects}"
-echo "  Number of projects that use ONLY the gitlab_repos fields: ${no_of_gitlab_pg2_projects}"
-echo "Number of projects that use Gerrit: ${no_of_gerrit_projects}"
-echo "  Number of projects that use Gerrit and GitHub: ${no_of_gerrit_github_projects}"
-echo "  Number of projects that use Gerrit and GitLab: ${no_of_gerrit_gitlab_projects}"
+
+if [[ "${no_of_github_projects}"  -gt 0 ]]; then
+  echo "Number of projects that use GitHub: ${no_of_github_projects}"
+  echo "  Number of projects that use the GitHub org field: ${no_of_github_org_projects}"
+  echo "  Number of projects that use the GitHub org AND github_repos fields: ${no_of_github_org1_projects}"
+fi
+echo
+if [[ "${no_of_gitlab_projects}"  -gt 0 ]]; then
+  echo "Number of projects that use GitLab: ${no_of_gitlab_projects}"
+  echo "  Number of projects that use the GitLab project group field: ${no_of_gitlab_pg_projects}"
+  echo "  Number of projects that use the GitLab project group AND gitlab_repos fields: ${no_of_gitlab_pg1_projects}"
+  echo "  Number of projects that use ONLY the gitlab_repos fields: ${no_of_gitlab_pg2_projects}"
+  if [[ "${no_of_gitlab_pg2_projects}" -gt 0 ]]; then
+    for p in $(jq -r 'select(.gitlab.project_group=="" and .gitlab_repos!=[]) | .project_id' <<< "${active_projects}"); do
+      echo "    - https://projects.eclipse.org/projects/${p}/edit"
+    done
+  fi
+fi
+echo
+if [[ "${no_of_gerrit_projects}"  -gt 0 ]]; then
+  echo "Number of projects that use Gerrit: ${no_of_gerrit_projects}"
+  for gp in $(jq -r 'select(.gerrit_repos!=[]) | .project_id' <<< "${active_projects}"); do
+    printf -- "  - https://projects.eclipse.org/projects/%s/edit" "${gp}"
+    if [[ -d "$HOME/git/jiro/instances/${gp}" ]]; then
+      echo "   (has Jenkins instance)"
+    else
+      echo
+    fi
+  done
+  echo "  Number of projects that use Gerrit and GitHub: ${no_of_gerrit_github_projects}"
+  if [[ "${no_of_gerrit_github_projects}" -gt 0 ]]; then
+    #for p in $(jq -r 'select(.gerrit_repos!=[] and .github.org!="") | .project_id' <<< "${active_projects}"); do
+    for p in $(jq -r 'select(.gerrit_repos!=[] and .github_repos!=[]) | .project_id' <<< "${active_projects}"); do
+      echo "    - https://projects.eclipse.org/projects/${p}/edit"
+    done
+  fi
+  echo "  Number of projects that use Gerrit and GitLab: ${no_of_gerrit_gitlab_projects}"
+  if [[ "${no_of_gerrit_gitlab_projects}" -gt 0 ]]; then
+    for p in $(jq -r 'select(.gerrit_repos!=[] and .gitlab_repos!=[]) | .project_id' <<< "${active_projects}"); do
+      echo "    - https://projects.eclipse.org/projects/${p}/edit"
+    done
+  fi
+fi
 
 #echo "${response}" | jq -r '. | select(.github_org!="") | .project_id'
 echo
 echo
-
-counter=0
-echo "Projects that use Gerrit and have a Jenkins instance:"
-for gp in $(jq -r 'select(.gerrit_repos!=[]) | .project_id' <<< "${active_projects}"); do
-  if [[ -d "$HOME/git/jiro/instances/${gp}" ]]; then
-    echo "- ${gp}"
-    counter=$((counter +1))
-  fi
-done
-echo "Found ${counter} projects."
-
-echo
-echo "Projects that use Gerrit and GitHub:"
-for p in $(jq -r 'select(.gerrit_repos!=[] and .github.org!="") | .project_id' <<< "${active_projects}"); do
-#for p in $(jq -r 'select(.gerrit_repos!=[] and .github_repos!=[]) | .project_id' <<< "${active_projects}"); do
-  echo "- https://projects.eclipse.org/projects/${p}/edit"
-done
-
-echo
-echo "Projects that use Gerrit and GitLab:"
-for p in $(jq -r 'select(.gerrit_repos!=[] and .gitlab_repos!=[]) | .project_id' <<< "${active_projects}"); do
-  echo "- https://projects.eclipse.org/projects/${p}/edit"
-done
-
-echo
-echo "Projects that only use GitLab repo fields:"
-for p in $(jq -r 'select(.gitlab.project_group=="" and .gitlab_repos!=[]) | .project_id' <<< "${active_projects}"); do
-  echo "- https://projects.eclipse.org/projects/${p}/edit"
-done
-

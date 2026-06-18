@@ -38,7 +38,7 @@ create_pass_credentials() {
 }
 
 sign_up() {
-  printf "\n\n# Sign up at pypi.org...\n"
+  printf "\n\n# Signing up at pypi.org...\n"
   #TODO: use playwright
   _open_url "https://pypi.org/account/register"
   printf "\n# TODO: Create pypi.org bot account (semi manually)...\n"
@@ -68,6 +68,45 @@ Post the following on the corresponding HelpDesk issue:
 -------------------------------------------------------
 A bot user on pypi.org has been created (ID: 'eclipse-${SHORT_NAME}-bot'). The access token for it has been added to the project's Jenkins instance.
 The ID is:
+EOF
+  read -rsp $'Once you are done, press any key to continue...\n' -n1
+}
+
+otterdog_org_secrets() {
+  cat <<EOF
+  
+  Add the following organization secrets at org level to the otterdog configuraton:
+  ---------------------------------------------------------------------------------
+  1. Checkout the otterdog config repo:
+  - git clone git@github.com:EclipseFdn/otterdog-configs.git
+  2. Fetch the config:
+  - otterdog fetch-config eclipse-${SHORT_NAME}
+  3. Add secrets:
+  secrets+: [
+    orgs.newOrgSecret('PYPI_TOKEN') {
+      value: "pass:bots/${PROJECT_NAME}/pypi.org/api-token",
+    },
+  ],
+  4. Update secrets with the following commands:
+  - otterdog apply eclipse-${SHORT_NAME} --update-secrets --update-filter 'PYPI_TOKEN' -n
+  - otterdog push-config eclipse-${SHORT_NAME} --update
+
+EOF
+  read -rsp $'Once you are done, press any key to continue...\n' -n1
+}
+
+issue_comment_gitlab() {
+  cat <<EOF
+
+Post the following on the corresponding HelpDesk issue:
+-------------------------------------------------------
+A bot user at pypi.org has been created (ID: 'eclipse-${SHORT_NAME}-bot'). The access token for it has been added to the 'eclipse-${SHORT_NAME}' GitLab org as secrets:
+* 'PYPI_TOKEN'
+
+From the pypi.org docs:
+>    Set your username to '__token__' \
+>    Set your password to the token value, including the 'pypi-' prefix
+
 EOF
   read -rsp $'Once you are done, press any key to continue...\n' -n1
 }
@@ -104,9 +143,13 @@ if [[ -d "${JIRO_ROOT_FOLDER}/instances/${PROJECT_NAME}" ]]; then
   echo "Found Jenkins instance for ${PROJECT_NAME}..."
   _question_action "add Jenkins credentials" add_jenkins_credentials
   issue_comment_jenkins
-  #TODO: handle GitLab
+#elif #TODO
+  #TODO: how to set up credentials for GitLab
+  # GitLab
+ # issue_comment_gitlab
 else
-  #TODO: set up GitHub credentials (PYPI_TOKEN as org secret)
+  # GitHub
+  otterdog_org_secrets
   issue_comment_github
 fi
 

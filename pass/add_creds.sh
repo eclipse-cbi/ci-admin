@@ -82,20 +82,21 @@ _generate_ssh_keys() {
   local site="${2:-}"
   local email="${3:-}"
   local user="${4:-}"
+  local key_type="${5:-ed25519}"
   local short_name="${project_name##*.}"
-  local temp_path="/tmp/${short_name}_id_rsa"
+  local temp_path="/tmp/${short_name}_id_${key_type}"
 
   local pw_store_path="bots/${project_name}/${site}"
   #debug
   #echo "pw_store_path: ${pw_store_path}";
 
   # shellcheck disable=SC1003
-  _generate_shell_safe_password 64 | passw cbi insert -m "${pw_store_path}/id_rsa.passphrase"
-  passw cbi "${pw_store_path}/id_rsa.passphrase" | "${SCRIPT_FOLDER}"/../ssh-keygen-ni.sh -C "${email}" -f "${temp_path}"
+  _generate_shell_safe_password 64 | passw cbi insert -m "${pw_store_path}/id_${key_type}.passphrase"
+  passw cbi "${pw_store_path}/id_${key_type}.passphrase" | "${SCRIPT_FOLDER}"/../ssh-keygen-ni.sh -C "${email}" -f "${temp_path}" -t "${key_type}"
 
   # Insert private and public key into pw store
-  cat "${temp_path}" | passw cbi insert -m "${pw_store_path}/id_rsa"
-  cat "${temp_path}.pub" | passw cbi insert -m "${pw_store_path}/id_rsa.pub"
+  cat "${temp_path}" | passw cbi insert -m "${pw_store_path}/id_${key_type}"
+  cat "${temp_path}.pub" | passw cbi insert -m "${pw_store_path}/id_${key_type}.pub"
   rm "${temp_path}"*
   # Add user/email (if it does not exist yet)
   if _check_pw_does_not_exist "${project_name}" "${site}/username"; then
@@ -118,7 +119,7 @@ help() {
   printf "gerrit\t\t\tCreate Gerrit credentials (SSH keypair).\n"
   printf "github\t\t\tCreate GitHub credentials (username/password).\n"
   printf "github_ssh\t\tCreate SSH credentials for GitHub (SSH keypair).\n"
-  printf "matrix\t\tCreate Matrix credentials for chat.eclipse.org (username/password).\n"
+  printf "matrix\t\t\tCreate Matrix credentials for chat.eclipse.org (username/password).\n"
   printf "projects_storage\tCreate SSH credentials for projects-storage.eclipse.org (SSH keypair).\n"
   printf "docker\t\t\tCreate credentials for docker.com (username/password).\n"
   printf "quay\t\t\tCreate credentials for quay.io (username/password).\n"
@@ -207,7 +208,8 @@ docker() {
   local site="docker.com"
   local short_name="${project_name##*.}"
   local email="${short_name}-bot@eclipse.org"
-  local user="eclipse${short_name}" # dockerhub does not allow hyphenated usernames!
+  short_name="$(tr -d '-' <<< "${short_name}")"  # dockerhub does not allow hyphenated usernames!
+  local user="eclipse${short_name}bot"
 
   user_pw "${project_name}" "${site}" "${email}" "${user}"
 }
@@ -257,7 +259,7 @@ ssh_keys() {
   fi
 
   # check that the entries do not exist yet
-  if ! _check_pw_does_not_exist "${project_name}" "${site}/id_rsa"; then
+  if ! _check_pw_does_not_exist "${project_name}" "${site}/id_ed25519"; then
     exit 1
   fi
 

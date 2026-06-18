@@ -81,6 +81,6 @@ _generate_shell_safe_password() {
   # exclude the following special chars:
   # ', ", !, `, ~, \ are filtered out as they are treated specially by shells
   # '<', '>' and '&' need to be filtered out, since jenkins credentials have issues with those characters
-  local pwgen_special="'"'"&!$`~\<>'
+  local pwgen_special="'"'"&!$`~\<>{}[]%;'
   pwgen -1 -s -r $pwgen_special -y $length
 }

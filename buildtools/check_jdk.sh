@@ -163,7 +163,7 @@ EOE
       api_url="${API_URL//<version>/${version}}"
       local json
       json="$(curl -sSL -H "Accept: application/json" "${api_url}")"
-      message="$(echo "${json}" | jq .message)" || true
+      message="$(echo "${json}" | jq .message 2>/dev/null)" || true
       if [[ "${message}" != "null" ]] && [[ "${message}" != "" ]]; then
         echo "  curl error: ${message}"
         break
@@ -205,16 +205,16 @@ EOE
         #shellcheck disable=SC2046
         readarray -t array <<< $(create_openjdk_array "${version}")
         if [[ ${#array[@]} != 2 ]] || [[ -z "${array[0]}" ]] || [[ -z "${array[1]}" ]]; then
-          echo "Openjdk version ${version} not found on release page, trying archive page..."
+          echo "  Openjdk version ${version} not found on release page, trying archive page..."
           #shellcheck disable=SC2046
           readarray -t array <<< $(create_openjdk_archive_array "${version}")
           if [[ ${#array[@]} != 2 ]] ||  [[ -z "${array[0]}" ]] || [[ -z "${array[1]}" ]]; then
-            echo "Openjdk version ${version} not found on archive page"
+            echo "  Openjdk version ${version} not found on archive page"
           else
-            echo "Openjdk Version ${version} found on archive page"
+            echo "  Openjdk Version ${version} found on archive page"
           fi
         else
-          echo "Openjdk Version ${version} found on release page"
+          echo "  Openjdk Version ${version} found on release page"
         fi
       fi
       if [[ ${#array[@]} == 2 ]] && [[ -n "${array[0]}" ]] && [[ -n "${array[1]}" ]]; then
@@ -448,6 +448,8 @@ create_new() {
   jdk_config_version_list=("$(jq -r ".${JDK_NAME}[].versions[]" "${JDK_CONFIG}")")
   for config_version in ${jdk_config_version_list[@]}; do
     if echo "${server_side_list}" | grep -v "${config_version}" > /dev/null; then
+      printf "\n%s %s:\n" "${JDK_DISPLAY_NAME}" "${config_version}"
+      echo "  JDK is not installed yet."
       question_update "${config_version}"
     fi
   done

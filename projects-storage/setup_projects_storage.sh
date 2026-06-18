@@ -24,6 +24,7 @@ source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 source "${SCRIPT_FOLDER}/../utils/common.sh"
 
 PROJECT_NAME="${1:-}"
+SSH_KEY_TYPE="${2:-ed25519}"
 
 # check that project name is not empty
 if [[ -z "${PROJECT_NAME}" ]]; then
@@ -156,9 +157,9 @@ add_pub_key() {
   local serverRootPrompt="$server:~ # *"
   local geniePrompt="${genieUser}@${server}:~*"
 
-  # local id_rsa_pub="cbi-pass/bots/${project_name}/projects-storage.eclipse.org/id_rsa.pub"
+  # local id_pub="cbi-pass/bots/${project_name}/projects-storage.eclipse.org/id_${SSH_KEY_TYPE}.pub"
 
-  id_rsa_pub="$(passw cbi "bots/${project_name}/projects-storage.eclipse.org/id_rsa.pub")"
+  id_pub="$(passw cbi "bots/${project_name}/projects-storage.eclipse.org/id_${SSH_KEY_TYPE}.pub")"
 
   expect -c "
   #5 seconds timeout
@@ -190,7 +191,7 @@ add_pub_key() {
   expect -re \"$geniePrompt\"
 
   # add SSH pub key to .ssh/authorized_keys
-  send \"grep -qF '$id_rsa_pub' ~/.ssh/authorized_keys && echo 'authorized_keys is already configured' || echo [exec echo $id_rsa_pub] >> .ssh/authorized_keys\r\"
+  send \"grep -qF '$id_pub' ~/.ssh/authorized_keys && echo 'authorized_keys is already configured' || echo [exec echo $id_pub] >> .ssh/authorized_keys\r\"
   send \"cat .ssh/authorized_keys\r\"
 
   # exit su, exit su and exit ssh

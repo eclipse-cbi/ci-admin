@@ -15,9 +15,12 @@ def signup(page, username, password, email):
 
     assert response is not None
     if not response.ok:
-        raise RuntimeError(f"unable to load signup page: {response.status}")
+        print(f"Warning: signup page returned status {response.status}, trying to continue...")
 
-    expect(page.locator('#email')).to_be_visible(timeout=10000)
+    try:
+        expect(page.locator('#email')).to_be_visible(timeout=10000)
+    except Exception:
+        raise RuntimeError(f"unable to load signup page: status={response.status}, url={page.url}")
     page.get_by_role("textbox", name="Email").click()
     page.get_by_role("textbox", name="Email").fill(email)
     page.get_by_role("textbox", name="Password").click()
@@ -228,6 +231,8 @@ def main():
         project_name = sys.argv[1]
         print("Project name: " + project_name)
 
+    bot_username = sys.argv[2] if len(sys.argv) >= 3 else None
+
     print("opening browser window")
     with sync_playwright() as playwright:
         browser = playwright.firefox.launch(headless=False)
@@ -236,7 +241,7 @@ def main():
         page = context.new_page()
         page.set_default_timeout(_DEFAULT_TIMEOUT)
 
-        username = common.get_pass_creds(project_name, "username")
+        username = bot_username if bot_username else common.get_pass_creds(project_name, "username")
         password = common.get_pass_creds(project_name, "password")
         email = common.get_pass_creds(project_name, "email")
         ssh_pubkey = common.get_pass_creds(project_name, "id_ed25519.pub")

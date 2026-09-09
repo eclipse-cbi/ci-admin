@@ -60,6 +60,8 @@ def main():
         project_name = sys.argv[1]
         print("Project name: " + project_name)
 
+    bot_username = sys.argv[2] if len(sys.argv) >= 3 else None
+
     print("opening browser window")
     with sync_playwright() as playwright:
         browser = playwright.firefox.launch(headless=False)
@@ -68,7 +70,7 @@ def main():
         page = context.new_page()
         page.set_default_timeout(_DEFAULT_TIMEOUT)
 
-        username = common.get_pass_creds(project_name, "username")
+        username = bot_username if bot_username else common.get_pass_creds(project_name, "username")
         password = common.get_pass_creds(project_name, "password")
 
         common.login(page, project_name, username, password)

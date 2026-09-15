@@ -74,6 +74,8 @@ def login(page, project_name, username, password):
     page.get_by_role("textbox", name="Username or email address").click()
     page.get_by_role("textbox", name="Username or email address").fill(username)
 
+    page.get_by_role("button", name="Continue", exact=True).click()
+
     page.get_by_role("textbox", name="Password").click()
     page.get_by_role("textbox", name="Password").fill(password)
 

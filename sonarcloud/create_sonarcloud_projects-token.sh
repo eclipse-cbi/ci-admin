@@ -102,13 +102,13 @@ get_projects() {
   local sonar_organization="$1"
   local response
   response=$(curl_get "projects/search" "organization=${sonar_organization}&ps=500")
-  
+
   if echo "${response}" | jq -e 'has("errors")' > /dev/null ; then
     error_msg=$(echo "${response}" | jq -r '.errors[].msg')
     echo "ERROR: ${error_msg}" >&2
     return 1
   fi
-  
+
   echo "${response}" | jq -r '.components[].key'
 }
 
@@ -116,13 +116,13 @@ create_token() {
   local token_name="Analyze \"${1:-}\""
   local suffix="${2:-}"
   local token_path="bots/${PROJECT_NAME}/sonarcloud.io/token${suffix}"
-  
+
   # Check if token already exists in secrets manager
   echo "Checking if token already exists in secrets manager..."
   if passw cbi show "${token_path}" > /dev/null 2>&1; then
     echo "Token found in secrets manager at ${token_path}"
     existing_token=$(passw cbi show "${token_path}")
-    
+
     # Test if the existing token is still valid
     echo "Testing existing token validity..."
     if test_api_token "${existing_token}"; then
@@ -139,7 +139,7 @@ create_token() {
   else
     echo "No existing token found. Generating a new token..."
   fi
-  
+
   # Generate new token
   echo "Creating SonarCloud token:"
   reply="$(curl_post "name=${token_name}" 'user_tokens/generate')"
@@ -180,6 +180,8 @@ process_projects() {
 
   local keys
   keys=$(get_projects "$sonar_organization" )
+
+  echo "Processing projects.."
 
   for key in $keys; do
     project=${key##*_}

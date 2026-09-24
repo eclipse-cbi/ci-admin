@@ -143,28 +143,37 @@ def setup_2fa(page, project_name):
     print("=> 2FA setup complete.\n")
 
 
-def setup_ssh(page, project_name, ssh_pub_key, email):
+def setup_ssh(page, project_name, email):
     # navigate to SSH settings
     print("Checking/adding SSH key...")
     common.open_settings(page)
     page.get_by_role("link", name="SSH and GPG keys").click()
 
-    print("ssh_pub_key: " + ssh_pub_key)
+    ssh_pubkey = common.get_pass_creds(project_name, "id_ed25519.pub")
+    # fallback
+    if not ssh_pubkey:
+      print("Checking for RSA SSH pub key...")
+      ssh_pubkey = common.get_pass_creds(project_name, "id_rsa.pub")
+    if ssh_pubkey:
+      print("Found ssh_pubkey: " + ssh_pubkey)
 
-    key_hash = sshpubkeys.SSHKey(ssh_pub_key).hash_sha256()
-    print("SHA256: " + key_hash)
+      key_hash = sshpubkeys.SSHKey(ssh_pubkey).hash_sha256()
+      print("SHA256: " + key_hash)
 
-    # Check if SSH public key has already been added
-    page.get_by_role("heading", name="SSH keys").click() # This click is required, otherwise the next elements are not found!?
-    if page.get_by_role("heading", name="Authentication keys").is_visible():
-        if page.get_by_text(key_hash).is_visible():
-            # Take screenshot
-            page.screenshot(path="ssh_key_already_exists.png")
-            print("=> SSH key has already been added. See screenshot.\n")
-            return
+      # Check if SSH public key has already been added
+      page.get_by_role("heading", name="SSH keys").click() # This click is required, otherwise the next elements are not found!?
+      if page.get_by_role("heading", name="Authentication keys").is_visible():
+          if page.get_by_text(key_hash).is_visible():
+              # Take screenshot
+              page.screenshot(path="ssh_key_already_exists.png")
+              print("=> SSH key has already been added. See screenshot.\n")
+              return
+    else:
+      print("No SSH pub key found in pass. Creating new one...")
+      input('Press any key to continue\n')
 
     page.get_by_role("link", name="New SSH key").click()
-    page.get_by_placeholder("Begins with 'ssh-rsa', 'ecdsa-sha2-nistp256', 'ecdsa-sha2-nistp384', 'ecdsa-sha2-nistp521', 'ssh-ed25519', 'sk-ecdsa-sha2-nistp256@openssh.com', or 'sk-ssh-ed25519@openssh.com'").fill(ssh_pub_key)
+    page.get_by_placeholder("Begins with 'ssh-rsa', 'ecdsa-sha2-nistp256', 'ecdsa-sha2-nistp384', 'ecdsa-sha2-nistp521', 'ssh-ed25519', 'sk-ecdsa-sha2-nistp256@openssh.com', or 'sk-ssh-ed25519@openssh.com'").fill(ssh_pubkey)
     page.get_by_role("button", name="Add SSH key").click()
     print("=> SSH key has been added.\n")
 
@@ -239,7 +248,6 @@ def main():
         username = common.get_pass_creds(project_name, "username")
         password = common.get_pass_creds(project_name, "password")
         email = common.get_pass_creds(project_name, "email")
-        ssh_pubkey = common.get_pass_creds(project_name, "id_ed25519.pub")
 
         # check if GH account has been set up or not
         url = "https://github.com/" + username.strip()
@@ -254,7 +262,7 @@ def main():
 
         expect(page.get_by_role("heading", name="Home", exact=True)).to_be_visible(timeout=30000)
 
-        setup_ssh(page, project_name, ssh_pubkey, email)
+        setup_ssh(page, project_name, email)
         setup_token(page, project_name)
         setup_2fa(page, project_name)
 

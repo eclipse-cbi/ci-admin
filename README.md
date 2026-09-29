@@ -116,6 +116,9 @@ ci-adm <module> <command> [arguments...]
 # Setup GitHub bot for a project
 ci-adm github setup-bot technology.cbi
 
+# Setup GitHub bot with a custom bot username (default: eclipse-cbi-bot)
+ci-adm github setup-bot technology.cbi eclipse-cbi2-bot
+
 # Create GitHub webhook
 ci-adm github create-webhook technology.cbi
 

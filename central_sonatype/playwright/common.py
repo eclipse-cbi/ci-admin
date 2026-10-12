@@ -64,7 +64,7 @@ def login(page, project_name, username, password):
     if not response.ok:
         raise RuntimeError(f"unable to load " + SITE + " login page: {response.status}")
 
-    print("Login page loaded.")
+    #print("Login page loaded.")
     print("Username: " + username)
 
     if username is None or password is None or username == "" or password == "":

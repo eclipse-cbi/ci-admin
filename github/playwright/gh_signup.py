@@ -200,6 +200,8 @@ def setup_token(page, project_name):
             page.get_by_role("button", name="Copy token").click()
         else:
             print("")
+            # Go back to settings page
+            page.get_by_role("link", name="Settings", exact=True).click()
             return
     else:
         print("=> Creating new Jenkins token...")
@@ -225,6 +227,8 @@ def setup_token(page, project_name):
     # add token to pass
     common.add_to_pass(project_name, api_token, "api-token")
     print("   Jenkins token has been created and added to pass.\n")
+    # Go back to settings page
+    page.get_by_role("link", name="Settings", exact=True).click()
 
 
 def main():
@@ -260,7 +264,7 @@ def main():
             print("User account does not exist, signing up.")
             signup(page, username, password, email)
 
-        expect(page.get_by_role("heading", name="Home", exact=True)).to_be_visible(timeout=30000)
+        expect(page.get_by_role("link", name="Home", exact=True)).to_be_visible(timeout=30000)
 
         setup_ssh(page, project_name, email)
         setup_token(page, project_name)

@@ -55,7 +55,7 @@ def open_nav_menu(page):
 def open_settings(page):
     # FIXME this is not perfect since it seems to be true even on the Settings/Developer Settings page
     # if not page.get_by_role("link", name="Settings", exact=True).is_visible():
-    if not page.get_by_text("Your personal account").is_visible():
+    if not page.get_by_test_id("top-nav-center").get_by_role("link", name="Settings", exact=True).is_visible():
         open_nav_menu(page)
         page.get_by_label("Settings", exact=True).click()
 
@@ -109,7 +109,7 @@ def login(page, project_name, username, password):
         page.get_by_placeholder("XXXXXX").fill(twofa_token_pass)
     else:
         print("Device verification page not found or skipped.")
-    
+
     # deal with confirm account settings page
     if (page.get_by_text("Confirm your account recovery settings").is_visible()):
         print("Found account confirmation page.")

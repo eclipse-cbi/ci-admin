@@ -27,7 +27,7 @@ def main():
 
         common.login(page, project_name, username, password)
 
-        expect(page.get_by_role("heading", name="Home", exact=True)).to_be_visible(timeout=30000)
+        expect(page.get_by_role("link", name="Home", exact=True)).to_be_visible(timeout=30000)
 
         input('Press any key to continue\n')
         common.signout(page)

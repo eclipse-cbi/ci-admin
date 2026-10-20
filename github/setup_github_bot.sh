@@ -24,6 +24,7 @@ JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-roo
 PROJECTS_BOTS_API_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "projects-bots-api-root-dir")"
 
 PROJECT_NAME="${1:-}"
+BOT_USERNAME="${2:-}"
 
 # check that project name is not empty
 if [[ -z "${PROJECT_NAME}" ]]; then
@@ -32,6 +33,7 @@ if [[ -z "${PROJECT_NAME}" ]]; then
 fi
 
 SHORT_NAME="${PROJECT_NAME##*.}"
+BOT_USERNAME="${BOT_USERNAME:-eclipse-${SHORT_NAME}-bot}"
 
 # TODO:
 # * deal with multiple executions due to errors
@@ -41,13 +43,13 @@ SHORT_NAME="${PROJECT_NAME##*.}"
 
 create_github_credentials() {
   echo "# Creating GitHub bot user credentials..."
-  "${CI_ADMIN_ROOT}/pass/add_creds.sh" "github" "${PROJECT_NAME}" || true
-  "${CI_ADMIN_ROOT}/pass/add_creds.sh" "github_ssh" "${PROJECT_NAME}" || true
+  "${CI_ADMIN_ROOT}/pass/add_creds.sh" "github" "${PROJECT_NAME}" "${BOT_USERNAME}" || true
+  "${CI_ADMIN_ROOT}/pass/add_creds.sh" "github_ssh" "${PROJECT_NAME}" "${BOT_USERNAME}" || true
 }
 
 set_up_github_account() {
   echo "# Setting up GitHub bot account..."
-  python "${SCRIPT_FOLDER}/playwright/gh_signup.py" "${PROJECT_NAME}"
+  python "${SCRIPT_FOLDER}/playwright/gh_signup.py" "${PROJECT_NAME}" "${BOT_USERNAME}"
 }
 
 add_jenkins_credentials() {
@@ -77,7 +79,7 @@ instructions_template() {
 
 Post the following on the corresponding HelpDesk issue:
 -------------------------------------------------------
-A GitHub bot (ID: eclipse-${SHORT_NAME}-bot) has been created. Credentials have been added to the ${SHORT_NAME} JIPP.
+A GitHub bot (ID: ${BOT_USERNAME}) has been created. Credentials have been added to the ${SHORT_NAME} JIPP.
 
 The recommended way to set up a job that builds pull requests is to use a Multibranch Pipeline job (a Jenkinsfile in your repo is required):
 1. New item > Multibranch Pipeline

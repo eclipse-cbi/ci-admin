@@ -84,30 +84,38 @@ create_central_credentials() {
 
 EOF
 
-  _open_url "https://central.sonatype.com/api/auth/login"  
+  _open_url "https://central.sonatype.com/api/auth/login"
   read -rsp $'\nOnce you are done, Press any key to continue...\n' -n1
-  
+
   cat <<EOF
 
   # Request namespace to sonatype support via email
 
   * Create an email to central-support@sonatype.com
-  
+
   * Subject: Namespace creation for ${DISPLAY_NAME} Project
 
-  * Body: 
+  * Body:
+    Hi,
+
     Please create a new namespace at central.sonatype.org for the ${DISPLAY_NAME} project.
     Group ID: org.eclipse.${SHORT_NAME}
     Project URL: https://projects.eclipse.org/projects/${PROJECT_NAME}
     Usernames: ${central_username} (registered at central.sonatype.com)
     SCM URL: https://github.com/eclipse-${SHORT_NAME}
 
+    Please add the group ID to the 'Eclipse' organization.
+
+    Regards,
+
+    <name>
+
   Issue comment template for HelpDesk issue after the sonatype support has been reached:
   ----------------------------------------------------------------------------------------------------------
 
-  The process for allowing deployments to central sonatype has been started. We are currently waiting sonatype support to be done.
+  The process for allowing deployments to Maven Central has been started. We are currently waiting for Sonatype support to be done.
 EOF
-  
+
   read -rsp $'\nOnce you are done, Press any key to continue...\n' -n1
 
 }
@@ -188,7 +196,7 @@ EOF
   cat << EOF
 
   # Reply to ticket:
-  
+
   The following credentials have been added to the ${DISPLAY_NAME} CI instance:
     * Central Sonatype
     * GPG
@@ -242,7 +250,7 @@ central_comment_template() {
   https://maven.apache.org/plugins/maven-gpg-plugin/usage.html#Configure_passphrase_in_settings.xml). It's recommended to use the maven-gpg-plugin.
 
 
-  Issue comment for project that does not use jenkins: 
+  Issue comment for project that does not use Jenkins:
   ----------------------------------------------------
 
   The following organization secrets have been added:

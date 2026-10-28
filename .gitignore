@@ -6,3 +6,4 @@
 .vscode
 projects.eclipse.org-api-cache.json
 .cache
+/.pydevproject

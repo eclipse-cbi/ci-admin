@@ -1,4 +1,4 @@
-#! /usr/bin/env bash
+#!/usr/bin/env bash
 #*******************************************************************************
 # Copyright (c) 2018 Eclipse Foundation and others.
 # This program and the accompanying materials are made available

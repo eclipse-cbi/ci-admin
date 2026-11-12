@@ -23,7 +23,7 @@ source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 #shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../utils/common.sh"
 
-JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
+JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "jiro-root-dir")"
 
 PROJECT_NAME="${1:-}"
 DISPLAY_NAME="${2:-}"

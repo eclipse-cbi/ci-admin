@@ -18,7 +18,7 @@ SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
 if [[ -z "${OTTERDOG_CONFIG_ROOT}" ]]; then
-  OTTERDOG_CONFIG_ROOT="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "otterdog-configs-root-dir")"
+  OTTERDOG_CONFIG_ROOT="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "otterdog-configs-root-dir")"
 fi
 
 echo "OTTERDOG_CONFIG_ROOT: ${OTTERDOG_CONFIG_ROOT}"
@@ -69,7 +69,7 @@ prepare_otterdog() {
   printf "\n# Prepare Otterdog...\n"
   pushd "${OTTERDOG_CONFIG_ROOT}" > /dev/null
   echo "Updating otterdog config repo..."
-  
+
   # Check for unstaged changes and stash if necessary
   if ! git diff-files --quiet; then
     echo "Unstaged changes detected. Stashing them..."
@@ -78,15 +78,15 @@ prepare_otterdog() {
   else
     STASHED=false
   fi
-  
+
   git pull
-  
+
   # Reapply stashed changes if any
   if [[ "${STASHED}" == "true" ]]; then
     echo "Reapplying stashed changes..."
     git stash pop
   fi
-  
+
   echo "Adding config to otterdog.json..."
   cat <<EOF
     {
@@ -98,14 +98,14 @@ prepare_otterdog() {
 EOF
   printf "\n# TODO: Add config to otterdog.json manually...\n"
   read -rsp $'Once you are done, press any key to continue...\n' -n1
-  
+
   # Ask if user wants to test web-login
   _question_action "test otterdog web-login" test_weblogin
-  
+
   # Show the changes to be committed
   printf "\n# Changes to otterdog.json:\n"
   git --no-pager diff otterdog.json
-  
+
   # Commit and push otterdog.json change
   printf "\n# Committing and pushing otterdog.json changes...\n"
   read -rp "Enter the issue URL (e.g., https://gitlab.eclipse.org/eclipsefdn/emo-team/emo/-/issues/1106): " ISSUE_URL

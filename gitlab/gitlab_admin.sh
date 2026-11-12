@@ -17,7 +17,7 @@ set -o pipefail
 IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 
-PERSONAL_ACCESS_TOKEN="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "gitlab-token")"
+PERSONAL_ACCESS_TOKEN="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "gitlab-token")"
 TOKEN_HEADER="PRIVATE-TOKEN: ${PERSONAL_ACCESS_TOKEN}"
 API_BASE_URL="${API_BASE_URL:-"https://gitlab.eclipse.org/api/v4"}"
 

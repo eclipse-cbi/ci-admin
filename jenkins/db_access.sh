@@ -21,10 +21,10 @@ CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 #shellcheck disable=SC1091
 source "${CI_ADMIN_ROOT}/pass/pass_wrapper.sh"
 
-DB_SERVER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "server" "db_server")"
-DB_SERVER_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "user" "db_server")"
-DB_SERVER_MYSQL_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "mysql_user" "db_server")"
-DB_SERVER_MYSQL_PW="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "mysql_pw" "db_server")"
+DB_SERVER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "db_server.server")"
+DB_SERVER_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "db_server.user")"
+DB_SERVER_MYSQL_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "db_server.mysql_user")"
+DB_SERVER_MYSQL_PW="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "db_server.mysql_pw")"
 
 help() {
   printf "Available commands:\n"
@@ -60,7 +60,7 @@ _query_db() {
   expect -c "
   #5 seconds timeout
   set timeout 5
-  
+
   # ssh to remote
   spawn ssh $user@$server
 
@@ -77,7 +77,7 @@ _query_db() {
   interact -o -nobuffer -re \"$mysqlPasswordPrompt\" return
   send \"$mysqlPw\r\"
   expect -re \"$mysqlPrompt\"
-  
+
   send \"$mysqlQuery\"
   expect -re \"Query OK, 1 row affected*\"
 

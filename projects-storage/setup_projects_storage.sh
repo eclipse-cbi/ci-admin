@@ -32,11 +32,11 @@ if [[ -z "${PROJECT_NAME}" ]]; then
   exit 1
 fi
 
-FILE_SERVER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "server" "file_server")"
-FILE_SERVER_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "user" "file_server")"
-FILE_SERVER_PW="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "pw" "file_server")"
-FILE_SERVER_PW_ROOT="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "pw_root" "file_server")"
-FILE_SERVER_PW_LDAP="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "pw_ldap" "file_server")"
+FILE_SERVER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "file_server.server")"
+FILE_SERVER_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh"  "file_server.user")"
+FILE_SERVER_PW="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "file_server.pw")"
+FILE_SERVER_PW_ROOT="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "file_server.pw_root")"
+FILE_SERVER_PW_LDAP="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "file_server.pw_ldap")"
 
 check_genie_user() {
   local project_name="${1:-}"

@@ -18,7 +18,7 @@ CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
 MATRIX_ENV=${MATRIX_ENV:-""}
 
-MATRIX_ACCESS_TOKEN="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "matrix-token")"
+MATRIX_ACCESS_TOKEN="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "matrix-token")"
 
 TOKEN_HEADER="Authorization: Bearer ${MATRIX_ACCESS_TOKEN}"
 

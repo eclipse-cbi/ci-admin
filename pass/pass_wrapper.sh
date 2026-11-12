@@ -42,7 +42,7 @@ passw() {
   fi
 
   local PASSWORD_STORE_DIR
-  PASSWORD_STORE_DIR="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "${store}-dir" "password-store")"
+  PASSWORD_STORE_DIR="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "password-store.${store}-dir")"
   PASSWORD_STORE_DIR="$(readlink -f "${PASSWORD_STORE_DIR/#~\//${HOME}/}")"
   export PASSWORD_STORE_DIR
 

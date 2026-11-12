@@ -54,10 +54,10 @@ API_URL="$(jq -r ".${JDK_NAME}[].url" "${JDK_CONFIG}")"
 OUTPUT_FILE="${SCRIPT_FOLDER}/${JDK_NAME}_jdk_versions.json"
 BASE_PATH="/home/data/cbi/buildtools/java/${JDK_NAME}"
 
-BACKEND_SERVER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "server" "backend_server")"
-BACKEND_SERVER_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "user" "backend_server")"
-BACKEND_SERVER_PW="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "pw" "backend_server")"
-BACKEND_SERVER_PW_ROOT="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "pw_root" "backend_server")"
+BACKEND_SERVER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "backend_server.server")"
+BACKEND_SERVER_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "backend_server.user")"
+BACKEND_SERVER_PW="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "backend_server.pw")"
+BACKEND_SERVER_PW_ROOT="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "backend_server.pw_root")"
 
 CONNECTION="${BACKEND_SERVER_USER}@${BACKEND_SERVER}"
 
@@ -341,7 +341,7 @@ update() {
 
   #TODO: reliably identify the new dir and set the symlink accordingly
   #TODO: this still needs to be fixed for non-temurin JDKs
-  
+
   if { \"$extraction_dir\" != \"$json_version\" } {
     send \"mv ${extraction_dir} ${json_version}\r\"
   }
@@ -430,7 +430,7 @@ wiki_text() {
     local build_number
     build_number="$(jq -r ".${JDK_NAME}[] | select(.jdk_version==\"$version\") | .build_number" "${OUTPUT_FILE}" | sed -E 's/jdk-?//')"
     early_access=""
-    
+
     if [[ ${build_number} = *-ea* ]]; then
       early_access="(**Early Access**) "
       echo "* ${JDK_NAME}-ea-latest ${early_access}\`/opt/tools/java/${JDK_NAME}/jdk-${version}/latest\` = **${build_number}**"

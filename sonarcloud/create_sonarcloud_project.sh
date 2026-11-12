@@ -31,8 +31,8 @@ DRY_RUN=false
 #shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 LOCAL_CONFIG="${HOME}/.cbi/config"
-SONAR_TOKEN="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "sonar-token")"
-JIRO_ROOT_DIR="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "jiro-root-dir")"
+SONAR_TOKEN="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "sonar-token")"
+JIRO_ROOT_DIR="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "jiro-root-dir")"
 
 usage() {
   printf "Usage: %s project_name sonar_name sonar_project_id [sonar_org]\n" "${SCRIPT_NAME}"

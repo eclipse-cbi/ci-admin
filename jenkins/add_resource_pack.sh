@@ -92,8 +92,8 @@ fi
 
 #COMMENT is optional
 
-JIRO_ROOT_FOLDER="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "jiro-root-dir")"
-CBI_SPONSORSHIPS_API_ROOT_DIR="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "cbi-sponsorships-api-root-dir")"
+JIRO_ROOT_FOLDER="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "jiro-root-dir")"
+CBI_SPONSORSHIPS_API_ROOT_DIR="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "cbi-sponsorships-api-root-dir")"
 
 check_avail() {
   local resource="${1:-}"

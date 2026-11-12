@@ -30,7 +30,7 @@ if [[ -z "${PROJECT_NAME}" ]]; then
   exit 1
 fi
 
-JIRO_ROOT_FOLDER="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "jiro-root-dir")"
+JIRO_ROOT_FOLDER="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "jiro-root-dir")"
 
 cleanup() {
   rm -rf "secret-subkeys.asc" "public-keys.asc" "secret-keys.asc"

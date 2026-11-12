@@ -8,6 +8,8 @@
 # SPDX-License-Identifier: EPL-2.0 OR MIT
 #*******************************************************************************
 
+# Creates a GitLab bot and an API token for the Dash license vetting workflow
+
 # Bash strict-mode
 set -o errexit
 set -o nounset
@@ -17,7 +19,7 @@ IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
-PROJECTS_BOTS_API_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "projects-bots-api-root-dir")"
+PROJECTS_BOTS_API_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "projects-bots-api-root-dir")"
 
 PROJECT_NAME="${1:-}"
 SHORT_NAME="${PROJECT_NAME##*.}"

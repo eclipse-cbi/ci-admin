@@ -15,7 +15,7 @@ set -o pipefail
 IFS=$'\n\t'
 
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
-PASSWORD_STORE_DIR="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "cbi-dir" "password-store")"
+PASSWORD_STORE_DIR="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "password-store.cbi-dir")"
 
 bot_counter=0
 gh_counter=0

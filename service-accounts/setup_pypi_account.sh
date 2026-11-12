@@ -20,7 +20,7 @@ CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 #shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../utils/common.sh"
 
-JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
+JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "jiro-root-dir")"
 
 PROJECT_NAME="${1:-}"
 
@@ -74,7 +74,7 @@ EOF
 
 otterdog_org_secrets() {
   cat <<EOF
-  
+
   Add the following organization secrets at org level to the otterdog configuraton:
   ---------------------------------------------------------------------------------
   1. Checkout the otterdog config repo:

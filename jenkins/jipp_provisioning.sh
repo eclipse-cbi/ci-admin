@@ -68,7 +68,7 @@ if [ -z "${DISPLAY_NAME}" ]; then
   fi
 fi
 
-JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
+JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "jiro-root-dir")"
 
 
 setup_projects_storage() {

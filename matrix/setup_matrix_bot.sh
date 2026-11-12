@@ -22,7 +22,7 @@ source "${SCRIPT_FOLDER}/../utils/common.sh"
 #shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 
-JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
+JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "jiro-root-dir")"
 
 PROJECT_NAME="${1:-}"
 SHORT_NAME="${PROJECT_NAME##*.}"
@@ -59,7 +59,7 @@ create_matrix_bot_account() {
 validate_consent(){
   local username form_secret hash url
   username=$(passw cbi "${PW_STORE_PATH}/username")
-  
+
   matrix_secret_env=${MATRIX_ENV#-}
   matrix_secret_env=${matrix_secret_env:-"prod"}
 
@@ -80,7 +80,7 @@ get_token() {
 }
 
 join_room() {
-  local botToken  
+  local botToken
   botToken=$(passw cbi "${PW_STORE_PATH}/token")
 
   read -rp "Room Alias in which the bot interact (i.e: #${SHORT_NAME}-releng:${MATRIX_DOMAIN})" room
@@ -88,7 +88,7 @@ join_room() {
 }
 
 leave_eclipse_space() {
-  local botToken  
+  local botToken
   botToken=$(passw cbi "${PW_STORE_PATH}/token")
 
   local room_aliases=("#eclipse-projects:${MATRIX_DOMAIN}" "#eclipsefdn:${MATRIX_DOMAIN}")
@@ -107,7 +107,7 @@ add_jenkins_credentials() {
     "${JIRO_ROOT_FOLDER}/jenkins-create-credentials-token.sh" "auto" "${PROJECT_NAME}"
   else
     echo "No Jenkins instance for ${PROJECT_NAME}..."
-  fi 
+  fi
 }
 
 #### MAIN

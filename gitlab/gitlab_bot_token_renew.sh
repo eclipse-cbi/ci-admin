@@ -17,8 +17,8 @@ set -o pipefail
 IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
-JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
-OTTERDOG_CONFIGS_ROOT="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "otterdog-configs-root-dir")"
+JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "jiro-root-dir")"
+OTTERDOG_CONFIGS_ROOT="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "otterdog-configs-root-dir")"
 GITLAB_PASS_DOMAIN="gitlab.eclipse.org"
 
 #shellcheck disable=SC1091
@@ -40,7 +40,7 @@ Usage: $(basename "${BASH_SOURCE[0]}") <project_id> [-h] [-v] [-f] [-t]
 
 Renew GitLab API token for the bot user of the project <project_id> or all projects bots registered in the secretsmanager.
 
-e.g: 
+e.g:
 * gitlab_bot_token_renew.sh technology.cbi -f # Renew the token and update tools for the project technology.cbi
 * gitlab_bot_token_renew.sh -f # Renew the token and update tools for all projects bots registered in the secretsmanager
 
@@ -49,7 +49,7 @@ Available options:
 -h  Help
 -v  Verbose mode
 
-# Script params: 
+# Script params:
 -f  FORCE_UPDATE: Force update token and tools for the project
 -t  FORCE_TOOLS_UPDATE: Force update tools for the project
 
@@ -65,7 +65,7 @@ if [[ -n "${PARAM}" ]] && [[ "${PARAM}" =~ ^- ]]; then
   OPTIND=1
 else
   OPTIND=2
-fi 
+fi
 
 while getopts ":hvtf" option; do
   case $option in
@@ -98,7 +98,7 @@ fi
 
 if [[ ${FORCE_UPDATE} == "true" ]]; then
   echo "WARN: Force update token and tools"
-fi  
+fi
 if [[ ${FORCE_TOOLS_UPDATE} == "true" ]]; then
   echo "WARN: Force update tools"
 fi
@@ -122,8 +122,8 @@ renew_token() {
     echo "############### Check project: ${project_id} ###############"
     token=$(vault kv get -mount="${VAULT_MOUNT_PATH}" -field="api-token" "${project_id}/gitlab.eclipse.org" 2>/dev/null) || true
     [[ -z "$token" ]] && echo "No GitLab api token found for ${project_id}" && return
-    
-    username=$(vault kv get -mount="${VAULT_MOUNT_PATH}" -field="username" "${project_id}/gitlab.eclipse.org" 2>/dev/null) || true        
+
+    username=$(vault kv get -mount="${VAULT_MOUNT_PATH}" -field="username" "${project_id}/gitlab.eclipse.org" 2>/dev/null) || true
     if [[ "${FORCE_UPDATE}" == "true" ]]; then
         revoke_token "${project_id}" "${username}"
         create_token "${project_id}" "${username}"
@@ -137,13 +137,13 @@ renew_token() {
                 update_tools "${project_id}"
             fi
         elif [[ "${FORCE_TOOLS_UPDATE}" == "true" ]]; then
-            update_tools "${project_id}" 
+            update_tools "${project_id}"
         else
             echo "No tools update for ${project_id}"
         fi
     else
-        create_token "${project_id}" "${username}"   
-        update_tools "${project_id}"             
+        create_token "${project_id}" "${username}"
+        update_tools "${project_id}"
     fi
 }
 
@@ -196,7 +196,7 @@ update_otterdog() {
     if [[ -n "${otterdog_conf}" ]]; then
         github_id=$(echo "$otterdog_conf" | jq -r '.github_id')
         echo "Update api token with Otterdog for ${project_id}(${github_id})"
-        PASSWORD_STORE_DIR="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "get_var" "cbi-dir" "password-store")"
+        PASSWORD_STORE_DIR="$("${SCRIPT_FOLDER}/../utils/local_config.sh" "password-store.cbi-dir")"
         export PASSWORD_STORE_DIR
         otterdog fetch-config -f "${github_id}"
         otterdog apply -f "${github_id}" -n --update-secrets --update-filter "*GITLAB_API_TOKEN"
@@ -208,6 +208,6 @@ update_otterdog() {
 
 if [[ -z "${PARAM}" || "${PARAM}" =~ ^- ]]; then
     renew_all_tokens
-else 
+else
     renew_token "${PARAM}"
 fi

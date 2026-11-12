@@ -17,7 +17,7 @@ IFS=$'\n\t'
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
 CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
-TOKEN="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "access_token" "github")"
+TOKEN="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "github.access_token")"
 #shellcheck disable=SC2089
 EVENTS='["push","pull_request"]'
 
@@ -40,7 +40,7 @@ org() {
     printf "ERROR: a project name must be given.\n"
     exit 1
   fi
-  
+
   # check that org name is not empty
   if [[ -z "${org}" ]]; then
     printf "ERROR: a GitHub organization name must be given.\n"
@@ -57,7 +57,7 @@ org() {
     -H "X-GitHub-Api-Version: 2022-11-28" \
     "https://api.github.com/orgs/${org}/hooks" \
     -d '{"name":"web","active":true,"events":'${EVENTS}',"config":{"url":"'${webhook_url}'","content_type":"json"}}')"
-  
+
   if [[ "$(echo "${response}" | jq .errors)" != "null" ]] || [[ "$(echo "${response}" | jq .message)" != "null" ]]; then
     echo "ERROR:"
     printf " Message: %s\n" "$(echo "${response}" | jq '.message')"
@@ -76,7 +76,7 @@ repo() {
     printf "ERROR: a project name must be given.\n"
     exit 1
   fi
-  
+
   # check that repo name is not empty
   if [[ -z "${repo}" ]]; then
     printf "ERROR: a GitHub repo name (org/repo) must be given.\n"
@@ -93,7 +93,7 @@ repo() {
     -H "X-GitHub-Api-Version: 2022-11-28" \
     "https://api.github.com/repos/${repo}/hooks" \
     -d '{"name":"web","active":true,"events":'${EVENTS}',"config":{"url":"'${webhook_url}'","content_type":"json"}}')"
-  
+
   if [[ "$(echo "${response}" | jq .errors)" != "null" ]] || [[ "$(echo "${response}" | jq .message)" != "null" ]]; then
     echo "ERROR:"
     printf " Message: %s\n" "$(echo "${response}" | jq '.message')"
@@ -113,4 +113,3 @@ if [[ -z "${1:-}" ]]; then
 fi
 
 
-  

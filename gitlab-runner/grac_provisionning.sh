@@ -52,7 +52,7 @@ if [ -z "${DISPLAY_NAME}" ]; then
   fi
 fi
 
-GRAC_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "grac-root-dir")"
+GRAC_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "grac-root-dir")"
 
 setup_projects_storage() {
   printf "\n\n### Setting up projects storage credentials...\n"

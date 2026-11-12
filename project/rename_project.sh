@@ -26,8 +26,8 @@ source "${SCRIPT_FOLDER}/../utils/common.sh"
 #shellcheck disable=SC1091
 source "${CI_ADMIN_ROOT}/pass/pass_wrapper.sh"
 
-JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
-PROJECTS_BOTS_API_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "projects-bots-api-root-dir")"
+JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "jiro-root-dir")"
+PROJECTS_BOTS_API_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "projects-bots-api-root-dir")"
 
 PROJECT_NAME="${1:-}"
 NEW_PROJECT_NAME="${2:-}"
@@ -54,7 +54,7 @@ RENAME_LOG="rename_project_${PROJECT_NAME}_to_${NEW_PROJECT_NAME}.log"
 # adapt pass credentials
 fix_pass() {
   local password_store_dir
-  password_store_dir="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "cbi-dir" "password-store")"
+  password_store_dir="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "password-store.cbi-dir")"
   local new_pass_project="bots/${NEW_PROJECT_NAME}"
 
   echo "# Updating pass credentials..."

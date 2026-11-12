@@ -19,11 +19,11 @@ CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 #shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../utils/common.sh"
 
-JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "jiro-root-dir")"
-BACKEND_SERVER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "server" "backend_server")"
-BACKEND_SERVER_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "user" "backend_server")"
-BACKEND_SERVER_PW="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "pw" "backend_server")"
-BACKEND_SERVER_PW_ROOT="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "pw_root" "backend_server")"
+JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "jiro-root-dir")"
+BACKEND_SERVER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "backend_server.server")"
+BACKEND_SERVER_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "backend_server.user")"
+BACKEND_SERVER_PW="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "backend_server.pw")"
+BACKEND_SERVER_PW_ROOT="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "backend_server.pw_root")"
 
 maven_version="${1:-}"
 FILE_NAME="apache-maven-${maven_version}-bin.tar.gz"
@@ -128,7 +128,7 @@ update_jiro_template() {
   fi
   # update /jiro/templates/jenkins/partials/tools-maven.hbs
   maven_template="${JIRO_ROOT_FOLDER}/templates/jenkins/partials/tools-maven.hbs"
-  yq e ".maven.installations += [{\"name\": \"apache-maven-${maven_version}\", \"home\": \"/opt/tools/apache-maven/${maven_version}\"}]" -i "${maven_template}" 
+  yq e ".maven.installations += [{\"name\": \"apache-maven-${maven_version}\", \"home\": \"/opt/tools/apache-maven/${maven_version}\"}]" -i "${maven_template}"
   # fix order of entries and quotes
   yq '.maven.installations |= sort_by(.name) | .maven.installations |= reverse | .. style="double"' -i "${maven_template}"
   pushd "${JIRO_ROOT_FOLDER}"

@@ -14,7 +14,7 @@ set -o nounset
 set -o pipefail
 
 IFS=$'\n\t'
-SCRIPT_FOLDER="$(dirname "$(readlink -f "${0}")")"
+SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
 CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 
@@ -32,11 +32,14 @@ if [[ -z "${PROJECT_NAME}" ]]; then
   exit 1
 fi
 
-FILE_SERVER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "file_server.server")"
-FILE_SERVER_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh"  "file_server.user")"
-FILE_SERVER_PW="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "file_server.pw")"
-FILE_SERVER_PW_ROOT="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "file_server.pw_root")"
-FILE_SERVER_PW_LDAP="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "file_server.pw_ldap")"
+RELENG_COLLECTION_ID="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "bitwarden.releng_collection_id")"
+BW_SECRET="$("${CI_ADMIN_ROOT}/bitwarden/get_bw_secrets.sh" "${RELENG_COLLECTION_ID}" "ci-admin_file-server")"
+
+FILE_SERVER="$(jq -r '.[].fields[] | select(.name=="server") | .value' <<< "${BW_SECRET}")"
+FILE_SERVER_USER="$(jq -r '.[].fields[] | select(.name=="login_user") | .value' <<< "${BW_SECRET}")"
+FILE_SERVER_PW="$(jq -r '.[].fields[] | select(.name=="login_pw") | .value' <<< "${BW_SECRET}")"
+FILE_SERVER_PW_ROOT="$(jq -r '.[].login.password' <<< "${BW_SECRET}")"
+FILE_SERVER_PW_LDAP="$(jq -r '.[].fields[] | select(.name=="ldap_pw") | .value' <<< "${BW_SECRET}")"
 
 check_genie_user() {
   local project_name="${1:-}"
@@ -60,7 +63,7 @@ check_genie_user() {
   expect {
     -re \"$passwordPrompt\" {
       #interact -o -nobuffer -re \"$passwordPrompt\" return
-      send [exec pass $pw]\r
+      send \"$pw\r\"
     }
     #TODO: only works one time
     -re \"passphrase\" {
@@ -111,7 +114,7 @@ fix_ldap() {
   expect {
     -re \"$passwordPrompt\" {
       #interact -o -nobuffer -re \"$passwordPrompt\" return
-      send [exec pass $pw]\r
+      send \"$pw\r\"
     }
     #TODO: only works one time
     -re \"passphrase\" {
@@ -123,7 +126,7 @@ fix_ldap() {
   # su to root
   send \"su -\r\"
   interact -o -nobuffer -re \"$passwordPrompt\" return
-  send \"[exec pass $pwRoot]\r\"
+  send \"$pwRoot\r\"
   expect -re \"$serverRootPrompt\"
 
   # fix LDAP
@@ -131,7 +134,7 @@ fix_ldap() {
   send \"./fix_ldap.sh $genieUser\r\"
   interact -o -nobuffer -re \"$ldapPasswordPrompt\" return
   send_user \"\n\"
-  send \"[exec pass $pwLdap]\r\"
+  send \"$pwLdap\r\"
 
   # exit su and exit ssh
   send \"exit\rexit\r\"
@@ -171,7 +174,7 @@ add_pub_key() {
   expect {
     -re \"$passwordPrompt\" {
       #interact -o -nobuffer -re \"$passwordPrompt\" return
-      send [exec pass $pw]\r
+      send \"$pw\r\"
     }
     #TODO: only works one time
     -re \"passphrase\" {
@@ -183,7 +186,7 @@ add_pub_key() {
   # su to root
   send \"su -\r\"
   interact -o -nobuffer -re \"$passwordPrompt\" return
-  send [exec pass $pwRoot]\r
+  send \"$pwRoot\r\"
   expect -re \"$serverRootPrompt\"
 
   # su to genie.user

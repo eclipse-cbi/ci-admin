@@ -54,10 +54,13 @@ API_URL="$(jq -r ".${JDK_NAME}[].url" "${JDK_CONFIG}")"
 OUTPUT_FILE="${SCRIPT_FOLDER}/${JDK_NAME}_jdk_versions.json"
 BASE_PATH="/home/data/cbi/buildtools/java/${JDK_NAME}"
 
-BACKEND_SERVER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "backend_server.server")"
-BACKEND_SERVER_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "backend_server.user")"
-BACKEND_SERVER_PW="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "backend_server.pw")"
-BACKEND_SERVER_PW_ROOT="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "backend_server.pw_root")"
+RELENG_COLLECTION_ID="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "bitwarden.releng_collection_id")"
+BW_SECRET="$("${CI_ADMIN_ROOT}/bitwarden/get_bw_secrets.sh" "${RELENG_COLLECTION_ID}" "ci-admin_backend-server")"
+
+BACKEND_SERVER="$(jq -r '.[].fields[] | select(.name=="server") | .value' <<< "${BW_SECRET}")"
+BACKEND_SERVER_USER="$(jq -r '.[].fields[] | select(.name=="login_user") | .value' <<< "${BW_SECRET}")"
+BACKEND_SERVER_PW="$(jq -r '.[].fields[] | select(.name=="login_pw") | .value' <<< "${BW_SECRET}")"
+BACKEND_SERVER_PW_ROOT="$(jq -r '.[].login.password' <<< "${BW_SECRET}")"
 
 CONNECTION="${BACKEND_SERVER_USER}@${BACKEND_SERVER}"
 
@@ -315,7 +318,7 @@ update() {
 
   expect {
     -re \"$passwordPrompt\" {
-      send [exec pass $pw]\r
+      send \"$pw\r\"
     }
     #TODO: only works one time
     -re \"passphrase\" {
@@ -327,7 +330,7 @@ update() {
   # su to root
   send \"su -\r\"
   interact -o -nobuffer -re \"$passwordPrompt\" return
-  send [exec pass $pwRoot]\r
+  send \"$pwRoot\r\"
   expect -re \"$serverRootPrompt\"
 
   # create dir if it does not exist yet

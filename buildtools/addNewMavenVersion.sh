@@ -19,23 +19,28 @@ CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 #shellcheck disable=SC1091
 source "${SCRIPT_FOLDER}/../utils/common.sh"
 
-JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "jiro-root-dir")"
-BACKEND_SERVER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "backend_server.server")"
-BACKEND_SERVER_USER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "backend_server.user")"
-BACKEND_SERVER_PW="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "backend_server.pw")"
-BACKEND_SERVER_PW_ROOT="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "backend_server.pw_root")"
-
 maven_version="${1:-}"
-FILE_NAME="apache-maven-${maven_version}-bin.tar.gz"
-DOWNLOAD_URL="https://archive.apache.org/dist/maven/maven-3/${maven_version}/binaries/${FILE_NAME}"
-
-MAVEN_TOOLS_PATH="/home/data/cbi/buildtools/apache-maven"
 
 # check that maven version is not empty
 if [ -z "${maven_version}" ]; then
   printf "ERROR: a maven version must be given (eg. '3.8.4').\n"
   exit 1
 fi
+
+FILE_NAME="apache-maven-${maven_version}-bin.tar.gz"
+DOWNLOAD_URL="https://archive.apache.org/dist/maven/maven-3/${maven_version}/binaries/${FILE_NAME}"
+
+MAVEN_TOOLS_PATH="/home/data/cbi/buildtools/apache-maven"
+
+RELENG_COLLECTION_ID="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "bitwarden.releng_collection_id")"
+BW_SECRET="$("${CI_ADMIN_ROOT}/bitwarden/get_bw_secrets.sh" "${RELENG_COLLECTION_ID}" "ci-admin_backend-server")"
+
+BACKEND_SERVER="$(jq -r '.[].fields[] | select(.name=="server") | .value' <<< "${BW_SECRET}")"
+BACKEND_SERVER_USER="$(jq -r '.[].fields[] | select(.name=="login_user") | .value' <<< "${BW_SECRET}")"
+BACKEND_SERVER_PW="$(jq -r '.[].fields[] | select(.name=="login_pw") | .value' <<< "${BW_SECRET}")"
+BACKEND_SERVER_PW_ROOT="$(jq -r '.[].login.password' <<< "${BW_SECRET}")"
+
+JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "jiro-root-dir")"
 
 download_maven() {
   wget -c "${DOWNLOAD_URL}"
@@ -85,7 +90,7 @@ update() {
 
   expect {
     -re \"$passwordPrompt\" {
-      send [exec pass $pw]\r
+      send \"$pw\r\"
     }
     #TODO: only works one time
     -re \"passphrase\" {
@@ -97,7 +102,7 @@ update() {
   # su to root
   send \"su -\r\"
   interact -o -nobuffer -re \"$passwordPrompt\" return
-  send [exec pass $pwRoot]\r
+  send \"$pwRoot\r\"
   expect -re \"$serverRootPrompt\"
 
   # extract file

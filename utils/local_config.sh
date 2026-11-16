@@ -48,7 +48,7 @@ _check_if_var_exists() {
   local var="${1:-}"
   local key="${2:-}"
   if [[ -z "${var}" ]] || [[ "${var}" == "null" ]]; then
-    printf "ERROR: '%s' must be set in %s.\n" "${key}" "${LOCAL_CONFIG}" > /dev/tty
+    >&2 printf "ERROR: '%s' must be set in %s.\n" "${key}" "${LOCAL_CONFIG}" > /dev/tty
     exit 1
   fi
 }
@@ -64,7 +64,7 @@ get_var() {
   local lcv
 
   if [[ -z "${key}" ]]; then
-    printf "ERROR: 'key' must be set\n" > /dev/tty
+    >&2 printf "ERROR: 'key' must be set\n" > /dev/tty
     exit 1
   fi
 

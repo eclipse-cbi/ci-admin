@@ -32,8 +32,7 @@ if [[ -z "${PROJECT_NAME}" ]]; then
   exit 1
 fi
 
-RELENG_COLLECTION_ID="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "bitwarden.releng_collection_id")"
-BW_SECRET="$("${CI_ADMIN_ROOT}/bitwarden/get_bw_secrets.sh" "${RELENG_COLLECTION_ID}" "ci-admin_file-server")"
+BW_SECRET="$("${CI_ADMIN_ROOT}/bitwarden/get_bw_secrets.sh" "ci-admin_file-server")"
 
 FILE_SERVER="$(jq -r '.[].fields[] | select(.name=="server") | .value' <<< "${BW_SECRET}")"
 FILE_SERVER_USER="$(jq -r '.[].fields[] | select(.name=="login_user") | .value' <<< "${BW_SECRET}")"

@@ -10,6 +10,15 @@
 # This tools requires the bw executable to be installed
 # https://vault.bitwarden.com/download/?app=cli&platform=linux
 
+# This script also expects ${HOME}/.cbi/config to exist with the following content
+#{
+#  "bitwarden": {
+#    "client_id": "<client_id>",
+#    "client_secret": "<client_secret>",
+#    "releng_collection_id": "<releng_collection_id>"
+#  },
+#}
+
 # TODO:
 # - check if bw tool is installed
 
@@ -21,11 +30,11 @@ set -o pipefail
 #set -x
 
 IFS=$'\n\t'
-
 SCRIPT_FOLDER="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
 BW_CLIENTID="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "bitwarden.client_id")"
 BW_CLIENTSECRET="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "bitwarden.client_secret")"
+BW_COLLECTION_ID="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "bitwarden.releng_collection_id")"
 
 export BW_CLIENTID BW_CLIENTSECRET
 
@@ -43,14 +52,7 @@ BW_SESSION="${response}"
 export BW_SESSION
 
 #main
-collection_id="${1:-}"
-secret_name="${2:-}"
-
-# check that collection_id is not empty
-if [[ -z "${collection_id}" ]]; then
-  printf "ERROR: a BitWarden collection ID must be given.\n"
-  exit 1
-fi
+secret_name="${1:-}"
 
 # check that secret name is not empty
 if [[ -z "${secret_name}" ]]; then
@@ -59,7 +61,7 @@ if [[ -z "${secret_name}" ]]; then
 fi
 
 # TODO: gracefully deal with more than one found secret
-secret="$(bw list items --collectionid "${collection_id}" --search "${secret_name}")"
+secret="$(bw list items --collectionid "${BW_COLLECTION_ID}" --search "${secret_name}")"
 
 echo "${secret}" | jq -r '.'
 

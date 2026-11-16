@@ -32,8 +32,7 @@ DOWNLOAD_URL="https://archive.apache.org/dist/maven/maven-3/${maven_version}/bin
 
 MAVEN_TOOLS_PATH="/home/data/cbi/buildtools/apache-maven"
 
-RELENG_COLLECTION_ID="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "bitwarden.releng_collection_id")"
-BW_SECRET="$("${CI_ADMIN_ROOT}/bitwarden/get_bw_secrets.sh" "${RELENG_COLLECTION_ID}" "ci-admin_backend-server")"
+BW_SECRET="$("${CI_ADMIN_ROOT}/bitwarden/get_bw_secrets.sh" "ci-admin_backend-server")"
 
 BACKEND_SERVER="$(jq -r '.[].fields[] | select(.name=="server") | .value' <<< "${BW_SECRET}")"
 BACKEND_SERVER_USER="$(jq -r '.[].fields[] | select(.name=="login_user") | .value' <<< "${BW_SECRET}")"

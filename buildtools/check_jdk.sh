@@ -54,8 +54,7 @@ API_URL="$(jq -r ".${JDK_NAME}[].url" "${JDK_CONFIG}")"
 OUTPUT_FILE="${SCRIPT_FOLDER}/${JDK_NAME}_jdk_versions.json"
 BASE_PATH="/home/data/cbi/buildtools/java/${JDK_NAME}"
 
-RELENG_COLLECTION_ID="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "bitwarden.releng_collection_id")"
-BW_SECRET="$("${CI_ADMIN_ROOT}/bitwarden/get_bw_secrets.sh" "${RELENG_COLLECTION_ID}" "ci-admin_backend-server")"
+BW_SECRET="$("${CI_ADMIN_ROOT}/bitwarden/get_bw_secrets.sh" "ci-admin_backend-server")"
 
 BACKEND_SERVER="$(jq -r '.[].fields[] | select(.name=="server") | .value' <<< "${BW_SECRET}")"
 BACKEND_SERVER_USER="$(jq -r '.[].fields[] | select(.name=="login_user") | .value' <<< "${BW_SECRET}")"

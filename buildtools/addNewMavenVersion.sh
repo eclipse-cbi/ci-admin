@@ -28,7 +28,12 @@ if [ -z "${maven_version}" ]; then
 fi
 
 FILE_NAME="apache-maven-${maven_version}-bin.tar.gz"
-DOWNLOAD_URL="https://archive.apache.org/dist/maven/maven-3/${maven_version}/binaries/${FILE_NAME}"
+
+if [[ "${maven_version}" == "4"* ]]; then
+  DOWNLOAD_URL="https://archive.apache.org/dist/maven/maven-4/${maven_version}/binaries/${FILE_NAME}"
+else
+  DOWNLOAD_URL="https://archive.apache.org/dist/maven/maven-3/${maven_version}/binaries/${FILE_NAME}"
+fi
 
 MAVEN_TOOLS_PATH="/home/data/cbi/buildtools/apache-maven"
 

@@ -128,7 +128,7 @@ PLEASE NOTE:
 
 * You can find more info about Jenkins here: https://github.com/eclipse-cbi/jiro/wiki
 
-Please let us know if you need any additional plug-ins.
+Please let us know if you need any additional plugins.
 
 -----------------------------------------------------
 

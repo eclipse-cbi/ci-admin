@@ -39,10 +39,23 @@ MAVEN_TOOLS_PATH="/home/data/cbi/buildtools/apache-maven"
 
 BW_SECRET="$("${CI_ADMIN_ROOT}/bitwarden/get_bw_secrets.sh" "ci-admin_backend-server")"
 
-BACKEND_SERVER="$(jq -r '.[].fields[] | select(.name=="server") | .value' <<< "${BW_SECRET}")"
-BACKEND_SERVER_USER="$(jq -r '.[].fields[] | select(.name=="login_user") | .value' <<< "${BW_SECRET}")"
-BACKEND_SERVER_PW="$(jq -r '.[].fields[] | select(.name=="login_pw") | .value' <<< "${BW_SECRET}")"
-BACKEND_SERVER_PW_ROOT="$(jq -r '.[].login.password' <<< "${BW_SECRET}")"
+get_secret_field() {
+  local field_name="${1:-}"
+  local field_value
+  field_value="$(jq -r '.[].fields[] | select(.name=="'"${field_name}"'").value' <<< "${BW_SECRET}")"
+
+  if [[ -z "${field_value}" ]]; then
+    >&2 echo "INFO: ${field_name} is empty."
+    exit 1
+  else
+    echo "${field_value}"
+  fi
+}
+
+BACKEND_SERVER="$(get_secret_field "server")"
+BACKEND_SERVER_USER="$(get_secret_field "login_user")"
+BACKEND_SERVER_PW="$(get_secret_field "login_pw")"
+BACKEND_SERVER_PW_ROOT="$(jq -r '.[].login.password' <<< "${BW_SECRET}")"  #FIXME
 
 JIRO_ROOT_FOLDER="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "jiro-root-dir")"
 

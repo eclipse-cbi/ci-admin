@@ -34,11 +34,24 @@ fi
 
 BW_SECRET="$("${CI_ADMIN_ROOT}/bitwarden/get_bw_secrets.sh" "ci-admin_file-server")"
 
-FILE_SERVER="$(jq -r '.[].fields[] | select(.name=="server") | .value' <<< "${BW_SECRET}")"
-FILE_SERVER_USER="$(jq -r '.[].fields[] | select(.name=="login_user") | .value' <<< "${BW_SECRET}")"
-FILE_SERVER_PW="$(jq -r '.[].fields[] | select(.name=="login_pw") | .value' <<< "${BW_SECRET}")"
-FILE_SERVER_PW_ROOT="$(jq -r '.[].login.password' <<< "${BW_SECRET}")"
-FILE_SERVER_PW_LDAP="$(jq -r '.[].fields[] | select(.name=="ldap_pw") | .value' <<< "${BW_SECRET}")"
+get_secret_field() {
+  local field_name="${1:-}"
+  local field_value
+  field_value="$(jq -r '.[].fields[] | select(.name=="'"${field_name}"'").value' <<< "${BW_SECRET}")"
+
+  if [[ -z "${field_value}" ]]; then
+    >&2 echo "INFO: ${field_name} is empty."
+    exit 1
+  else
+    echo "${field_value}"
+  fi
+}
+
+FILE_SERVER="$(get_secret_field "server")"
+FILE_SERVER_USER="$(get_secret_field "login_user")"
+FILE_SERVER_PW="$(get_secret_field "login_pw")"
+FILE_SERVER_PW_ROOT="$(jq -r '.[].login.password' <<< "${BW_SECRET}")" #FIXME
+FILE_SERVER_PW_LDAP="$(get_secret_field "ldap_pw")"
 
 check_genie_user() {
   local project_name="${1:-}"

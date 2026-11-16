@@ -22,7 +22,7 @@ source "${SCRIPT_FOLDER}/../pass/pass_wrapper.sh"
 GITHUB_PASS_DOMAIN="github.com"
 
 CI_ADMIN_ROOT="${SCRIPT_FOLDER}/.."
-LOCAL_TOKEN="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "get_var" "access_token" "github")"
+LOCAL_TOKEN="$("${CI_ADMIN_ROOT}/utils/local_config.sh" "github.access_token")"
 
 help() {
   printf "Available commands:\n"
@@ -38,7 +38,7 @@ create_github_hook() {
   local org="$3"
   local webhook_url="$4"
   local events="$5"
-  
+
   curl -sS \
     -w "\n%{http_code}" \
     -X POST \
@@ -50,14 +50,14 @@ create_github_hook() {
 }
 
 process_response() {
-  local response="$1"
-  local message="$2"  
+  local response="${1:-}"
+  local message="${2:-}"
   local http_code
   local content
-  
+
   http_code=$(echo "${response}" | tail -n 1)
   content=$(echo "${response}" | head -n -1)
-  
+
   case "${http_code}" in
     201)
       echo "INFO: Webhook created successfully with ${message}."
@@ -83,7 +83,7 @@ create_hook() {
   local short_name="${project_name##*.}"
   local webhook_url="https://ci.eclipse.org/${short_name}/github-webhook/"
   local events='["push","pull_request"]'
-  
+
   # check that project name is not empty
   if [[ -z "${project_name}" ]]; then
     printf "ERROR: a project name must be given.\n"
@@ -112,11 +112,11 @@ create_hook() {
 }
 
 org() {
-  create_hook "$1" "$2" "orgs"
+  create_hook "${1:-}" "${2:-}" "orgs"
 }
 
 repo() {
-  create_hook "$1" "$2" "repos"
+  create_hook "${1:-}" "${2:-}" "repos"
 }
 
 "$@"
